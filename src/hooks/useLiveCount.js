@@ -18,13 +18,14 @@ function deviceId() {
 }
 
 /**
- * How many people have the app open right now, this device included. While the app is visible it checks in every
- * 30 seconds, and straight away when you come back to it. A hidden tab stops checking in and drops off the count
- * after about 90 seconds. With no fresh number the pill stays hidden.
- * @returns {number | null}
+ * How many people have the app open right now (`count`, this device included) and how many other devices were seen
+ * in the last 2 hours (`recent`). While the app is visible it checks in every 30 seconds, and straight away when you
+ * come back to it. A hidden tab stops checking in and drops off the count after about 90 seconds. With no fresh
+ * answer this is null.
+ * @returns {{ count: number, recent: number } | null}
  */
 export function useLiveCount() {
-  const [count, setCount] = useState(/** @type {number | null} */ (null));
+  const [live, setLive] = useState(/** @type {{ count: number, recent: number } | null} */ (null));
   useEffect(() => {
     const id = deviceId();
     let controller = new AbortController();
@@ -36,10 +37,11 @@ export function useLiveCount() {
         .then((result) => {
           if (typeof result?.count !== 'number') return;
           lastOk = Date.now();
-          setCount(Math.max(1, result.count)); // this device is here, so never below one
+          // This device is here, so the count is never below one.
+          setLive({ count: Math.max(1, result.count), recent: typeof result.recent === 'number' ? result.recent : 0 });
         })
         .catch(() => {
-          if (Date.now() - lastOk > STALE_MS) setCount(null);
+          if (Date.now() - lastOk > STALE_MS) setLive(null);
         });
     };
     const onVisible = () => {
@@ -56,5 +58,5 @@ export function useLiveCount() {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
-  return count;
+  return live;
 }

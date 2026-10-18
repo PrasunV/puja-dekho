@@ -6,8 +6,10 @@ const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 /** A device counts as "exploring now" if it checked in within this long. The app checks in every 30 seconds. */
 export const LIVE_WINDOW_MS = 90_000;
-/** Check-ins older than this are deleted, so the table stays tiny. */
-const KEEP_MS = 10 * 60_000;
+/** "Somebody else was here recently" looks back this far. */
+export const RECENT_MS = 2 * 60 * 60_000;
+/** Check-ins older than this are deleted, so the table stays small (one short row per device). */
+const KEEP_MS = 3 * 60 * 60_000;
 const ID_PATTERN = /^[A-Za-z0-9_-]{8,64}$/;
 /** Crawlers and link-preview fetchers are not people. */
 const NOT_A_PERSON = /bot|crawl|spider|slurp|preview|facebookexternalhit|lighthouse|pingdom|uptime/i;
@@ -16,8 +18,10 @@ const NOT_A_PERSON = /bot|crawl|spider|slurp|preview|facebookexternalhit|lightho
  * The "people exploring now" counter. A small standalone handler (plain Node `(req, res)`), so it runs as its own
  * Vercel function at /api/live and also inside the Express server. It needs only the database.
  *
- * - GET  returns `{ count }`: how many devices checked in within the last 90 seconds.
- * - POST `?id=<random device id>` records that this device is here now and returns the same `{ count }`.
+ * - GET  returns `{ count, recent }`: `count` is how many devices checked in within the last 90 seconds, `recent` is
+ *   how many devices were seen in the last 2 hours, not counting the caller. The app only says "exploring now" when
+ *   `recent` is at least 1, so a quiet app never claims to be busy.
+ * - POST `?id=<random device id>` records that this device is here now and returns the same `{ count, recent }`.
  *   The id is a random string kept on the device. It is not tied to a person, and old ones are deleted.
  *
  * @param {object} [options]
@@ -74,12 +78,15 @@ export function createLiveHandler({ env = process.env, now = Date.now, random = 
       }
       const at = now();
       const cutoff = at - LIVE_WINDOW_MS;
+      const asked = new URL(req.url || '/', 'http://localhost').searchParams.get('id') || '';
+      const self = ID_PATTERN.test(asked) ? asked : '';
       const count = { sql: 'SELECT COUNT(*) AS n FROM live_presence WHERE seen > ?', args: [cutoff] };
+      const recent = { sql: 'SELECT COUNT(*) AS n FROM live_presence WHERE seen > ? AND id <> ?', args: [at - RECENT_MS, self] };
       /** @type {import('@libsql/client').InStatement[]} */
-      const statements = [count];
+      const statements = [count, recent];
 
       if (req.method === 'POST') {
-        const id = new URL(req.url || '/', 'http://localhost').searchParams.get('id') || '';
+        const id = asked;
         if (!ID_PATTERN.test(id)) return send(res, 400, { error: 'bad_id' });
         if (!NOT_A_PERSON.test(String(req.headers['user-agent'] || ''))) {
           statements.unshift({
@@ -93,8 +100,8 @@ export function createLiveHandler({ env = process.env, now = Date.now, random = 
 
       const client = await getClient();
       const results = await client.batch(statements, 'write');
-      const n = Number(results[statements.indexOf(count)].rows[0].n);
-      return send(res, 200, { count: n });
+      const n = (statement) => Number(results[statements.indexOf(statement)].rows[0].n);
+      return send(res, 200, { count: n(count), recent: n(recent) });
     } catch {
       return send(res, 503, { error: 'live_unavailable' });
     }

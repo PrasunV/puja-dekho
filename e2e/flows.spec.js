@@ -687,12 +687,9 @@ test.describe('people viewed / exploring now pill', () => {
   /** What a person reads in the pill once any roll has finished. */
   const readable = (page) =>
     page.locator('.view-text').evaluate((el) => /** @type {HTMLElement} */ (el).innerText.replace(/\s+/g, ' ').trim());
-
-  test('opens on "N people viewed", then rolls over to "N people exploring now" and the pill eases wider', async ({ page }) => {
-    await visits(page, { count: 15 });
-    await live(page, { count: 1240 });
-    // Record every sentence the pill announces and its width on every frame, from the very first paint.
-    await page.addInitScript(() => {
+  /** Record every sentence the pill announces and its width on every frame, from the very first paint. */
+  const record = (page) =>
+    page.addInitScript(() => {
       const w = /** @type {any} */ (window);
       w.__pill = [];
       w.__widths = [];
@@ -708,54 +705,81 @@ test.describe('people viewed / exploring now pill', () => {
       };
       requestAnimationFrame(tick);
     });
+
+  test('opens on "N people viewed", rolls to "N people exploring now", then rolls back, and the pill eases in both directions', async ({
+    page,
+  }) => {
+    await visits(page, { count: 15 });
+    await live(page, { count: 1240, recent: 5 });
+    await record(page);
     await openApp(page);
     await expect.poll(() => label(page), { timeout: 10_000 }).toBe('1,240 people exploring now');
-    await expect.poll(() => readable(page)).toBe('1,240 people exploring now'); // the roll has finished
-    await expect(page.locator('.roll.rolling')).toHaveCount(0);
     await expect(page.locator('.view-pill .live-dot.on')).toBeVisible();
     await expect(page.locator('.view-pill svg')).toHaveCount(1);
+    await expect.poll(() => readable(page)).toBe('1,240 people exploring now'); // the roll has finished
+    const wide = await page.locator('.view-pill').boundingBox();
+    expect(wide?.height).toBeLessThanOrEqual(32);
+    expect(wide?.width).toBeLessThanOrEqual(210);
+
+    // ...then it flips back to viewed on its own, and the dot goes out.
+    await expect.poll(() => label(page), { timeout: 10_000 }).toBe('15 people viewed');
+    await expect.poll(() => readable(page)).toBe('15 people viewed');
+    await expect(page.locator('.view-pill .live-dot.on')).toHaveCount(0);
 
     const seen = await page.evaluate(() => /** @type {any} */ (window).__pill);
-    expect(seen).toEqual(['15 people viewed', '1,240 people exploring now']);
+    expect(seen.slice(0, 3)).toEqual(['15 people viewed', '1,240 people exploring now', '15 people viewed']);
 
-    // The width grew in many small steps, never jumping and never shrinking on the way.
+    // Wider, then narrower, in many small steps: never a jump.
     const widths = await page.evaluate(() => /** @type {any} */ (window).__widths);
     const first = widths[0];
-    const last = widths.at(-1);
-    expect(last).toBeGreaterThan(first + 20);
-    expect(widths.filter((x) => x > first && x < last).length).toBeGreaterThanOrEqual(5);
-    for (let k = 1; k < widths.length; k++) expect(widths[k]).toBeGreaterThanOrEqual(widths[k - 1] - 0.5);
+    const peak = Math.max(...widths);
+    expect(peak).toBeGreaterThan(first + 20);
+    expect(widths.at(-1)).toBeLessThan(peak - 20);
+    expect(widths.filter((x) => x > first + 2 && x < peak - 2).length).toBeGreaterThanOrEqual(10);
+    for (let k = 1; k < widths.length; k++) expect(Math.abs(widths[k] - widths[k - 1])).toBeLessThanOrEqual(30);
+  });
 
-    const box = await page.locator('.view-pill').boundingBox();
-    expect(box?.height).toBeLessThanOrEqual(32);
-    expect(box?.width).toBeLessThanOrEqual(210);
-
-    // Peek, half and full: always inside the screen.
+  test('stays on screen at every sheet height while it rolls', async ({ page }) => {
+    await visits(page, { count: 15 });
+    await live(page, { count: 8, recent: 3 });
+    await openApp(page);
     const inside = async () => {
       const b = await page.locator('.view-pill').boundingBox();
       return Boolean(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= 390 && b.y + b.height <= 844);
     };
-    expect(await inside()).toBe(true);
+    await expect.poll(inside).toBe(true);
     await page.locator('.grab').click(); // half
     await expect.poll(inside).toBe(true);
     await page.locator('.grab').click(); // full
     await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
     await expect(page.locator('.view-pill')).toHaveClass(/on-sheet/);
     await expect.poll(inside).toBe(true);
+    await expect.poll(() => label(page), { timeout: 10_000 }).toMatch(/exploring now$/);
+    await expect.poll(inside).toBe(true);
   });
 
-  test('on your own it stays on "N people viewed" and never says exploring', async ({ page }) => {
+  test('"1 person exploring now" is fine when somebody else was here recently', async ({ page }) => {
     await visits(page, { count: 15 });
-    await live(page, { count: 1 });
+    await live(page, { count: 1, recent: 1 });
+    await openApp(page);
+    await expect.poll(() => label(page), { timeout: 10_000 }).toBe('1 person exploring now');
+    await expect.poll(() => readable(page)).toBe('1 person exploring now');
+  });
+
+  test('with nobody else in the last 2 hours it stays on "N people viewed"', async ({ page }) => {
+    await visits(page, { count: 15 });
+    await live(page, { count: 1, recent: 0 });
+    await record(page);
     await openApp(page);
     await expect(page.locator('.view-pill')).toBeVisible();
-    await page.waitForTimeout(4500); // longer than the pause before the roll
+    await page.waitForTimeout(8000); // long enough for a roll to have happened
     expect(await label(page)).toBe('15 people viewed');
     expect(await readable(page)).toBe('15 people viewed');
+    expect(await page.evaluate(() => /** @type {any} */ (window).__pill)).toEqual(['15 people viewed']);
     await expect(page.locator('.view-pill .live-dot.on')).toHaveCount(0);
   });
 
-  test('says "1 person viewed" for one, and shows the live count at once when the total is unavailable', async ({ page }) => {
+  test('says "1 person viewed" for one, and stays on "exploring now" when the total is unavailable', async ({ page }) => {
     await visits(page, { count: 1 });
     await live(page, { error: 'live_unavailable' }, 503);
     await openApp(page);
@@ -763,8 +787,10 @@ test.describe('people viewed / exploring now pill', () => {
 
     const second = await page.context().newPage();
     await visits(second, { error: 'counter_unavailable' }, 503);
-    await live(second, { count: 7 });
+    await live(second, { count: 7, recent: 2 });
     await openApp(second);
+    await expect(second.locator('.view-pill')).toHaveAttribute('aria-label', '7 people exploring now');
+    await second.waitForTimeout(5000); // nothing to flip back to
     await expect(second.locator('.view-pill')).toHaveAttribute('aria-label', '7 people exploring now');
     await second.close();
   });

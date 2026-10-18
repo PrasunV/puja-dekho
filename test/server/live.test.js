@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createLiveHandler, LIVE_WINDOW_MS } from '../../server/live.js';
+import { createLiveHandler, LIVE_WINDOW_MS, RECENT_MS } from '../../server/live.js';
 
 /** Call the handler like a browser would. */
 async function call(handler, method, query = '', userAgent = 'Mozilla/5.0 (iPhone)') {
@@ -66,7 +66,7 @@ test('live: old check-ins are tidied away now and then', async () => {
   const dbPath = path.join(dir, 'l.db');
   const quiet = createLiveHandler({ env: {}, now: () => clock.t, random: () => 1, dbPath });
   await call(quiet, 'POST', '?id=device-aaaa1111');
-  clock.t += 11 * 60_000;
+  clock.t += 3 * 60 * 60_000 + 60_000;
   const tidy = createLiveHandler({ env: {}, now: () => clock.t, random: () => 0, dbPath });
   await call(tidy, 'POST', '?id=device-bbbb2222');
   const { createClient } = await import('@libsql/client');
@@ -82,4 +82,28 @@ test('live: a missing database answers 503, never crashes', async () => {
   const res = await call(handler, 'POST', '?id=device-aaaa1111');
   assert.equal(res.statusCode, 503);
   assert.equal(res.body.error, 'live_unavailable');
+});
+
+test('live: "recent" counts other devices seen in the last 2 hours, never the caller', async () => {
+  const clock = { t: Date.parse('2026-10-19T20:00:00+05:30') };
+  const handler = fresh(clock);
+
+  const alone = await call(handler, 'POST', '?id=device-aaaa1111');
+  assert.deepEqual(alone.body, { count: 1, recent: 0 }, 'a first visitor on a quiet app sees nobody else');
+  assert.equal((await call(handler, 'GET')).body.recent, 1, 'a reader with no id counts everyone recent');
+
+  const second = await call(handler, 'POST', '?id=device-bbbb2222');
+  assert.deepEqual(second.body, { count: 2, recent: 1 }, 'the second visitor sees the first, not themselves');
+
+  clock.t += 30 * 60_000; // half an hour on: both are gone from "now" but still recent
+  assert.deepEqual((await call(handler, 'POST', '?id=device-aaaa1111')).body, { count: 1, recent: 1 });
+  clock.t += RECENT_MS - 29 * 60_000; // device B is now older than two hours, A checked in 91 minutes ago
+  assert.deepEqual((await call(handler, 'POST', '?id=device-cccc3333')).body, { count: 1, recent: 1 }, 'only A is still recent');
+  clock.t += RECENT_MS + 1;
+  assert.deepEqual((await call(handler, 'POST', '?id=device-dddd4444')).body, { count: 1, recent: 0 }, 'a long quiet spell resets it');
+  assert.equal(
+    (await call(handler, 'POST', '?id=device-eeee5555', 'Googlebot/2.1')).body.recent,
+    1,
+    'a bot reads the same numbers but is not recorded',
+  );
 });

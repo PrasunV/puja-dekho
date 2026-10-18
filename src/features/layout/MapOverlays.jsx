@@ -217,30 +217,37 @@ export function ShowKolkata({ visible, onClick }) {
 const USERS_PATH =
   'M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z';
 
-/** The pill needs at least this many people here now before it says so. Alone, "1 person exploring now" would sound empty. */
-const LIVE_MIN = 2;
-/** How long "N people viewed" stays on its own before it rolls over to "exploring now". */
-const DWELL_MS = 2800;
+/** How long "N people viewed" stays before it rolls over to "exploring now", and how long "exploring now" stays. */
+const VIEWED_MS = 3200;
+const EXPLORING_MS = 3500;
 
 /**
- * Small pill at the top-left corner of the list sheet. It opens on how many people have viewed the app, then, once
- * two or more people are here, rolls over to how many are exploring right now (a green dot appears). If the crowd
- * thins back to one it rolls back. The pill eases to the width of its text. Always on screen: it rides above the
- * sheet, and sits in the sheet's own corner when the sheet is full height.
- * @param {{ visits: number | null, live: number | null, bottom: string | number, full: boolean }} props
+ * Small pill at the top-left corner of the list sheet. It opens on how many people have viewed the app, rolls over
+ * to how many are exploring right now (a green dot appears), then rolls back, and so on. It only says "exploring
+ * now" while somebody else has used the app in the last 2 hours, so a quiet app never claims to be busy; otherwise
+ * it stays on "viewed". The pill eases to the width of its text. Always on screen: it rides above the sheet, and
+ * sits in the sheet's own corner when the sheet is full height.
+ * @param {{ visits: number | null, live: { count: number, recent: number } | null, bottom: string | number, full: boolean }} props
  */
 export function ViewCount({ visits, live, bottom, full }) {
-  const [dwelled, setDwelled] = useState(false);
   const haveVisits = visits != null;
+  const active = live != null && live.recent >= 1;
+  // Alternate only when there are two things to show; each time the crowd goes quiet, start again on "viewed".
+  const alternate = active && haveVisits;
+  const [exploring, setExploring] = useState(false);
+  const [wasAlternating, setWasAlternating] = useState(alternate);
+  if (wasAlternating !== alternate) {
+    setWasAlternating(alternate);
+    setExploring(false);
+  }
   useEffect(() => {
-    if (!haveVisits) return undefined;
-    const t = setTimeout(() => setDwelled(true), DWELL_MS);
+    if (!alternate) return undefined;
+    const t = setTimeout(() => setExploring((now) => !now), exploring ? EXPLORING_MS : VIEWED_MS);
     return () => clearTimeout(t);
-  }, [haveVisits]);
+  }, [alternate, exploring]);
 
-  const crowd = live != null && live >= LIVE_MIN;
-  const showLive = crowd && (dwelled || !haveVisits);
-  const count = showLive ? live : visits;
+  const showLive = active && (haveVisits ? exploring : true);
+  const count = showLive ? live.count : visits;
   if (count == null) return null;
   const noun = count === 1 ? 'person' : 'people';
   const state = showLive ? 'exploring now' : 'viewed';
@@ -249,7 +256,7 @@ export function ViewCount({ visits, live, bottom, full }) {
     <div
       className={`view-pill${full ? ' on-sheet' : ''}`}
       style={full ? undefined : { bottom }}
-      role="status"
+      role="img"
       aria-label={`${number} ${noun} ${state}`}
     >
       <span className="view-icon" aria-hidden="true">

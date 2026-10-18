@@ -58,14 +58,17 @@ The pill at the top-left of the sheet shows two numbers from two small endpoints
   go-live. One count per device per day (India time).
 - **Exploring now** (`/api/live`, `api/live.js`, `server/live.js`): how many phones have the app open right now.
 
-The pill opens on "N people viewed". About three seconds later, if two or more people are here now, it rolls over to
-"N people exploring now" (rolling text, the pill eases to the new width, a green dot appears). If the crowd drops to one
-it rolls back, so nobody is told "1 person exploring now" while they are alone. The two limits are `LIVE_MIN` and
-`DWELL_MS` at the top of `src/features/layout/MapOverlays.jsx`.
+The pill opens on "N people viewed", rolls over to "N people exploring now" after about three seconds, stays there for
+three and a half seconds, then rolls back, and keeps alternating (rolling text, the pill eases to each new width, a
+green dot shows while it says "exploring now"). "1 person exploring now" is allowed.
+
+It only says "exploring now" while **another device has used the app in the last 2 hours**. On a quiet app, or at the
+very first visit of the night, it stays on "N people viewed" and does not roll. The timings are `VIEWED_MS` and
+`EXPLORING_MS` at the top of `src/features/layout/MapOverlays.jsx`; the 2 hours is `RECENT_MS` in `server/live.js`.
 
 - Each open, visible tab checks in every 30 seconds with a random device id (kept in the phone's storage, not tied to a
   person). Anyone seen in the last 90 seconds counts. A hidden tab stops checking in and drops off.
-- Check-ins older than 10 minutes are deleted as it goes, so the table stays tiny. Each active phone makes about two
+- Check-ins older than 3 hours are deleted as it goes, so the table stays small (one short row per device). Each active phone makes about two
   small writes a minute, which is fine for the free Turso plan at festival scale. Watch the Turso dashboard if it goes viral.
 - Crawlers and link previews are read but never counted. The count can still be inflated by someone scripting fake ids.
 - If a counter is down, the pill uses the other one. If both are down it hides.
@@ -73,6 +76,6 @@ it rolls back, so nobody is told "1 person exploring now" while they are alone. 
 
 Setup (once): in Vercel, open the project, then **Storage** and connect **Turso** (accept the defaults). This adds
 `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Redeploy so the new code picks them up, then check
-`your-url/api/live` (it answers `{"count":0}` or a higher number) and `your-url/api/visits`.
+`your-url/api/live` (it answers `{"count":0,"recent":0}` or higher numbers) and `your-url/api/visits`.
 
 Until Turso is connected both endpoints answer 503 and the pill stays hidden.
