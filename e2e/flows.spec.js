@@ -677,31 +677,20 @@ test.describe('report, credit and metro button', () => {
   });
 });
 
-test.describe('people viewed pill', () => {
+test.describe('people exploring now pill', () => {
   test.use({ viewport: { width: 390, height: 844 } });
-  const pillCount = async (page) => Number((await page.locator('.view-pill').textContent())?.replace(/,/g, '').match(/\d+/)?.[0]);
+  const live = (page, body, status = 200) =>
+    page.route('**/api/live**', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
 
-  test('shows "N people viewed" with the icon, counts a device once a day, and stays on screen at every sheet height', async ({
-    page,
-    context,
-  }) => {
+  test('shows "N people exploring now" with the icon and live dot, and stays on screen at every sheet height', async ({ page }) => {
+    await live(page, { count: 1240 });
     await openApp(page);
-    await expect(page.locator('.view-pill')).toHaveText(/\d[\d,]* (person|people) viewed/);
+    await expect(page.locator('.view-pill')).toHaveText('1,240 people exploring now');
     await expect(page.locator('.view-pill svg')).toHaveCount(1);
-    const before = await pillCount(page);
+    await expect(page.locator('.view-pill .live-dot')).toBeVisible();
     const box = await page.locator('.view-pill').boundingBox();
     expect(box?.height).toBeLessThanOrEqual(32);
-    expect(box?.width).toBeLessThanOrEqual(170);
-
-    // Same device, same day: a reload does not count again.
-    await page.reload();
-    await expect(page.locator('.view-pill')).toBeVisible();
-    expect(await pillCount(page)).toBe(before);
-
-    // A different device (no cookie) does.
-    await context.clearCookies();
-    await page.reload();
-    await expect.poll(() => pillCount(page)).toBe(before + 1);
+    expect(box?.width).toBeLessThanOrEqual(210);
 
     // Peek, half and full: always inside the screen.
     const inside = async () => {
@@ -715,5 +704,29 @@ test.describe('people viewed pill', () => {
     await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
     await expect(page.locator('.view-pill')).toHaveClass(/on-sheet/);
     await expect.poll(inside).toBe(true);
+  });
+
+  test('says "1 person" for one, and never shows zero', async ({ page }) => {
+    await live(page, { count: 1 });
+    await openApp(page);
+    await expect(page.locator('.view-pill')).toHaveText('1 person exploring now');
+  });
+
+  test('checks in with a random device id that survives a reload, and is hidden when the counter is down', async ({ page }) => {
+    const first = page.waitForRequest((r) => r.url().includes('/api/live?id=') && r.method() === 'POST');
+    await openApp(page);
+    const id = new URL((await first).url()).searchParams.get('id');
+    expect(id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+    await expect(page.locator('.view-pill')).toHaveText(/\d[\d,]* (person|people) exploring now/);
+
+    const again = page.waitForRequest((r) => r.url().includes('/api/live?id=') && r.method() === 'POST');
+    await page.reload();
+    expect(new URL((await again).url()).searchParams.get('id')).toBe(id);
+
+    await page.unroute('**/api/live**');
+    await live(page, { error: 'live_unavailable' }, 503);
+    await page.reload();
+    await expect(page.locator('.panel')).toBeVisible();
+    await expect(page.locator('.view-pill')).toHaveCount(0);
   });
 });

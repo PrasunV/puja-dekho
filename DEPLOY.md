@@ -50,14 +50,22 @@ Local runs use a file database in `data/`, so you need no Turso account.
 - Security headers are set twice (Express and `vercel.json`) because Vercel serves static files directly. A test keeps them identical.
 - Continuous integration: `.github/workflows/ci.yml` runs lint, format check, types, tests, build and the browser tests on every push and pull request.
 
-## The "people viewed" counter
+## The "people exploring now" pill and the visit total
 
-The pill at the top-left of the sheet reads a shared total from `/api/visits` (`api/visits.js`, logic in `server/visits.js`).
-It counts one visit per device per day (India time) and needs only the database, not `SECRET`.
+The pill at the top-left of the sheet reads **how many people have the app open right now** from `/api/live`
+(`api/live.js`, logic in `server/live.js`). Both counters need only the database, not `SECRET`.
 
-1. In Vercel, open the project, then **Storage** (or Integrations) and add **Turso**. Accept the defaults. This adds
-   `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` to the project.
-2. Redeploy. The first visit creates the table. The count starts from zero at that moment.
-3. Check `your-url/api/visits`. It should answer `{"count":0,"counted":false}` (or a higher number).
+- Each open, visible tab sends a check-in every 30 seconds with a random device id (kept in the phone's storage, not
+  tied to a person). The pill counts devices seen in the last 90 seconds. A hidden tab stops checking in and drops off.
+- Check-ins older than 10 minutes are deleted as it goes, so the table stays tiny. Each active phone makes about two
+  small writes a minute, which is fine for the free Turso plan at festival scale. Watch the Turso dashboard if it goes viral.
+- Crawlers and link previews are read but never counted. The count can still be inflated by someone scripting fake ids.
+- If the counter is down, or has not answered for two minutes, the pill hides rather than show a stale number.
+- `/api/visits` (`api/visits.js`, `server/visits.js`) still quietly counts one visit per device per day (India time) in
+  the background. The total is not shown yet, but it keeps the history for a future "people have used this" line.
 
-Until Turso is connected the endpoint answers 503 and the pill stays hidden (a phone that has seen a number before keeps showing it).
+Setup (once): in Vercel, open the project, then **Storage** and connect **Turso** (accept the defaults). This adds
+`TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Redeploy so the new code picks them up, then check
+`your-url/api/live` (it answers `{"count":0}` or a higher number) and `your-url/api/visits`.
+
+Until Turso is connected both endpoints answer 503 and the pill stays hidden.

@@ -1,27 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { api } from '../lib/api.js';
-import { storage } from '../lib/storage.js';
 
 /**
- * The number of people who have viewed the app since the counter went live. Every open asks the server to count
- * this device (it counts once per device per day) and gets the shared total back. The last total is kept on
- * the phone, so the pill shows something at once and while offline. With no number at all, the pill stays hidden.
- * @returns {number | null}
+ * Quietly records this visit in the running total of people who have opened the app since go-live (one count per
+ * device per day, decided by the server). The total is not shown yet, but keeping it means a "N people have used
+ * this" line can be added later with the full history behind it.
  */
 export function useVisitCount() {
-  const [count, setCount] = useState(() => /** @type {number | null} */ (storage.get('visitCount', null)));
   useEffect(() => {
     const controller = new AbortController();
-    api('/visits', { method: 'POST', signal: controller.signal })
-      .then((result) => {
-        if (typeof result?.count !== 'number') return;
-        setCount(result.count);
-        storage.set('visitCount', result.count);
-      })
-      .catch(() => {
-        /* offline or the counter is not set up: keep what we have */
-      });
+    api('/visits', { method: 'POST', signal: controller.signal }).catch(() => {
+      /* offline or the counter is not set up: nothing to show, nothing to do */
+    });
     return () => controller.abort();
   }, []);
-  return count;
 }

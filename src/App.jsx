@@ -12,6 +12,7 @@ import { useOnline } from './hooks/useOnline.js';
 import { usePujaData } from './hooks/usePujaData.js';
 import { usePujaFilters } from './hooks/usePujaFilters.js';
 import { useStoredState } from './hooks/useStoredState.js';
+import { useLiveCount } from './hooks/useLiveCount.js';
 import { useVisitCount } from './hooks/useVisitCount.js';
 import { haversine } from './lib/geo.js';
 import { LINE_ORDER } from './lib/metro.js';
@@ -59,7 +60,8 @@ function Loaded({ data }) {
   const [routeState, setRouteState] = useState(
     /** @type {{ id: string, route: import('./lib/route.js').Route, origin: { lat: number, lng: number }, at: number } | null} */ (null),
   );
-  const visitCount = useVisitCount();
+  useVisitCount(); // quietly keeps the running total; the pill shows who is here now
+  const liveCount = useLiveCount();
   const [explainerSeen, setExplainerSeen] = useStoredState('explainerSeen', false);
   const [outsideSeen, setOutsideSeen] = useStoredState('outsideSeen', false);
   const [permission, setPermission] = useState(/** @type {string | null} */ (navigator.permissions ? null : 'unknown'));
@@ -465,7 +467,7 @@ function Loaded({ data }) {
               </Suspense>
             </ErrorBoundary>
             <OfflineBadge online={online} />
-            <ViewCount count={visitCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
+            <ViewCount count={liveCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
             <ShowKolkata visible={far && !(!desktop && sheet === 'full')} onClick={showKolkata} />
             <MapTools
               locationStatus={rawStatus}
