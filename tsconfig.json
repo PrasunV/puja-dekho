@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src", "server", "api", "test", "types"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "docs",
+    "src/features/tour",
+    "src/features/puja/labels.jsx",
+    "src/features/layout/Prompts.jsx",
+    "src/features/layout/SpeedDial.jsx",
+    "src/hooks/useLiveState.js",
+    "src/hooks/useReports.js",
+    "src/hooks/useDwellPrompt.js"
+  ]
+}

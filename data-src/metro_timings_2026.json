@@ -1,0 +1,56 @@
+{
+  "note": "Line-level windows only. No per-station first/last train times were found. Confirm against Metro Railway Kolkata's official notice before launch.",
+  "stations_in_map_folder_Metro": "36 stations with coordinates, no line or timing data in the map. Blue Line assignment for the stations below is my own knowledge, not from the map.",
+  "south_blue_line_stations_in_map": [
+    "Kali ghat Metro Station",
+    "Jatin Das Park",
+    "Rabindra Sadan",
+    "Rabindra Sarovar",
+    "Netaji Bhawan",
+    "Maidan",
+    "Park Street",
+    "Mahanayak Uttam Kumar",
+    "Netaji",
+    "Masterda Surya Sen",
+    "Gitanjali",
+    "Kavi Nazrul",
+    "Shahid Khudiram",
+    "Kavi Subhas"
+  ],
+  "purple_line_stations_not_in_map": ["Joka", "Thakurpukur", "Sakher Bazar", "Behala Chowrasta", "Behala Bazar", "Taratala", "Majerhat"],
+  "puja_2026_windows": {
+    "Blue (Dakshineswar - Kavi Subhash)": {
+      "Panchami_Shashthi": "06:00-23:00",
+      "Saptami_to_Navami": "13:00-04:00 next morning (night-long)",
+      "Dashami": "13:00-22:30"
+    },
+    "Green (Howrah Maidan - Salt Lake Sector V)": {
+      "Panchami_Shashthi": "06:00-23:00",
+      "Saptami_to_Navami": "13:30-~03:59 next morning",
+      "Dashami": "13:30-22:30"
+    },
+    "Yellow (Noapara - Airport)": {
+      "Panchami_Shashthi": "07:18-21:20",
+      "Saptami_to_Navami": "15:00-22:53",
+      "Dashami": "15:00-21:38"
+    },
+    "Purple (Joka - Majerhat)": {
+      "Panchami_Shashthi": "06:40-21:26",
+      "Saptami_to_Dashami": "15:00-22:55"
+    },
+    "Orange (Kavi Subhash - Beleghata)": "No service on main Puja days"
+  },
+  "sourced_dates": {
+    "Panchami": "2026-10-15",
+    "Shashthi": "2026-10-16",
+    "Ashtami": "2026-10-19",
+    "Navami": "2026-10-20",
+    "Dashami": "2026-10-21 (end of 16-21 Oct range per KolkataKhoj)",
+    "Saptami": "exact date not confirmed in sources"
+  },
+  "sources": {
+    "Panchami/Shashthi 06:00-23:00 on Blue and Green; night-long on Blue and Green for Saptami, Ashtami, Navami": "UNI, 8 Oct 2026 (uniindia.com/east-india/transport-kolkata-metro-durga-puja/207580), paywalled, timings for Saptami-Navami not visible",
+    "full table above": "kolkatadurgotsav.com/kolkata-metro-durga-puja-timings.html (third-party site, not the Metro Railway)",
+    "Purple regular-day times": "Wikipedia Purple Line page: Joka first 06:40 last 21:05; Majerhat first 07:03 last 21:26"
+  }
+}

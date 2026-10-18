@@ -1,0 +1,6 @@
+dist
+node_modules
+data
+docs/v2-parked
+package-lock.json
+public/data
