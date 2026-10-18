@@ -60,7 +60,7 @@ function Loaded({ data }) {
   const [routeState, setRouteState] = useState(
     /** @type {{ id: string, route: import('./lib/route.js').Route, origin: { lat: number, lng: number }, at: number } | null} */ (null),
   );
-  useVisitCount(); // quietly keeps the running total; the pill shows who is here now
+  const visitCount = useVisitCount();
   const liveCount = useLiveCount();
   const [explainerSeen, setExplainerSeen] = useStoredState('explainerSeen', false);
   const [outsideSeen, setOutsideSeen] = useStoredState('outsideSeen', false);
@@ -467,7 +467,7 @@ function Loaded({ data }) {
               </Suspense>
             </ErrorBoundary>
             <OfflineBadge online={online} />
-            <ViewCount count={liveCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
+            <ViewCount visits={visitCount} live={liveCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
             <ShowKolkata visible={far && !(!desktop && sheet === 'full')} onClick={showKolkata} />
             <MapTools
               locationStatus={rawStatus}

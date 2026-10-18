@@ -677,17 +677,55 @@ test.describe('report, credit and metro button', () => {
   });
 });
 
-test.describe('people exploring now pill', () => {
+test.describe('people viewed / exploring now pill', () => {
   test.use({ viewport: { width: 390, height: 844 } });
-  const live = (page, body, status = 200) =>
-    page.route('**/api/live**', (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+  const reply = (page, pattern, body, status = 200) =>
+    page.route(pattern, (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+  const visits = (page, body, status) => reply(page, '**/api/visits**', body, status);
+  const live = (page, body, status) => reply(page, '**/api/live**', body, status);
+  const label = (page) => page.locator('.view-pill').getAttribute('aria-label');
+  /** What a person reads in the pill once any roll has finished. */
+  const readable = (page) =>
+    page.locator('.view-text').evaluate((el) => /** @type {HTMLElement} */ (el).innerText.replace(/\s+/g, ' ').trim());
 
-  test('shows "N people exploring now" with the icon and live dot, and stays on screen at every sheet height', async ({ page }) => {
+  test('opens on "N people viewed", then rolls over to "N people exploring now" and the pill eases wider', async ({ page }) => {
+    await visits(page, { count: 15 });
     await live(page, { count: 1240 });
+    // Record every sentence the pill announces and its width on every frame, from the very first paint.
+    await page.addInitScript(() => {
+      const w = /** @type {any} */ (window);
+      w.__pill = [];
+      w.__widths = [];
+      new MutationObserver(() => {
+        const v = document.querySelector('.view-pill')?.getAttribute('aria-label');
+        if (v && w.__pill.at(-1) !== v) w.__pill.push(v);
+      }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-label'] });
+      const tick = () => {
+        const el = document.querySelector('.view-pill');
+        const width = el ? Math.round(el.getBoundingClientRect().width * 10) / 10 : 0;
+        if (width && w.__widths.at(-1) !== width) w.__widths.push(width);
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
     await openApp(page);
-    await expect(page.locator('.view-pill')).toHaveText('1,240 people exploring now');
+    await expect.poll(() => label(page), { timeout: 10_000 }).toBe('1,240 people exploring now');
+    await expect.poll(() => readable(page)).toBe('1,240 people exploring now'); // the roll has finished
+    await expect(page.locator('.roll.rolling')).toHaveCount(0);
+    await expect(page.locator('.view-pill .live-dot.on')).toBeVisible();
     await expect(page.locator('.view-pill svg')).toHaveCount(1);
-    await expect(page.locator('.view-pill .live-dot')).toBeVisible();
+
+    const seen = await page.evaluate(() => /** @type {any} */ (window).__pill);
+    expect(seen).toEqual(['15 people viewed', '1,240 people exploring now']);
+
+    // The width grew in many small steps, never jumping and never shrinking on the way.
+    const widths = await page.evaluate(() => /** @type {any} */ (window).__widths);
+    const first = widths[0];
+    const last = widths.at(-1);
+    expect(last).toBeGreaterThan(first + 20);
+    expect(widths.filter((x) => x > first && x < last).length).toBeGreaterThanOrEqual(5);
+    for (let k = 1; k < widths.length; k++) expect(widths[k]).toBeGreaterThanOrEqual(widths[k - 1] - 0.5);
+
     const box = await page.locator('.view-pill').boundingBox();
     expect(box?.height).toBeLessThanOrEqual(32);
     expect(box?.width).toBeLessThanOrEqual(210);
@@ -706,27 +744,46 @@ test.describe('people exploring now pill', () => {
     await expect.poll(inside).toBe(true);
   });
 
-  test('says "1 person" for one, and never shows zero', async ({ page }) => {
+  test('on your own it stays on "N people viewed" and never says exploring', async ({ page }) => {
+    await visits(page, { count: 15 });
     await live(page, { count: 1 });
     await openApp(page);
-    await expect(page.locator('.view-pill')).toHaveText('1 person exploring now');
+    await expect(page.locator('.view-pill')).toBeVisible();
+    await page.waitForTimeout(4500); // longer than the pause before the roll
+    expect(await label(page)).toBe('15 people viewed');
+    expect(await readable(page)).toBe('15 people viewed');
+    await expect(page.locator('.view-pill .live-dot.on')).toHaveCount(0);
   });
 
-  test('checks in with a random device id that survives a reload, and is hidden when the counter is down', async ({ page }) => {
+  test('says "1 person viewed" for one, and shows the live count at once when the total is unavailable', async ({ page }) => {
+    await visits(page, { count: 1 });
+    await live(page, { error: 'live_unavailable' }, 503);
+    await openApp(page);
+    await expect(page.locator('.view-pill')).toHaveAttribute('aria-label', '1 person viewed');
+
+    const second = await page.context().newPage();
+    await visits(second, { error: 'counter_unavailable' }, 503);
+    await live(second, { count: 7 });
+    await openApp(second);
+    await expect(second.locator('.view-pill')).toHaveAttribute('aria-label', '7 people exploring now');
+    await second.close();
+  });
+
+  test('is hidden when both counters are down', async ({ page }) => {
+    await visits(page, { error: 'counter_unavailable' }, 503);
+    await live(page, { error: 'live_unavailable' }, 503);
+    await openApp(page);
+    await expect(page.locator('.panel')).toBeVisible();
+    await expect(page.locator('.view-pill')).toHaveCount(0);
+  });
+
+  test('checks in with a random device id that survives a reload', async ({ page }) => {
     const first = page.waitForRequest((r) => r.url().includes('/api/live?id=') && r.method() === 'POST');
     await openApp(page);
     const id = new URL((await first).url()).searchParams.get('id');
     expect(id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
-    await expect(page.locator('.view-pill')).toHaveText(/\d[\d,]* (person|people) exploring now/);
-
     const again = page.waitForRequest((r) => r.url().includes('/api/live?id=') && r.method() === 'POST');
     await page.reload();
     expect(new URL((await again).url()).searchParams.get('id')).toBe(id);
-
-    await page.unroute('**/api/live**');
-    await live(page, { error: 'live_unavailable' }, 503);
-    await page.reload();
-    await expect(page.locator('.panel')).toBeVisible();
-    await expect(page.locator('.view-pill')).toHaveCount(0);
   });
 });
