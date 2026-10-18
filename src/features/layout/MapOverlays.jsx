@@ -211,3 +211,25 @@ export function ShowKolkata({ visible, onClick }) {
     </button>
   );
 }
+
+/** "Users" glyph for the viewer pill (Phosphor, 256 grid). */
+const USERS_PATH =
+  'M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z';
+
+/**
+ * Small pill at the top-left corner of the list sheet: how many people have viewed the app. Always on screen:
+ * it rides above the sheet, and sits in the sheet's own corner when the sheet is full height.
+ * @param {{ count: number | null, bottom: string | number, full: boolean }} props
+ */
+export function ViewCount({ count, bottom, full }) {
+  if (count == null) return null;
+  const label = `${count.toLocaleString('en-IN')} ${count === 1 ? 'person' : 'people'} viewed`;
+  return (
+    <div className={`view-pill${full ? ' on-sheet' : ''}`} style={full ? undefined : { bottom }} role="status" aria-label={label}>
+      <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+        <path d={USERS_PATH} />
+      </svg>
+      <span>{label}</span>
+    </div>
+  );
+}

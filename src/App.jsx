@@ -12,6 +12,7 @@ import { useOnline } from './hooks/useOnline.js';
 import { usePujaData } from './hooks/usePujaData.js';
 import { usePujaFilters } from './hooks/usePujaFilters.js';
 import { useStoredState } from './hooks/useStoredState.js';
+import { useVisitCount } from './hooks/useVisitCount.js';
 import { haversine } from './lib/geo.js';
 import { LINE_ORDER } from './lib/metro.js';
 import { walkingRoute } from './lib/route.js';
@@ -20,7 +21,7 @@ import BottomSheet from './features/layout/BottomSheet.jsx';
 import Explainer from './features/layout/Explainer.jsx';
 import OutsideCard from './features/layout/OutsideCard.jsx';
 import Header from './features/layout/Header.jsx';
-import { MapTools, OfflineBadge, ShowKolkata } from './features/layout/MapOverlays.jsx';
+import { MapTools, OfflineBadge, ShowKolkata, ViewCount } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
 import Toasts from './features/layout/Toasts.jsx';
 import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
@@ -58,6 +59,7 @@ function Loaded({ data }) {
   const [routeState, setRouteState] = useState(
     /** @type {{ id: string, route: import('./lib/route.js').Route, origin: { lat: number, lng: number }, at: number } | null} */ (null),
   );
+  const visitCount = useVisitCount();
   const [explainerSeen, setExplainerSeen] = useStoredState('explainerSeen', false);
   const [outsideSeen, setOutsideSeen] = useStoredState('outsideSeen', false);
   const [permission, setPermission] = useState(/** @type {string | null} */ (navigator.permissions ? null : 'unknown'));
@@ -463,6 +465,7 @@ function Loaded({ data }) {
               </Suspense>
             </ErrorBoundary>
             <OfflineBadge online={online} />
+            <ViewCount count={visitCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
             <ShowKolkata visible={far && !(!desktop && sheet === 'full')} onClick={showKolkata} />
             <MapTools
               locationStatus={rawStatus}

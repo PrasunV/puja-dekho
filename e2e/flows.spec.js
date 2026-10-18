@@ -676,3 +676,44 @@ test.describe('report, credit and metro button', () => {
     await expect(metro).toHaveAttribute('aria-pressed', 'true');
   });
 });
+
+test.describe('people viewed pill', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+  const pillCount = async (page) => Number((await page.locator('.view-pill').textContent())?.replace(/,/g, '').match(/\d+/)?.[0]);
+
+  test('shows "N people viewed" with the icon, counts a device once a day, and stays on screen at every sheet height', async ({
+    page,
+    context,
+  }) => {
+    await openApp(page);
+    await expect(page.locator('.view-pill')).toHaveText(/\d[\d,]* (person|people) viewed/);
+    await expect(page.locator('.view-pill svg')).toHaveCount(1);
+    const before = await pillCount(page);
+    const box = await page.locator('.view-pill').boundingBox();
+    expect(box?.height).toBeLessThanOrEqual(32);
+    expect(box?.width).toBeLessThanOrEqual(170);
+
+    // Same device, same day: a reload does not count again.
+    await page.reload();
+    await expect(page.locator('.view-pill')).toBeVisible();
+    expect(await pillCount(page)).toBe(before);
+
+    // A different device (no cookie) does.
+    await context.clearCookies();
+    await page.reload();
+    await expect.poll(() => pillCount(page)).toBe(before + 1);
+
+    // Peek, half and full: always inside the screen.
+    const inside = async () => {
+      const b = await page.locator('.view-pill').boundingBox();
+      return Boolean(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= 390 && b.y + b.height <= 844);
+    };
+    expect(await inside()).toBe(true);
+    await page.locator('.grab').click(); // half
+    await expect.poll(inside).toBe(true);
+    await page.locator('.grab').click(); // full
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
+    await expect(page.locator('.view-pill')).toHaveClass(/on-sheet/);
+    await expect.poll(inside).toBe(true);
+  });
+});

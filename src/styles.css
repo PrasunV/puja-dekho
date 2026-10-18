@@ -2252,3 +2252,42 @@ select {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
   cursor: pointer;
 }
+
+/* "N people viewed": a small pill at the top-left of the sheet, always on screen. */
+.view-pill {
+  position: absolute;
+  left: 12px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 11px 0 9px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  transition: bottom 0.22s ease;
+}
+.view-pill svg {
+  flex: none;
+  color: var(--primary);
+}
+.view-pill.on-sheet {
+  top: 10px;
+  z-index: 1100;
+  box-shadow: none;
+}
+@media (min-width: 900px) {
+  .view-pill {
+    left: calc(var(--side) + 12px);
+    bottom: 24px !important;
+  }
+}
