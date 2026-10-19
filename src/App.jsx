@@ -25,7 +25,8 @@ import Header from './features/layout/Header.jsx';
 import MotionLab from './features/layout/MotionLab.jsx';
 import { MapTools, OfflineBadge, ShowKolkata, ViewCount } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
-import { warmGreeting } from './features/greeting/greetings.js';
+import GreetingMedia from './features/greeting/GreetingMedia.jsx';
+import { claimGreeting, warmGreeting } from './features/greeting/greetings.js';
 import Toasts from './features/layout/Toasts.jsx';
 import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
 import NearPuja from './features/puja/NearPuja.jsx';
@@ -121,6 +122,14 @@ function Loaded({ data }) {
     };
   }, []);
   const showExplainer = !explainerSeen && locationStatus === 'idle' && (permission === 'prompt' || permission === 'unknown');
+
+  // When the greeting lives at the top of the list sheet, open the sheet to half so it is actually seen.
+  useEffect(() => {
+    if (permission === null || showExplainer || showOutside || desktop) return undefined;
+    if (!claimGreeting('list')) return undefined;
+    const frame = requestAnimationFrame(() => setSheet((s) => (s === 'peek' ? 'half' : s)));
+    return () => cancelAnimationFrame(frame);
+  }, [permission, showExplainer, showOutside, desktop]);
 
   // Without a location the map shows the whole city and the list says "271 pujas in Kolkata".
   const cityMode =
@@ -494,6 +503,14 @@ function Loaded({ data }) {
               onOfflineReport={() => toast(`You're offline. The report form is at ${REPORT_FORM_URL}`)}
             />
             <BottomSheet sheet={sheet} onSheetChange={setSheet} desktop={desktop} peek={<Peek />} footer={footer}>
+              {/* Everyone else (not on their first visit) gets the greeting at the top of the list sheet. It is mounted
+                  once the permission answer is in, so the first-visit sheets can claim it first, and it stays mounted
+                  while a puja is open so it does not replay on the way back. */}
+              {permission !== null && !showExplainer && !showOutside && (
+                <div hidden={view !== 'browse'}>
+                  <GreetingMedia slot="list" fallback={null} />
+                </div>
+              )}
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
                   key={view + (nav.pujaId || '') + (nav.stationId || '')}

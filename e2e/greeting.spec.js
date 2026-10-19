@@ -133,3 +133,29 @@ test('after it has played, a tap plays it again and is not counted as another op
   await expect.poll(() => phase(page), { timeout: 15_000 }).toBe('still');
   expect(await counts(page)).toEqual({ 'maha-ashtami': 1 });
 });
+
+test("on a greeting's day, with no limit, every open plays it, in the installed app too", async ({ page }) => {
+  await page.addInitScript(() => {
+    /** @type {any} */ (window).__PD_E2E_GREETING__ = { maxShows: null, installedToo: true };
+    Object.defineProperty(navigator, 'standalone', { value: true });
+    const query = navigator.permissions.query.bind(navigator.permissions);
+    navigator.permissions.query = (d) => (d.name === 'geolocation' ? Promise.resolve({ state: 'prompt' }) : query(d));
+  });
+  for (let open = 1; open <= 4; open++) {
+    await page.goto('/');
+    await expect(page.locator('.explainer')).toBeVisible();
+    await expect.poll(() => counts(page), { timeout: 15_000 }).toEqual({ 'maha-ashtami': open });
+  }
+});
+
+test('someone who has been here before gets it at the top of the main list sheet, once', async ({ page }) => {
+  await page.addInitScript(() => {
+    /** @type {any} */ (window).__PD_E2E_GREETING__ = true;
+    localStorage.setItem('pd_explainerSeen', 'true');
+  });
+  await page.goto('/');
+  await expect(page.locator('.explainer')).toHaveCount(0);
+  await expect(page.locator('.greet-box')).toHaveCount(1);
+  await expect.poll(() => phase(page), { timeout: 15_000 }).toBe('still');
+  expect(await counts(page)).toEqual({ 'maha-ashtami': 1 });
+});

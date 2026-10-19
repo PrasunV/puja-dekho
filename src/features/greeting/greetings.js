@@ -4,8 +4,9 @@ import { storage } from '../../lib/storage.js';
 /**
  * Festival greetings that play in the first sheet a person sees. To add one: put the .lottie file in public/anim/
  * exactly as exported and add a row here. `days` are India dates (YYYY-MM-DD) it plays on; `null` means any day.
- * If two rows match today, the first one wins.
- * @typedef {{ id: string, file: string, label: string, width: number, height: number, days: string[] | null }} Greeting
+ * `maxShows` is how many opens a phone sees it for (`null`: every open). `installedToo` lets the installed app
+ * (home-screen icon) see it as well as a browser. If two rows match today, the first one wins.
+ * @typedef {{ id: string, file: string, label: string, width: number, height: number, days: string[] | null, maxShows: number | null, installedToo: boolean }} Greeting
  */
 /** @type {Greeting[]} */
 export const GREETINGS = [
@@ -15,12 +16,15 @@ export const GREETINGS = [
     label: 'Shubho Maha Ashtami',
     width: 400,
     height: 140,
-    days: null,
+    // Today only, for everyone: every open, browser or installed app.
+    days: ['2026-10-19'],
+    maxShows: null,
+    installedToo: true,
   },
 ];
 
-/** How many opens a phone sees a greeting for. */
-export const MAX_SHOWS = 3;
+/** What the e2e suite uses, so it does not depend on the date: any day, three opens, browser only. */
+const E2E_RULES = { days: null, maxShows: 3, installedToo: false };
 /** How long the shimmer box waits for the animation before it gives up and shows the normal icon instead. */
 export const LOAD_BUDGET_MS = 8000;
 
@@ -44,7 +48,7 @@ function isInstalledApp() {
 }
 
 /**
- * Which greeting this open should show, if any. Browser opens only, and only the first few times. `?greeting=<id>`
+ * Which greeting this open should show, if any. Every open on the days the row names (browser, and the installed app when the row allows it), up to its `maxShows`. `?greeting=<id>`
  * forces one (for checking it; not counted) and `?greeting=off` turns it off. The e2e suite is off unless forced (or
  * it sets `__PD_E2E_GREETING__`).
  * @returns {{ greeting: Greeting, forced: boolean } | null}
@@ -57,9 +61,17 @@ function decide() {
     return greeting ? { greeting, forced: true } : null;
   }
   const w = /** @type {any} */ (window);
-  if ((w.__PD_E2E__ && !w.__PD_E2E_GREETING__) || isInstalledApp()) return null;
+  if (w.__PD_E2E__ && !w.__PD_E2E_GREETING__) return null;
+  // Tests may pass an object to override the rules (for instance to check "every open").
+  const rules = w.__PD_E2E__ ? { ...E2E_RULES, ...(typeof w.__PD_E2E_GREETING__ === 'object' ? w.__PD_E2E_GREETING__ : {}) } : {};
+  const installed = isInstalledApp();
   const today = todayIst();
-  const greeting = GREETINGS.find((g) => (g.days === null || g.days.includes(today)) && (shownCounts()[g.id] ?? 0) < MAX_SHOWS);
+  const greeting = GREETINGS.map((g) => ({ ...g, ...rules })).find(
+    (g) =>
+      (g.days === null || g.days.includes(today)) &&
+      (g.maxShows === null || (shownCounts()[g.id] ?? 0) < g.maxShows) &&
+      (!installed || g.installedToo),
+  );
   return greeting ? { greeting, forced: false } : null;
 }
 
