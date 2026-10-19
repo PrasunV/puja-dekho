@@ -4,7 +4,8 @@ import { REPORT_HINT_AFTER_MS, REPORT_HINT_SHOW_MS } from '../../config.js';
 import { storage } from '../../lib/storage.js';
 import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
-import { RollingText } from '../../components/ui/RollingText.jsx';
+import { CountRoll } from '../../components/ui/CountRoll.jsx';
+import { PhraseSwap } from '../../components/ui/PhraseSwap.jsx';
 
 const LAYER_OPTIONS = [
   ['stations', 'Metro stations'],
@@ -205,8 +206,9 @@ const USERS_PATH =
   'M117.25,157.92a60,60,0,1,0-66.5,0A95.83,95.83,0,0,0,3.53,195.63a8,8,0,1,0,13.4,8.74,80,80,0,0,1,134.14,0,8,8,0,0,0,13.4-8.74A95.83,95.83,0,0,0,117.25,157.92ZM40,108a44,44,0,1,1,44,44A44.05,44.05,0,0,1,40,108Zm210.14,98.7a8,8,0,0,1-11.07-2.33A79.83,79.83,0,0,0,172,168a8,8,0,0,1,0-16,44,44,0,1,0-16.34-84.87,8,8,0,1,1-5.94-14.85,60,60,0,0,1,55.53,105.64,95.83,95.83,0,0,1,47.22,37.71A8,8,0,0,1,250.14,206.7Z';
 
 /** How long "N people viewed" stays before it rolls over to "exploring now", and how long "exploring now" stays. */
-const VIEWED_MS = 3200;
-const EXPLORING_MS = 3500;
+const HOLD_MS = 9000;
+/** Tests shorten the hold with window.__PD_PILL_HOLD_MS__. */
+const holdMs = () => Number(/** @type {any} */ (globalThis).__PD_PILL_HOLD_MS__) || HOLD_MS;
 
 /**
  * Small pill at the top-left corner of the list sheet. It opens on how many people have viewed the app, rolls over
@@ -229,7 +231,7 @@ export function ViewCount({ visits, live, bottom, full }) {
   }
   useEffect(() => {
     if (!alternate) return undefined;
-    const t = setTimeout(() => setExploring((now) => !now), exploring ? EXPLORING_MS : VIEWED_MS);
+    const t = setTimeout(() => setExploring((now) => !now), holdMs());
     return () => clearTimeout(t);
   }, [alternate, exploring]);
 
@@ -248,9 +250,8 @@ export function ViewCount({ visits, live, bottom, full }) {
         <i className={`live-dot${showLive ? ' on' : ''}`} />
       </span>
       <span className="view-text">
-        <RollingText text={number} />
-        <RollingText text={noun} />
-        <RollingText text={state} />
+        <CountRoll value={count} />
+        <PhraseSwap text={`${noun} ${state}`} />
       </span>
     </div>
   );

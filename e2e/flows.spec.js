@@ -681,21 +681,46 @@ test.describe('people viewed / exploring now pill', () => {
   test.use({ viewport: { width: 390, height: 844 } });
   const reply = (page, pattern, body, status = 200) =>
     page.route(pattern, (route) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) }));
+  // The real hold is about nine seconds; most tests shorten it. One test below puts it back and times it.
+  test.beforeEach(({ page }) => page.addInitScript(() => /** @type {any} */ (window.__PD_PILL_HOLD_MS__ = 2500)));
   const visits = (page, body, status) => reply(page, '**/api/visits**', body, status);
   const live = (page, body, status) => reply(page, '**/api/live**', body, status);
   const label = (page) => page.locator('.view-pill').getAttribute('aria-label');
   /** What a person reads in the pill once any roll has finished. */
   const readable = (page) =>
-    page.locator('.view-text').evaluate((el) => /** @type {HTMLElement} */ (el).innerText.replace(/\s+/g, ' ').trim());
+    page.locator('.view-text').evaluate((el) => {
+      const n = el.querySelector('.od')?.getAttribute('data-value');
+      const t = el.querySelector('.swap')?.getAttribute('data-text');
+      return `${n} ${t}`;
+    });
+  /** True once no digit is still turning and no word is still fading. */
+  const still = (page) =>
+    page
+      .locator('.view-pill')
+      .evaluate(
+        (el) =>
+          !el
+            .getAnimations({ subtree: true })
+            .some((a) => a.playState !== 'finished' && /** @type {any} */ (a.effect)?.target?.closest('.od, .swap')),
+      );
+  /** The digit each wheel is actually showing, read from where its strip sits. */
+  const wheels = (page) =>
+    page
+      .locator('.od-cell:not(.off) .od-strip')
+      .evaluateAll((els) => els.map((el) => Math.round(-new DOMMatrix(getComputedStyle(el).transform).m42 / 16) % 10).join(''));
   /** Record every sentence the pill announces and its width on every frame, from the very first paint. */
   const record = (page) =>
     page.addInitScript(() => {
       const w = /** @type {any} */ (window);
       w.__pill = [];
+      w.__pillAt = [];
       w.__widths = [];
       new MutationObserver(() => {
         const v = document.querySelector('.view-pill')?.getAttribute('aria-label');
-        if (v && w.__pill.at(-1) !== v) w.__pill.push(v);
+        if (v && w.__pill.at(-1) !== v) {
+          w.__pill.push(v);
+          w.__pillAt.push(performance.now());
+        }
       }).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-label'] });
       const tick = () => {
         const el = document.querySelector('.view-pill');
@@ -716,14 +741,19 @@ test.describe('people viewed / exploring now pill', () => {
     await expect.poll(() => label(page), { timeout: 10_000 }).toBe('1,240 people exploring now');
     await expect(page.locator('.view-pill .live-dot.on')).toBeVisible();
     await expect(page.locator('.view-pill svg')).toHaveCount(1);
-    await expect.poll(() => readable(page)).toBe('1,240 people exploring now'); // the roll has finished
+    await expect.poll(() => still(page)).toBe(true); // the roll has finished
+    expect(await readable(page)).toBe('1,240 people exploring now');
+    expect(await wheels(page)).toBe('1240'); // every wheel really rests on its digit
     const wide = await page.locator('.view-pill').boundingBox();
     expect(wide?.height).toBeLessThanOrEqual(32);
     expect(wide?.width).toBeLessThanOrEqual(210);
 
     // ...then it flips back to viewed on its own, and the dot goes out.
     await expect.poll(() => label(page), { timeout: 10_000 }).toBe('15 people viewed');
-    await expect.poll(() => readable(page)).toBe('15 people viewed');
+    await expect.poll(() => still(page)).toBe(true);
+    expect(await readable(page)).toBe('15 people viewed');
+    expect(await wheels(page)).toBe('15');
+    await expect(page.locator('.od-cell:not(.off)')).toHaveCount(2);
     await expect(page.locator('.view-pill .live-dot.on')).toHaveCount(0);
 
     const seen = await page.evaluate(() => /** @type {any} */ (window).__pill);
@@ -735,8 +765,51 @@ test.describe('people viewed / exploring now pill', () => {
     const peak = Math.max(...widths);
     expect(peak).toBeGreaterThan(first + 20);
     expect(widths.at(-1)).toBeLessThan(peak - 20);
-    expect(widths.filter((x) => x > first + 2 && x < peak - 2).length).toBeGreaterThanOrEqual(10);
+    expect(widths.filter((x) => x > first + 2 && x < peak - 2).length).toBeGreaterThanOrEqual(5);
     for (let k = 1; k < widths.length; k++) expect(Math.abs(widths[k] - widths[k - 1])).toBeLessThanOrEqual(30);
+  });
+
+  test('counts up from zero on first load, and the wheels pass through the digits in between', async ({ page }) => {
+    await visits(page, { count: 15 });
+    await live(page, { count: 1, recent: 0 });
+    // Record what the wheels show on every frame from the first paint.
+    await page.addInitScript(() => {
+      const w = /** @type {any} */ (window);
+      w.__digits = [];
+      const tick = () => {
+        const strips = [...document.querySelectorAll('.od-strip')];
+        if (strips.length) {
+          const now = strips.map((el) => Math.round(-new DOMMatrix(getComputedStyle(el).transform).m42 / 16) % 10).join('');
+          if (w.__digits.at(-1) !== now) w.__digits.push(now);
+        }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    await openApp(page);
+    await expect(page.locator('.view-pill')).toBeVisible();
+    await expect.poll(() => still(page)).toBe(true);
+    const seenDigits = await page.evaluate(() => /** @type {any} */ (window).__digits);
+    expect(seenDigits.length).toBeGreaterThan(3); // 00, 02, 07, 11 ... passes through the digits in between
+    expect(seenDigits[0]).toBe('00');
+    expect(await wheels(page)).toBe('15');
+    expect(await readable(page)).toBe('15 people viewed');
+  });
+
+  test('holds each state for about nine seconds before rolling to the other', async ({ page }) => {
+    await visits(page, { count: 15 });
+    await live(page, { count: 1240, recent: 5 });
+    await page.addInitScript(() => delete (/** @type {any} */ (window).__PD_PILL_HOLD_MS__)); // the real timing
+    await record(page);
+    await openApp(page);
+    await expect.poll(() => label(page), { timeout: 14_000 }).toBe('1,240 people exploring now');
+    const at = await page.evaluate(() => /** @type {any} */ (window).__pillAt);
+    const gap = at[1] - at[0];
+    expect(gap).toBeGreaterThanOrEqual(8000);
+    expect(gap).toBeLessThanOrEqual(10_500);
+    // Longer number, so two more wheels have grown in; they fold away again on the way back.
+    await expect.poll(() => still(page)).toBe(true);
+    await expect(page.locator('.od-cell:not(.off)')).toHaveCount(4);
   });
 
   test('stays on screen at every sheet height while it rolls', async ({ page }) => {
@@ -786,6 +859,8 @@ test.describe('people viewed / exploring now pill', () => {
     await expect(page.locator('.view-pill')).toHaveAttribute('aria-label', '1 person viewed');
 
     const second = await page.context().newPage();
+    await second.addInitScript(() => localStorage.clear()); // no remembered total from the first page
+    await second.addInitScript(() => /** @type {any} */ (window.__PD_PILL_HOLD_MS__ = 2500));
     await visits(second, { error: 'counter_unavailable' }, 503);
     await live(second, { count: 7, recent: 2 });
     await openApp(second);

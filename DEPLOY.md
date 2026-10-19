@@ -58,13 +58,16 @@ The pill at the top-left of the sheet shows two numbers from two small endpoints
   go-live. One count per device per day (India time).
 - **Exploring now** (`/api/live`, `api/live.js`, `server/live.js`): how many phones have the app open right now.
 
-The pill opens on "N people viewed", rolls over to "N people exploring now" after about three seconds, stays there for
-three and a half seconds, then rolls back, and keeps alternating (rolling text, the pill eases to each new width, a
-green dot shows while it says "exploring now"). "1 person exploring now" is allowed.
+The pill opens on "N people viewed" with the number counting up from zero, holds for about nine seconds, rolls over to
+"N people exploring now", holds nine seconds, then rolls back, and keeps alternating. The number is an odometer (each
+digit is its own wheel that turns through the digits in between, right-most landing last; it turns up when the number
+grows and down when it shrinks, and also rolls when the live count changes). The words crossfade, and the pill eases to
+each new width in a quarter of a second. A green dot shows while it says "exploring now". "1 person exploring now" is allowed.
 
 It only says "exploring now" while **another device has used the app in the last 2 hours**. On a quiet app, or at the
-very first visit of the night, it stays on "N people viewed" and does not roll. The timings are `VIEWED_MS` and
-`EXPLORING_MS` at the top of `src/features/layout/MapOverlays.jsx`; the 2 hours is `RECENT_MS` in `server/live.js`.
+very first visit of the night, it stays on "N people viewed" and does not roll. The hold is `HOLD_MS` at the top of
+`src/features/layout/MapOverlays.jsx`; the wheels are `src/components/ui/CountRoll.jsx` and the words
+`PhraseSwap.jsx`; the 2 hours is `RECENT_MS` in `server/live.js`.
 
 - Each open, visible tab checks in every 30 seconds with a random device id (kept in the phone's storage, not tied to a
   person). Anyone seen in the last 90 seconds counts. A hidden tab stops checking in and drops off.
@@ -72,7 +75,7 @@ very first visit of the night, it stays on "N people viewed" and does not roll. 
   small writes a minute, which is fine for the free Turso plan at festival scale. Watch the Turso dashboard if it goes viral.
 - Crawlers and link previews are read but never counted. The count can still be inflated by someone scripting fake ids.
 - If a counter is down, the pill uses the other one. If both are down it hides.
-- With reduced motion switched on, the text swaps without rolling.
+- With reduced motion switched on, the number and words swap without rolling.
 
 Setup (once): in Vercel, open the project, then **Storage** and connect **Turso** (accept the defaults). This adds
 `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Redeploy so the new code picks them up, then check

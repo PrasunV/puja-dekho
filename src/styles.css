@@ -2314,8 +2314,58 @@ select {
   align-items: center;
   gap: 3.5px;
 }
-/* Rolling text: each piece of the pill is a clipped box that eases to the width of its text. */
-.roll {
+/* Odometer number: every digit is a clipped window onto a strip of 0-9 that slides with a transform. */
+.od {
+  display: inline-flex;
+  flex: none;
+  height: 16px;
+  line-height: 16px;
+}
+.od-cell {
+  display: inline-flex;
+  flex: none;
+  height: 16px;
+  max-width: 2em;
+  overflow: hidden;
+  opacity: 1;
+  transition:
+    max-width 0.28s cubic-bezier(0.3, 0.9, 0.3, 1),
+    opacity 0.22s ease;
+}
+.od-cell.off {
+  max-width: 0;
+  opacity: 0;
+}
+.od-comma {
+  display: inline-block;
+  max-width: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    max-width 0.28s cubic-bezier(0.3, 0.9, 0.3, 1),
+    opacity 0.22s ease;
+}
+.od-comma.on {
+  max-width: 0.5em;
+  opacity: 1;
+}
+.od-win {
+  display: block;
+  flex: none;
+  width: 1ch;
+  height: 16px;
+  overflow: hidden;
+}
+.od-strip {
+  display: block;
+  will-change: transform;
+}
+.od-strip > span {
+  display: block;
+  height: 16px;
+}
+/* Words: a short crossfade, with the box easing to the new width. */
+.swap {
   position: relative;
   display: inline-block;
   flex: none;
@@ -2324,39 +2374,32 @@ select {
   overflow: hidden;
   white-space: pre;
 }
-.roll.ready {
-  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+.swap.ready {
+  transition: width 0.26s cubic-bezier(0.3, 0.9, 0.3, 1);
 }
-.roll-measure {
+.swap-measure {
   position: absolute;
   left: 0;
   top: 0;
   visibility: hidden;
   white-space: pre;
 }
-.roll-layer {
+.swap-layer {
   display: inline-block;
   white-space: pre;
 }
-.roll-layer.before {
+.swap-layer.out {
   position: absolute;
   left: 0;
   top: 0;
+  animation: swap-out 0.18s cubic-bezier(0.4, 0, 1, 1) both;
 }
-.roll-ch {
-  display: inline-block;
+.swap-layer.in {
+  animation: swap-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) 0.04s both;
 }
-.roll.rolling .roll-layer.now .roll-ch {
-  animation: roll-in 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-delay: calc(var(--i) * 22ms);
-}
-.roll.rolling .roll-layer.before .roll-ch {
-  animation: roll-out 0.42s cubic-bezier(0.55, 0, 0.8, 0.3) both;
-  animation-delay: calc(var(--i) * 22ms);
-}
-@keyframes roll-in {
+@keyframes swap-in {
   from {
-    transform: translateY(110%);
+    transform: translateY(6px);
     opacity: 0;
   }
   to {
@@ -2364,13 +2407,13 @@ select {
     opacity: 1;
   }
 }
-@keyframes roll-out {
+@keyframes swap-out {
   from {
     transform: none;
     opacity: 1;
   }
   to {
-    transform: translateY(-110%);
+    transform: translateY(-6px);
     opacity: 0;
   }
 }
@@ -2380,13 +2423,15 @@ select {
     animation: none;
     transition: none;
   }
-  .roll.ready {
+  .swap.ready,
+  .od-cell,
+  .od-comma {
     transition: none;
   }
-  .roll.rolling .roll-layer.now .roll-ch {
+  .swap-layer.in {
     animation: none;
   }
-  .roll-layer.before {
+  .swap-layer.out {
     display: none;
   }
 }
