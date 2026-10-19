@@ -16,8 +16,8 @@ export const GREETINGS = [
     label: 'Shubho Maha Ashtami',
     width: 400,
     height: 140,
-    // Today only, for everyone: every open, browser or installed app.
-    days: ['2026-10-19'],
+    // Everyone, every open, browser or installed app, on any day, until the next greeting (Nabami) replaces it.
+    days: null,
     maxShows: null,
     installedToo: true,
   },
