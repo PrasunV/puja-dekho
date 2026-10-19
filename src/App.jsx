@@ -22,6 +22,7 @@ import BottomSheet from './features/layout/BottomSheet.jsx';
 import Explainer from './features/layout/Explainer.jsx';
 import OutsideCard from './features/layout/OutsideCard.jsx';
 import Header from './features/layout/Header.jsx';
+import MotionLab from './features/layout/MotionLab.jsx';
 import { MapTools, OfflineBadge, ShowKolkata, ViewCount } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
 import Toasts from './features/layout/Toasts.jsx';
@@ -419,7 +420,10 @@ function Loaded({ data }) {
   else if (view === 'lines') screen = <MetroLines />;
   else if (view === 'metro') screen = <Metro />;
 
-  const mapBottom = desktop ? 24 : sheet === 'peek' ? 'calc(14% + 16px)' : 'calc(50% + 16px)';
+  // Phones: the buttons and the pill sit 16px above the sheet and follow it while it moves (BottomSheet sets --sheet-h).
+  // The pill stops at the top of the map and then rides on the sheet.
+  const mapBottom = desktop ? 24 : 'calc(var(--sheet-h, 14%) + 16px)';
+  const pillBottom = desktop ? 24 : 'min(calc(var(--sheet-h, 14%) + 16px), calc(100% - 38px))';
   const selectedId = nav.pujaId ?? (view === 'near' ? (near.puja?.id ?? null) : null);
 
   return (
@@ -459,6 +463,9 @@ function Loaded({ data }) {
                   following={following}
                   onFollowStop={() => setFollowing(false)}
                   onUserMoved={() => {}}
+                  onMapTap={() => {
+                    if (!desktop) setSheet('peek');
+                  }}
                   onPuja={openPuja}
                   onStation={openStation}
                   onRoadPick={() => {}}
@@ -467,15 +474,15 @@ function Loaded({ data }) {
               </Suspense>
             </ErrorBoundary>
             <OfflineBadge online={online} />
-            <ViewCount visits={visitCount} live={liveCount} bottom={mapBottom} full={!desktop && sheet === 'full'} />
-            <ShowKolkata visible={far && !(!desktop && sheet === 'full')} onClick={showKolkata} />
+            <MotionLab />
+            <ViewCount visits={visitCount} live={liveCount} bottom={pillBottom} full={!desktop && sheet === 'full'} />
+            <ShowKolkata visible={far} onClick={showKolkata} />
             <MapTools
               locationStatus={rawStatus}
               centred={centred}
               following={following}
               metroOpen={view === 'metro'}
               bottom={mapBottom}
-              hidden={!desktop && sheet === 'full'}
               reportUrl={REPORT_FORM_URL}
               online={online}
               onLocate={onLocationButton}

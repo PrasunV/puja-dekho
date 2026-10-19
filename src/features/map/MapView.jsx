@@ -41,6 +41,7 @@ import { makePin } from './pin.js';
  * @property {boolean} following                             Keep the map on the person as they move
  * @property {() => void} onFollowStop                       Following ended (the person dragged the map, or another screen took the camera)
  * @property {() => void} onUserMoved                        The person finished dragging, pinching or scrolling the map
+ * @property {() => void} onMapTap                         A tap on empty map (not a puja, cluster or drag)
  * @property {(id: string) => void} onPuja
  * @property {(id: string) => void} onStation
  * @property {(spot: { lat: number, lng: number }) => void} onRoadPick
@@ -277,6 +278,7 @@ const MapView = forwardRef(
       following,
       onFollowStop,
       onUserMoved,
+      onMapTap,
       onPuja,
       onStation,
       onRoadPick,
@@ -308,6 +310,7 @@ const MapView = forwardRef(
       following,
       onFollowStop,
       onUserMoved,
+      onMapTap,
       votes,
       desktop,
     });
@@ -322,6 +325,7 @@ const MapView = forwardRef(
         following,
         onFollowStop,
         onUserMoved,
+        onMapTap,
         votes,
         desktop,
       };
@@ -400,7 +404,10 @@ const MapView = forwardRef(
             return Math.hypot(at.x - x, at.y - y);
           };
           const feature = hits.sort((a, b) => pixelsAway(a) - pixelsAway(b))[0];
-          if (!feature) return;
+          if (!feature) {
+            callbacks.current.onMapTap?.();
+            return;
+          }
           if (feature.properties.cluster_id == null) {
             callbacks.current.onPuja(feature.properties.id);
             return;

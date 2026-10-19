@@ -79,3 +79,9 @@ Setup (once): in Vercel, open the project, then **Storage** and connect **Turso*
 `your-url/api/live` (it answers `{"count":0,"recent":0}` or higher numbers) and `your-url/api/visits`.
 
 Until Turso is connected both endpoints answer 503 and the pill stays hidden.
+
+## How the bottom sheet moves
+
+On phones the whole sheet is the handle: a vertical drag that starts anywhere on it (in any state) moves it. When a finger lets go, the sheet looks at how fast the finger was going and settles on the nearest of peek / half / full to where that speed would carry it, so a short fast flick jumps a state and a slow drag settles on the nearest one. The motion style is **iOS-style** (a lightly damped spring that keeps your momentum).
+
+To compare other styles on a phone without a rebuild, open the app with `?motionlab` at the end of the address (a "Motion" chip appears at the top right) or `?sheetMotion=snappy` (also `spring`, `quick-out`, `decel`, `ios`, `bouncy`). The choice is remembered on that phone. The default lives in `src/features/layout/sheetMotion.js`.

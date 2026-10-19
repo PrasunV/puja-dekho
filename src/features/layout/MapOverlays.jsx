@@ -26,23 +26,11 @@ const LOCATION_BUTTON = {
 
 /**
  * Three round buttons ride on top of the sheet (PRD section 3): current location, Metro, Report issue.
- * They hide when the sheet is full height. The location button is a crosshair that turns blue when the
+ * They follow the sheet while it moves and fade out as it reaches full height. The location button is a crosshair that turns blue when the
  * map is centred on you, grey when you have panned away; it never changes the radius.
- * @param {{ locationStatus: 'idle' | 'asking' | 'on' | 'denied' | 'far', centred: boolean, following: boolean, metroOpen: boolean, bottom: string | number, hidden: boolean, reportUrl: string, online: boolean, onLocate: () => void, onMetro: () => void, onOfflineReport: () => void }} props
+ * @param {{ locationStatus: 'idle' | 'asking' | 'on' | 'denied' | 'far', centred: boolean, following: boolean, metroOpen: boolean, bottom: string | number, reportUrl: string, online: boolean, onLocate: () => void, onMetro: () => void, onOfflineReport: () => void }} props
  */
-export function MapTools({
-  locationStatus,
-  centred,
-  following,
-  metroOpen,
-  bottom,
-  hidden,
-  reportUrl,
-  online,
-  onLocate,
-  onMetro,
-  onOfflineReport,
-}) {
+export function MapTools({ locationStatus, centred, following, metroOpen, bottom, reportUrl, online, onLocate, onMetro, onOfflineReport }) {
   // After a minute in the app, a small tooltip names the Report button for a moment: the first time ever, then never again.
   const [hint, setHint] = useState(false);
   useEffect(() => {
@@ -64,7 +52,6 @@ export function MapTools({
     LOCATION_BUTTON[
       following ? 'following' : locationStatus === 'on' && centred ? 'centred' : locationStatus === 'far' ? 'on' : locationStatus
     ];
-  if (hidden) return null;
   return (
     <div className="map-tools" style={{ bottom }}>
       <button type="button" className="fab" aria-label="Metro stations near you" title="Metro" aria-pressed={metroOpen} onClick={onMetro}>
@@ -253,12 +240,7 @@ export function ViewCount({ visits, live, bottom, full }) {
   const state = showLive ? 'exploring now' : 'viewed';
   const number = count.toLocaleString('en-IN');
   return (
-    <div
-      className={`view-pill${full ? ' on-sheet' : ''}`}
-      style={full ? undefined : { bottom }}
-      role="img"
-      aria-label={`${number} ${noun} ${state}`}
-    >
+    <div className={`view-pill${full ? ' on-sheet' : ''}`} style={{ bottom }} role="img" aria-label={`${number} ${noun} ${state}`}>
       <span className="view-icon" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
           <path d={USERS_PATH} />
