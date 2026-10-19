@@ -25,10 +25,14 @@ import Header from './features/layout/Header.jsx';
 import MotionLab from './features/layout/MotionLab.jsx';
 import { MapTools, OfflineBadge, ShowKolkata, ViewCount } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
+import { warmGreeting } from './features/greeting/greetings.js';
 import Toasts from './features/layout/Toasts.jsx';
 import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
 import NearPuja from './features/puja/NearPuja.jsx';
 import PujaPage, { PujaActions } from './features/puja/PujaPage.jsx';
+
+// Start fetching the greeting animation straight away, if this open gets one.
+warmGreeting();
 
 // The map library is the heaviest dependency, so it loads after the first screen.
 const MapView = React.lazy(() => import('./features/map/MapView.jsx'));

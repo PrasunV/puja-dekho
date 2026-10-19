@@ -88,3 +88,26 @@ Until Turso is connected both endpoints answer 503 and the pill stays hidden.
 On phones the whole sheet is the handle: a vertical drag that starts anywhere on it (in any state) moves it. When a finger lets go, the sheet looks at how fast the finger was going and settles on the nearest of peek / half / full to where that speed would carry it, so a short fast flick jumps a state and a slow drag settles on the nearest one. The motion style is **iOS-style** (a lightly damped spring that keeps your momentum).
 
 To compare other styles on a phone without a rebuild, open the app with `?motionlab` at the end of the address (a "Motion" chip appears at the top right) or `?sheetMotion=snappy` (also `spring`, `quick-out`, `decel`, `ios`, `bouncy`). The choice is remembered on that phone. The default lives in `src/features/layout/sheetMotion.js`.
+
+## Festival greeting (the Lottie animation in the first sheet)
+
+When someone opens the app from a link in a browser, the first sheet they see plays a short Lottie greeting in place of
+its round icon: "See pujas around you" for people in Kolkata, "N pujas in Kolkata" for people far away. Only the
+first sheet of an open gets it (the next sheet keeps its icon), for the first 3 opens on a phone (counted across both
+sheets), and never in the installed app.
+
+- A shimmer box of the animation's exact shape holds the space until it is ready, so nothing moves. It waits up to
+  8 seconds; after that the box folds away, the normal icon takes its place, and that open is not counted. A late
+  arrival does not pop back in. With reduced motion it shows the finished frame.
+- The file is used exactly as exported (`public/anim/maha-ashtami.lottie`, about 1.9 MB) and is drawn by the official
+  dotLottie player (`@lottiefiles/dotlottie-web`, pinned), which is what LottieFiles uses. The web player
+  (`lottie-web`) cuts this particular file at the top and bottom, so it is not used. The player's engine
+  (`dotlottie-player.wasm`, about 1.2 MB, 0.5 MB over the wire) is bundled with the app. All of it is fetched as soon
+  as the app starts, but only on opens that get a greeting.
+- Running the engine needs WebAssembly, so the content security policy has `'wasm-unsafe-eval'` in `script-src`. That
+  allows WebAssembly only, not eval of JavaScript. It is set in `server/http/security.js` and mirrored in
+  `vercel.json` (a test keeps them identical).
+- Greetings live in `src/features/greeting/greetings.js` (`GREETINGS`): an id, the file, a label, the size and the
+  India dates it plays on (`days: null` means any day). Add a row and drop the file in `public/anim/`.
+- To check one at any time: add `?greeting=maha-ashtami` to the address (not counted). `?greeting=off` turns it off.
+  The count is kept in the phone's storage as `pd_greeted`.

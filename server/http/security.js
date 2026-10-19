@@ -5,7 +5,7 @@
 
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self'",
+  "script-src 'self' 'wasm-unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "worker-src 'self' blob:",
   "font-src 'self' data:",

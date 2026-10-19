@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Icon } from '../../components/ui/Icon.jsx';
+import GreetingMedia from '../greeting/GreetingMedia.jsx';
 
 /**
  * Shown once, the first time someone opens the app from outside Kolkata: how many pujas the city has and
@@ -19,9 +20,14 @@ export default function OutsideCard({ km, count, onClose, onShowKolkata }) {
         exit={{ y: 60, opacity: 0 }}
       >
         <div className="explainer-body">
-          <span className="explainer-icon" aria-hidden="true">
-            <Icon name="myloc" size={32} />
-          </span>
+          <GreetingMedia
+            slot="outside"
+            fallback={
+              <span className="explainer-icon" aria-hidden="true">
+                <Icon name="myloc" size={32} />
+              </span>
+            }
+          />
           <h2 id="out-title">{count} pujas in Kolkata</h2>
           <p>
             You are about {km} km from the city, so distances and “near me” are switched off. The map shows Kolkata and where you are.

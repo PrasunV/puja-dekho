@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Icon } from '../../components/ui/Icon.jsx';
+import GreetingMedia from '../greeting/GreetingMedia.jsx';
 
 /**
  * A short explainer shown before the browser's own location prompt (PRD flow A). The browser prompt can
@@ -19,9 +20,14 @@ export default function Explainer({ onAllow, onLater }) {
         exit={{ y: 60, opacity: 0 }}
       >
         <div className="explainer-body">
-          <span className="explainer-icon" aria-hidden="true">
-            <Icon name="myloc" size={32} />
-          </span>
+          <GreetingMedia
+            slot="explainer"
+            fallback={
+              <span className="explainer-icon" aria-hidden="true">
+                <Icon name="myloc" size={32} />
+              </span>
+            }
+          />
           <h2 id="ex-title">See pujas around you</h2>
           <p>Allow your location to see the pujas close to where you are standing. It stays on your phone and is never sent anywhere.</p>
         </div>

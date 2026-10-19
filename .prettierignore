@@ -4,3 +4,4 @@ data
 docs/v2-parked
 package-lock.json
 public/data
+public/anim/
