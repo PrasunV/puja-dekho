@@ -113,7 +113,19 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   await expect(link).toHaveAttribute('rel', /noopener/);
   await page.getByRole('button', { name: /^Save/ }).click();
   await expect(page.locator('.toast')).toContainText(/coming soon/i);
-  await expect(page.getByText(/Routes may differ/)).toBeVisible();
+  await expect(page.getByText(/Routes may differ/)).toHaveCount(0); // Google Maps shows the real route
+  // Both buttons are at most 40 px tall, share one weight, and Save carries the heart and a two-line "Coming soon".
+  const [primary, save] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
+  expect(primary?.height).toBeLessThanOrEqual(40);
+  expect(save?.height).toBeLessThanOrEqual(40);
+  const weights = await page.locator('.actions .btn').evaluateAll((els) => els.map((e) => getComputedStyle(e).fontWeight));
+  expect(new Set(weights)).toEqual(new Set(['500']));
+  await expect(page.locator('.actions .btn.save .save-heart')).toHaveCount(1);
+  const soon = await page.locator('.soon').boundingBox();
+  expect(soon?.height).toBeGreaterThan(18); // two lines
+  expect(await page.locator('.soon').evaluate((e) => getComputedStyle(e).fontWeight)).toBe('350');
+  // No rule above the footer: the list fades out instead.
+  expect(await page.locator('.panel-foot').evaluate((e) => getComputedStyle(e).borderTopWidth)).toBe('0px');
 });
 
 test('the phone Back button steps back from a puja to the list, keeping the sheet', async ({ page }) => {

@@ -47,9 +47,6 @@ export const MAKER = Object.freeze({ name: 'Prasun', url: 'https://www.linkedin.
 /** Free walking-route service (OpenRouteService). No key means no route line; Get directions still works. */
 export const ORS_KEY = import.meta.env?.VITE_ORS_KEY || '';
 
-/** Shown near Get directions: no road-closure data exists. */
-export const ROUTE_NOTE = 'Routes may differ because of Puja road closures.';
-
 /**
  * Parked for v2 (not used by the MVP screens, kept so the code under docs and the old modules still compile).
  */
