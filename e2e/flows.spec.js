@@ -119,10 +119,10 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   await expect(page.locator('.toast')).toContainText(/coming soon/i);
   await expect(page.getByText(/Routes may differ/)).toHaveCount(0); // Google Maps shows the real route
   await expect(page.locator('.actions-hint')).toHaveText('Opens in Google Maps'); // the first time only
-  // Both buttons are at most 40 px tall, share one weight, and Save carries the heart and a two-line "Coming soon".
+  // Both buttons are 48 px tall (the Android touch-target norm), share one weight, and Save carries the heart and a two-line "Coming soon".
   const [primary, save] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
-  expect(primary?.height).toBeLessThanOrEqual(40);
-  expect(save?.height).toBeLessThanOrEqual(40);
+  expect(primary?.height).toBeGreaterThanOrEqual(47.5);
+  expect(save?.height).toBeLessThanOrEqual(48.5);
   const weights = await page.locator('.actions .btn').evaluateAll((els) => els.map((e) => getComputedStyle(e).fontWeight));
   expect(new Set(weights)).toEqual(new Set(['500']));
   await expect(page.locator('.actions .btn.save .save-heart')).toHaveCount(1);
@@ -980,7 +980,7 @@ test.describe('visitor mode and the opening height', () => {
     await page.locator('.grab').click(); // full: the list is in view
     const first = await page.locator('.pcard .pname').first().textContent();
     expect(featured).toContain(first?.trim());
-    await expect(page.getByText('Our picks first, then the rest.')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Sort:\s*Our picks/ })).toBeVisible();
   });
 });
 
@@ -1048,6 +1048,72 @@ test('puja page: nearest metro is dated and flags Yellow and Orange line limits'
     return data.stations.filter((s) => s.lines.includes('orange') || s.lines.includes('yellow')).length;
   });
   expect(flagged).toBeGreaterThan(0);
+});
+
+test.describe('sort menu, loading and accessibility', () => {
+  test('the sort menu offers Nearest, Oldest first and A to Z; picking A to Z reorders the list and Escape closes the menu', async ({ page }) => {
+    await openApp(page);
+    await page.locator('.grab').click();
+    await page.locator('.grab').click(); // half
+    const sort = page.getByRole('button', { name: /Sort:/ });
+    await expect(sort).toContainText('Nearest');
+    await sort.click();
+    await expect(page.getByRole('menuitemradio')).toHaveText([/Nearest/, /Oldest first/, /A to Z/]);
+    await page.getByRole('menuitemradio', { name: /A to Z/ }).click();
+    await expect(page.getByRole('menu')).toHaveCount(0);
+    await expect(sort).toContainText('A to Z');
+    const names = await page.locator('.panel .pcard .pname').allTextContents();
+    expect(names.slice(0, 10)).toEqual([...names.slice(0, 10)].sort((a, b) => a.localeCompare(b)));
+    await sort.click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('menu')).toHaveCount(0);
+  });
+
+  test('sorting never moves the map', async ({ page }) => {
+    await openApp(page);
+    await page.locator('.grab').click();
+    await page.locator('.grab').click();
+    const before = await page.evaluate(() => JSON.stringify([window.__pdMap.getCenter(), window.__pdMap.getZoom()]));
+    await page.getByRole('button', { name: /Sort:/ }).click();
+    await page.getByRole('menuitemradio', { name: /Oldest first/ }).click();
+    expect(await page.evaluate(() => JSON.stringify([window.__pdMap.getCenter(), window.__pdMap.getZoom()]))).toBe(before);
+  });
+
+  test('while the data loads there is a skeleton, not a bare message', async ({ page }) => {
+    await page.route('**/data/pujas.json', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('loading-shell')).toBeVisible();
+    await expect(page.getByTestId('loading-shell')).toHaveAttribute('aria-busy', 'true');
+    await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'), null, { timeout: 20_000 });
+    await expect(page.getByTestId('loading-shell')).toHaveCount(0);
+  });
+
+  test('touch targets are at least 48 px, and the peek content is inert when the list is open', async ({ page }) => {
+    await openApp(page);
+    await page.locator('.grab').click();
+    await page.locator('.grab').click();
+    for (const name of [/Sort:/, /Filters/]) {
+      const box = await page.getByRole('button', { name }).first().boundingBox();
+      expect(box.height).toBeGreaterThanOrEqual(47.5);
+    }
+    await expect(page.locator('.peek-line')).toHaveAttribute('inert', '');
+    const fab = await page.locator('.fab').first().boundingBox();
+    expect(Math.min(fab.width, fab.height)).toBeGreaterThanOrEqual(47.5);
+  });
+
+  test('the sheet handle and metro chevrons meet 3:1 contrast on white', async ({ page }) => {
+    await openApp(page);
+    const ratio = await page.evaluate(() => {
+      const channel = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+      const lum = (rgb) => 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
+      const rgb = getComputedStyle(document.querySelector('.grab span')).backgroundColor.match(/\d+/g).map(Number);
+      return (1.05) / (lum(rgb) + 0.05);
+    });
+    expect(ratio).toBeGreaterThanOrEqual(3);
+  });
 });
 
 test.describe('shared links and the Back to Kolkata chip', () => {

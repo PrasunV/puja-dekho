@@ -434,15 +434,21 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
         type="button"
         className="peek-line"
         aria-hidden={sheet !== 'peek'}
+        // Out of the tab order and the accessibility tree while the list is open (React 18 needs the empty string).
+        {...(sheet !== 'peek' && !moving ? { inert: '' } : {})}
         tabIndex={sheet === 'peek' ? 0 : -1}
         onClick={() => onSheetChange('initial')}
       >
         {(sheet === 'peek' || moving) && peek}
       </button>
-      <div ref={bodyRef} className="panel-body">
+      <div ref={bodyRef} className="panel-body" {...(sheet === 'peek' && !moving ? { inert: '' } : {})}>
         {children}
       </div>
-      {footer && <div className="panel-foot">{footer}</div>}
+      {footer && (
+        <div className="panel-foot" {...(sheet === 'peek' && !moving ? { inert: '' } : {})}>
+          {footer}
+        </div>
+      )}
     </motion.section>
   );
 }

@@ -617,8 +617,17 @@ function AppShell() {
     );
   if (!data)
     return (
-      <div className="fatal" aria-busy="true">
-        Loading Puja Dekho…
+      <div className="loading-shell" data-testid="loading-shell" role="status" aria-busy="true" aria-label="Loading Puja Dekho">
+        <div className="loading-map" />
+        <div className="loading-sheet">
+          <span className="loading-handle" />
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="loading-row">
+              <span className="loading-bar wide" />
+              <span className="loading-bar narrow" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   return <Loaded data={data} />;

@@ -5,6 +5,7 @@ import { formatBand } from '../../lib/geo.js';
 import { zoneName } from '../../hooks/usePujaFilters.js';
 import { headline } from '../../lib/headline.js';
 import PopularStrip from './PopularStrip.jsx';
+import SortMenu from './SortMenu.jsx';
 import PujaCard from './PujaCard.jsx';
 
 /** Header text for the Browse state, used by the screen and by the peek line. */
@@ -62,7 +63,8 @@ export default function Explore() {
   const inArea = new Set(areaPujas.map((puja) => puja.id));
   const rest = areaCentre ? results.filter((puja) => !inArea.has(puja.id)) : results;
   const shown = rest.slice(0, visibleCount);
-  const dividerAt = !areaCentre && radiusActive && nearCount < results.length ? nearCount : -1;
+  // The "Farther than" divider only makes sense while the list runs nearest first.
+  const dividerAt = !areaCentre && filters.sort === 'nearest' && radiusActive && nearCount < results.length ? nearCount : -1;
   return (
     <div className="stack">
       <div className="head">
@@ -70,11 +72,13 @@ export default function Explore() {
           <h2>{title}</h2>
           {appliedText && <div className="sub">{appliedText}</div>}
         </div>
-        {filterCount > 0 && (
-          <button type="button" className="btn text" onClick={clearFilters}>
-            Clear all
-          </button>
-        )}
+        <div className="head-actions">
+              {filterCount > 0 && (
+            <button type="button" className="btn text" onClick={clearFilters}>
+              Clear all
+            </button>
+          )}
+        </div>
       </div>
       <LocationBanner />
       {radiusActive && nearCount === 0 && results.length > 0 && (
@@ -105,11 +109,16 @@ export default function Explore() {
               <div className="sub">Pan the map and search again, or see every puja below.</div>
             </div>
           ) : (
-            areaPujas.map((puja, i) => <PujaCard key={puja.id} puja={puja} index={i} />)
+            areaPujas.map((puja, i) => (
+              <div key={puja.id} className="prow">
+                <PujaCard puja={puja} index={i} />
+              </div>
+            ))
           )}
           {rest.length > 0 && <div className="divider-row">Everywhere else</div>}
         </section>
       )}
+      {results.length > 1 && <SortMenu />}
       {results.length === 0 ? (
         <div className="empty">
           <h3>No pujas match</h3>
@@ -121,7 +130,7 @@ export default function Explore() {
       ) : (
         <div>
           {shown.map((puja, i) => (
-            <div key={puja.id}>
+            <div key={puja.id} className="prow">
               {i === dividerAt && <div className="divider-row">{`Farther than ${formatBand(radius)}`}</div>}
               <PujaCard puja={puja} index={i} />
             </div>
@@ -133,8 +142,8 @@ export default function Explore() {
           )}
         </div>
       )}
-      {!position && locationStatus !== 'asking' && results.length > 0 && (
-        <div className="sub">{filters.curated ? 'Our picks first, then the rest.' : 'Listed A to Z. Turn on location to sort by distance.'}</div>
+      {!position && !filters.curated && locationStatus !== 'asking' && results.length > 0 && (
+        <div className="sub">Turn on location to sort by distance.</div>
       )}
     </div>
   );

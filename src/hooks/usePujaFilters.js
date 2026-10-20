@@ -38,6 +38,9 @@ export function zoneName(ids) {
   return parts.join(', ');
 }
 
+/** Sort choices and their labels. Sorting changes the list only, never the map. */
+export const SORT_LABELS = Object.freeze({ nearest: 'Nearest', curated: 'Our picks', oldest: 'Oldest first', az: 'A to Z' });
+
 /** Fallback area names for pujas with no neighbourhood in their address: not useful as an area filter. */
 const ZONE_AREA_LABELS = new Set(['Other', 'South Kolkata', 'North Kolkata', 'Central Kolkata', 'East Kolkata']);
 
@@ -145,18 +148,27 @@ export function usePujaFilters({ data, position, station, now, curated = false }
     setVisibleCount(PAGE_SIZE);
   }
 
-  /** The list: everything that matches, nearest first (to the station when one is chosen). */
+  // What the sort menu offers: the default for the situation first, then Oldest first and A to Z.
+  const [sortKey, setSortKey] = useState(/** @type {string | null} */ (null));
+  const by = stationDistances ?? distances;
+  const defaultSort = by ? 'nearest' : curated ? 'curated' : 'az';
+  const sortOptions = useMemo(() => [defaultSort, 'oldest', ...(defaultSort === 'az' ? [] : ['az'])], [defaultSort]);
+  const sort = sortKey && sortOptions.includes(sortKey) ? sortKey : defaultSort;
+
+  /** The list: everything that matches, in the chosen order. */
   const results = useMemo(() => {
-    const by = stationDistances ?? distances;
     const list = [...matching];
-    if (by) return list.sort((a, b) => (by.get(a.id) ?? 0) - (by.get(b.id) ?? 0) || a.n.localeCompare(b.n));
-    if (curated && data) {
+    const byName = (a, b) => a.n.localeCompare(b.n);
+    if (sort === 'nearest' && by) return list.sort((a, b) => (by.get(a.id) ?? 0) - (by.get(b.id) ?? 0) || byName(a, b));
+    if (sort === 'curated' && data) {
       // Our own order: the Featured pujas first, then everything else as the data file lists it.
       const place = new Map(data.pujas.map((puja, index) => [puja.id, index]));
       return list.sort((a, b) => Number(Boolean(b.f)) - Number(Boolean(a.f)) || (place.get(a.id) ?? 0) - (place.get(b.id) ?? 0));
     }
-    return list.sort((a, b) => a.n.localeCompare(b.n));
-  }, [matching, stationDistances, distances, curated, data]);
+    // Oldest first: pujas with no founding year go last.
+    if (sort === 'oldest') return list.sort((a, b) => (a.e ?? Infinity) - (b.e ?? Infinity) || byName(a, b));
+    return list.sort(byName);
+  }, [matching, by, sort, data]);
 
   /** Pujas passing the other filters that sit within AREA_RADIUS_M of the searched map centre, nearest to it first. */
   const areaPujas = useMemo(() => {
@@ -181,6 +193,9 @@ export function usePujaFilters({ data, position, station, now, curated = false }
   return useMemo(
     () => ({
       curated,
+      sort,
+      sortOptions,
+      setSort: setSortKey,
       radius,
       chooseRadius,
       radiusActive,
@@ -234,6 +249,8 @@ export function usePujaFilters({ data, position, station, now, curated = false }
     }),
     [
       curated,
+      sort,
+      sortOptions,
       radius,
       chooseRadius,
       radiusActive,

@@ -36,8 +36,8 @@
   --r-control: 12px;
   --r-sheet: 24px;
   --h-control: 48px;
-  --h-compact: 40px;
-  --hit: 44px;
+  --h-compact: 48px;
+  --hit: 48px;
   --shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.08);
   --font: 'Inter Variable', 'Noto Sans Bengali Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-body: var(--font);
@@ -254,8 +254,8 @@ a {
   gap: 10px;
 }
 .fab {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -370,7 +370,7 @@ a {
   width: 44px;
   height: 5px;
   border-radius: 3px;
-  background: var(--line);
+  background: var(--handle, #8f8f8f); /* 3.2:1 on white; the old light grey was about 1.4:1 */
 }
 .panel-body {
   flex: 1;
@@ -1956,7 +1956,7 @@ select {
 }
 .actions .btn {
   min-height: 0;
-  height: 40px;
+  height: 48px;
   padding: 0 14px;
   gap: 7px;
   font-size: 15px;
@@ -2285,7 +2285,7 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 36px;
+  min-height: 48px;
   padding: 0 14px;
   border: 1px solid var(--line, rgba(0, 0, 0, 0.12));
   border-radius: 999px;
@@ -2799,10 +2799,150 @@ select {
   font-weight: 600;
 }
 .actions .btn.share {
-  flex: 0 0 44px;
-  width: 44px;
+  flex: 0 0 48px;
+  width: 48px;
   padding: 0;
   justify-content: center;
   background: color-mix(in srgb, var(--ink) 8%, var(--bg));
   border-color: transparent;
+}
+
+/* Chevrons are interface parts: at least 3:1 on white (the muted grey is about 5:1). */
+.timings-chevron,
+.sort-btn svg {
+  color: var(--muted);
+}
+
+/* Sort menu: sits in the list header, so it costs the list no height */
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+}
+.sort {
+  position: relative;
+}
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  margin: -10px 0; /* 48 px to touch, but it takes no more height than the title beside it */
+  padding: 0 4px 0 8px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.sort-label {
+  color: var(--muted);
+}
+.sort-list {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 5;
+  min-width: 190px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.sort-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  font: inherit;
+  text-align: left;
+}
+.sort-item:last-child {
+  border-bottom: 0;
+}
+.sort-item[aria-checked='true'] {
+  font-weight: 650;
+  background: var(--surface-2);
+}
+
+/* Rows far off screen are not laid out or painted until they scroll near: the cheap way to keep 600+ rows light. */
+.prow {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 84px;
+}
+
+/* Loading skeleton: the shape of the app while the data arrives */
+.loading-shell {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.loading-map {
+  position: absolute;
+  inset: 0 0 35% 0;
+  background: var(--surface-2);
+}
+.loading-sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 40%;
+  padding: 0 16px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.loading-handle {
+  align-self: center;
+  width: 44px;
+  height: 5px;
+  margin-top: 10px;
+  border-radius: 3px;
+  background: var(--handle, #8f8f8f);
+}
+.loading-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.loading-bar {
+  display: block;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--surface-2) 50%, var(--line) 75%);
+  background-size: 200% 100%;
+  animation: pd-shimmer 1.3s linear infinite;
+}
+.loading-bar.wide {
+  width: 70%;
+}
+.loading-bar.narrow {
+  width: 40%;
+  height: 10px;
+}
+@keyframes pd-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading-bar {
+    animation: none;
+  }
 }
