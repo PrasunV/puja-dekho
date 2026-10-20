@@ -14,7 +14,7 @@ test('opens at the peek: header says how many pujas are near, no search, no sort
   await expect(page.locator('.made-with')).toContainText('made with love');
 });
 
-test('sheet has four heights: peek 14%, initial 35%, half 50%, full', async ({ page }) => {
+test('sheet has four heights: peek 12%, initial 35%, half 57%, full 85%', async ({ page }) => {
   await openApp(page);
   const stage = (await page.locator('.stage').boundingBox()).height;
   const heightOf = async () => (await page.locator('.panel').boundingBox()).height;
@@ -25,10 +25,23 @@ test('sheet has four heights: peek 14%, initial 35%, half 50%, full', async ({ p
   await expect.poll(heightOf).toBeGreaterThan(stage * 0.3);
   await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
-  await expect.poll(heightOf).toBeGreaterThan(stage * 0.45);
+  await expect.poll(heightOf).toBeGreaterThan(stage * 0.52);
   await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
-  await expect.poll(heightOf).toBeGreaterThan(stage * 0.9);
+  await expect.poll(heightOf).toBeGreaterThan(stage * 0.8);
+  await expect.poll(async () => Math.abs((await heightOf()) - stage * 0.85)).toBeLessThan(2);
+});
+
+test('the list scrolls at 35% (wheel and keyboard), not only when the sheet is full', async ({ page }) => {
+  await openApp(page);
+  await page.locator('.grab').click();
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
+  const body = page.locator('.panel-body');
+  expect(await body.evaluate((el) => getComputedStyle(el).overflowY)).toBe('auto');
+  await body.hover();
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeGreaterThan(100);
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
 });
 
 test('radius chip offers the five PRD steps and updates the header', async ({ page }) => {

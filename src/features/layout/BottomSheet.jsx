@@ -4,10 +4,8 @@ import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'r
 
 export const SHEET_STATES = /** @type {const} */ (['peek', 'initial', 'half', 'full']);
 
-/** PRD section 3: a peek that fits the handle and one line, a mid state for summaries, and full height. */
-const SHARE = { peek: 0.14, initial: 0.35, half: 0.5 };
-/** The full sheet stops this far short of the top of the map, so a sliver of map stays visible. */
-const FULL_GAP_PX = 8;
+/** Doc 01: peek 12%, list 35%, detail 57%, full 85% (the top 15% of the map stays in view, so the header and chips stay reachable). */
+const SHARE = { peek: 0.12, initial: 0.35, half: 0.57, full: 0.85 };
 
 /** People who ask for less motion get a short, plain ease instead of whatever motion style is chosen. */
 const REDUCED = { duration: 0.18, ease: /** @type {const} */ ('easeOut') };
@@ -29,7 +27,7 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
  * The four heights for a stage of this height.
  * @param {number} stage
  */
-const snapsFor = (stage) => ({ peek: stage * SHARE.peek, initial: stage * SHARE.initial, half: stage * SHARE.half, full: stage - FULL_GAP_PX });
+const snapsFor = (stage) => ({ peek: stage * SHARE.peek, initial: stage * SHARE.initial, half: stage * SHARE.half, full: stage * SHARE.full });
 
 /**
  * The list panel. A draggable bottom sheet on phones with three snap points; a fixed side panel on desktop.

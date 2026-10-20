@@ -349,13 +349,13 @@ a {
   border-bottom: 0;
 }
 .panel[data-sheet='peek'] {
-  height: 92px;
+  height: 12%;
 }
 .panel[data-sheet='half'] {
-  height: 48%;
+  height: 57%;
 }
 .panel[data-sheet='full'] {
-  height: calc(100% - var(--nav-h) - env(safe-area-inset-bottom, 0px));
+  height: 85%;
 }
 .grab {
   flex: none;
@@ -2504,8 +2504,11 @@ select {
 }
 /* The list scrolls only when the sheet is fully open; below that a vertical drag moves the sheet. */
 @media (max-width: 899px) {
+  /* The list scrolls at 35% and 57% too (wheel, keyboard, assistive tech). A finger's vertical drag still belongs to the
+     sheet first (it rises, then the list scrolls), so native touch panning is off there; sideways swipes stay native. */
   .panel:not([data-sheet='full']) .panel-body {
-    overflow-y: hidden;
+    overflow-y: auto;
+    touch-action: pan-x;
   }
 }
 /* The peek line sits over the top of the list and fades out as the sheet rises; the list fades in under it. */

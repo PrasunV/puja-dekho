@@ -9,7 +9,7 @@ const panelBox = async (page) => await page.locator('.panel').boundingBox();
 const stageHeight = async (page) => (await page.locator('.stage').boundingBox()).height;
 const restingHeight = async (page, share) => {
   const stage = await stageHeight(page);
-  return share === 'full' ? stage - 8 : stage * share;
+  return share === 'full' ? stage * 0.85 : stage * share;
 };
 const settledAt = (page, share) =>
   expect.poll(async () => Math.abs((await panelBox(page)).height - (await restingHeight(page, share))), { timeout: 4000 }).toBeLessThan(2);
@@ -50,19 +50,19 @@ const SLOW = { ms: 900, steps: 18, holdMs: 250 };
 async function openAt(page, state) {
   await openApp(page);
   while ((await sheetState(page)) !== state) await page.locator('.grab').click();
-  await settledAt(page, { peek: 0.14, half: 0.5, full: 'full' }[state]);
+  await settledAt(page, { peek: 0.12, half: 0.57, full: 'full' }[state]);
 }
 const bodyPoint = async (page) => {
   const box = await panelBox(page);
   return { x: 200, y: box.y + box.height * 0.55 };
 };
 
-test('a short, fast flick up from the peek line opens to half', async ({ page }) => {
+test('a short, fast flick up from the peek line opens to the list (35%)', async ({ page }) => {
   await openAt(page, 'peek');
   const box = await panelBox(page);
   await swipe(page, { x: 120, y: box.y + 50 }, { x: 120, y: box.y + 5 }, FLICK);
-  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
-  await settledAt(page, 0.5);
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
+  await settledAt(page, 0.35);
 });
 
 test('a flick from the middle of the list at half jumps straight to full', async ({ page }) => {
@@ -85,7 +85,7 @@ test('a slow short drag settles back on the nearest state', async ({ page }) => 
   const box = await panelBox(page);
   await swipe(page, { x: 120, y: box.y + 40 }, { x: 120, y: box.y + 40 - 45 }, SLOW);
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'peek');
-  await settledAt(page, 0.14);
+  await settledAt(page, 0.12);
 });
 
 test('a slow drag past the midpoint settles on the nearest state, not the next', async ({ page }) => {
@@ -93,7 +93,7 @@ test('a slow drag past the midpoint settles on the nearest state, not the next',
   const box = await panelBox(page);
   await swipe(page, { x: 120, y: box.y + 40 }, { x: 120, y: box.y + 40 - 260 }, SLOW);
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
-  await settledAt(page, 0.5);
+  await settledAt(page, 0.57);
 });
 
 test('swiping down from anywhere on the sheet closes it a state, and the sheet follows the finger', async ({ page }) => {
@@ -113,8 +113,8 @@ test('swiping down from anywhere on the sheet closes it a state, and the sheet f
     },
   );
   expect(before - mid).toBeGreaterThan(190); // it tracked the drag
-  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'peek');
-  await settledAt(page, 0.14);
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
+  await settledAt(page, 0.35);
 });
 
 test('the map buttons and the people pill ride the sheet while it is dragged', async ({ page }) => {
@@ -241,7 +241,7 @@ test('dragging past the ends stretches with resistance and springs back', async 
   await settledAt(page, 'full');
 
   await openAt(page, 'peek');
-  const peek = await restingHeight(page, 0.14);
+  const peek = await restingHeight(page, 0.12);
   const box = await panelBox(page);
   let low = 0;
   await swipe(
@@ -260,7 +260,7 @@ test('dragging past the ends stretches with resistance and springs back', async 
   expect(low).toBeLessThan(peek);
   expect(low).toBeGreaterThan(peek - 100);
   expect(await sheetState(page)).toBe('peek');
-  await settledAt(page, 0.14);
+  await settledAt(page, 0.12);
 });
 
 const flickToHalf = async (page) => {
@@ -276,8 +276,9 @@ const flickToHalf = async (page) => {
   await swipe(page, { x: 120, y: box.y + 50 }, { x: 120, y: box.y + 5 }, FLICK);
   await page.waitForTimeout(900);
   const heights = await page.evaluate(() => window.__heights);
-  const half = await restingHeight(page, 0.5);
-  const travel = half - (await restingHeight(page, 0.14));
+  // A flick from the peek now lands on the 35% list state (it is the next state up).
+  const half = await restingHeight(page, 0.35);
+  const travel = half - (await restingHeight(page, 0.12));
   return { heights, half, travel };
 };
 
@@ -379,8 +380,8 @@ test.describe('motion lab', () => {
     await swipe(page, { x: 120, y: box.y + 50 }, { x: 120, y: box.y + 5 }, FLICK);
     await page.waitForTimeout(1200);
     const heights = await page.evaluate(() => window.__heights);
-    const half = await restingHeight(page, 0.5);
-    const travel = half - (await restingHeight(page, 0.14));
+    const half = await restingHeight(page, 0.35);
+    const travel = half - (await restingHeight(page, 0.12));
     expect(Math.max(...heights) - half).toBeGreaterThan(travel * 0.05);
   });
 });
