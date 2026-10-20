@@ -5,7 +5,7 @@ import { Icon } from '../../components/ui/Icon.jsx';
 import { TypicalCrowd } from '../../components/ui/Crowd.jsx';
 import { tripFor, tripText } from '../../lib/route.js';
 import { formatDistance, todayIst, walkMinutes } from '../../lib/geo.js';
-import { phaseFor, stationLines, timingText } from '../../lib/metro.js';
+import { metroNotes, phaseFor, stationLines, timingText } from '../../lib/metro.js';
 import { nearStations } from '../../lib/pujas.js';
 import { storage } from '../../lib/storage.js';
 
@@ -15,6 +15,7 @@ function NearestMetro({ puja }) {
   // Beyond 10 km a station is no help (Howrah and the northern suburbs), so say nothing.
   const stations = nearStations(data, puja, 2).filter((entry) => entry.distance <= 10_000);
   const phase = phaseFor(data.metro, todayIst());
+  const dayLabel = `Today, ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}`;
   if (stations.length === 0) return null;
   return (
     <div className="card stack">
@@ -22,19 +23,25 @@ function NearestMetro({ puja }) {
       {stations.map(({ station, distance }) => {
         const lines = stationLines(station);
         const hours = [...new Set(lines.map((line) => timingText(data.metro, line, phase)).filter(Boolean))];
+        const notes = metroNotes(data.metro, station, phase);
         let detail = station.lines.join(', ');
         if (lines.length)
-          detail = hours.length ? `${phase?.label} hours: ${hours.join(' / ')}` : 'Check the Metro button on the map for timings.';
+          detail = hours.length ? `${dayLabel}${phase?.label ? `, ${phase.label}` : ''}: ${hours.join(' / ')}` : 'Check the Metro button on the map for timings.';
         return (
           <div key={station.id}>
             <div className="row">
-              {lines.map((line) => (
+              {station.lines.map((line) => (
                 <Dot key={line} tone={line} />
               ))}
               <b className="grow">{station.name}</b>
               <span className="num">{`~${formatDistance(distance)} · ~${walkMinutes(distance)} min walk`}</span>
             </div>
             <div className="sub">{detail}</div>
+            {notes.map((note) => (
+              <div key={note} className="sub caution">
+                {note}
+              </div>
+            ))}
           </div>
         );
       })}

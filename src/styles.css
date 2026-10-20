@@ -2775,3 +2775,26 @@ select {
   position: absolute;
   inset: -2px; /* a 48 px tap area */
 }
+
+/* "Pujas in this area" section at the top of the list */
+.area-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.area-head h3 {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.area-head .num {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.sub.caution {
+  color: var(--accent);
+  font-weight: 600;
+}

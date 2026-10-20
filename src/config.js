@@ -61,3 +61,6 @@ export const PAGE_SIZE = 40;
 
 export const ROADS_NOTE_URL =
   'https://www.nativeplanet.com/travel-guide/kolkata-durga-puja-2026-traffic-restrictions-idol-transport-routes-metro-guide-011-24773.html';
+
+/** "Pujas in this area": how far from the middle of the visible map a puja still counts (the 3 to 4 km the brief asked for). */
+export const AREA_RADIUS_M = 3500;

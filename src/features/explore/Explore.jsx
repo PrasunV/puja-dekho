@@ -1,6 +1,6 @@
 import { useApp } from '../../context/AppContext.js';
 import { Icon } from '../../components/ui/Icon.jsx';
-import { PAGE_SIZE, RADIUS_STEPS } from '../../config.js';
+import { AREA_RADIUS_M, PAGE_SIZE, RADIUS_STEPS } from '../../config.js';
 import { formatBand } from '../../lib/geo.js';
 import { zoneName } from '../../hooks/usePujaFilters.js';
 import { headline } from '../../lib/headline.js';
@@ -57,8 +57,12 @@ export default function Explore() {
     filters.clearOthers();
     setStation(null);
   };
-  const shown = results.slice(0, visibleCount);
-  const dividerAt = radiusActive && nearCount < results.length ? nearCount : -1;
+  const { areaCentre, areaPujas, clearArea } = filters;
+  // With an area searched, its pujas lead under their own heading and the rest follow without repeating them.
+  const inArea = new Set(areaPujas.map((puja) => puja.id));
+  const rest = areaCentre ? results.filter((puja) => !inArea.has(puja.id)) : results;
+  const shown = rest.slice(0, visibleCount);
+  const dividerAt = !areaCentre && radiusActive && nearCount < results.length ? nearCount : -1;
   return (
     <div className="stack">
       <div className="head">
@@ -83,7 +87,29 @@ export default function Explore() {
           )}
         </div>
       )}
-      <PopularStrip />
+      {!areaCentre && <PopularStrip />}
+      {areaCentre && (
+        <section aria-label="Pujas in this area" data-testid="area-section">
+          <div className="area-head">
+            <h3>
+              Pujas in this area <span className="num">{areaPujas.length}</span>
+            </h3>
+            <button type="button" className="btn text" onClick={clearArea}>
+              Clear area
+            </button>
+          </div>
+          <div className="sub">{`Within about ${AREA_RADIUS_M / 1000} km of the middle of the map.`}</div>
+          {areaPujas.length === 0 ? (
+            <div className="notice">
+              <b>No pujas within {AREA_RADIUS_M / 1000} km of here</b>
+              <div className="sub">Pan the map and search again, or see every puja below.</div>
+            </div>
+          ) : (
+            areaPujas.map((puja, i) => <PujaCard key={puja.id} puja={puja} index={i} />)
+          )}
+          {rest.length > 0 && <div className="divider-row">Everywhere else</div>}
+        </section>
+      )}
       {results.length === 0 ? (
         <div className="empty">
           <h3>No pujas match</h3>
@@ -100,9 +126,9 @@ export default function Explore() {
               <PujaCard puja={puja} index={i} />
             </div>
           ))}
-          {results.length > shown.length && (
+          {rest.length > shown.length && (
             <button type="button" className="btn block mt12" onClick={showMore}>
-              {`Show ${Math.min(PAGE_SIZE, results.length - shown.length)} more`}
+              {`Show ${Math.min(PAGE_SIZE, rest.length - shown.length)} more`}
             </button>
           )}
         </div>

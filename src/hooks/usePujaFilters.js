@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { PAGE_SIZE, RADIUS_STEPS } from '../config.js';
+import { AREA_RADIUS_M, PAGE_SIZE, RADIUS_STEPS } from '../config.js';
 import { typicalCrowd } from '../lib/crowd.js';
 import { formatBand, haversine } from '../lib/geo.js';
 import { stationOutlook } from '../lib/stations.js';
@@ -77,6 +77,8 @@ export function usePujaFilters({ data, position, station, now, curated = false }
   const moment = now ?? clock;
 
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // "Search this area": the middle of the map the person framed. null means no area is searched.
+  const [areaCentre, setAreaCentre] = useState(/** @type {{ lat: number, lng: number } | null} */ (null));
 
   const chooseRadius = useCallback((metres) => setRadius(metres), []);
 
@@ -156,6 +158,17 @@ export function usePujaFilters({ data, position, station, now, curated = false }
     return list.sort((a, b) => a.n.localeCompare(b.n));
   }, [matching, stationDistances, distances, curated, data]);
 
+  /** Pujas passing the other filters that sit within AREA_RADIUS_M of the searched map centre, nearest to it first. */
+  const areaPujas = useMemo(() => {
+    if (!areaCentre) return [];
+    const far = new Map();
+    for (const puja of matching) far.set(puja.id, haversine(areaCentre.lat, areaCentre.lng, puja.la, puja.lo));
+    return matching
+      .filter((puja) => far.get(puja.id) <= AREA_RADIUS_M)
+      .sort((a, b) => far.get(a.id) - far.get(b.id) || a.n.localeCompare(b.n));
+  }, [matching, areaCentre]);
+  const clearArea = useCallback(() => setAreaCentre(null), []);
+
   /** Pujas inside the radius that pass the other filters. This is the "X" in the header. */
   const nearCount = useMemo(() => (radiusActive ? matching.filter(inRadius).length : matching.length), [matching, radiusActive, inRadius]);
 
@@ -172,6 +185,10 @@ export function usePujaFilters({ data, position, station, now, curated = false }
       chooseRadius,
       radiusActive,
       nextRadius,
+      areaCentre,
+      setAreaCentre,
+      clearArea,
+      areaPujas,
       lessCrowded,
       setLessCrowded,
       zones,
@@ -187,6 +204,7 @@ export function usePujaFilters({ data, position, station, now, curated = false }
         setLessCrowded(false);
         setArea(null);
         setZones([]);
+        setAreaCentre(null);
       },
       /** Clear everything except the radius and the station (the station is cleared by the screen that owns it). */
       clearOthers: () => {
@@ -220,6 +238,9 @@ export function usePujaFilters({ data, position, station, now, curated = false }
       chooseRadius,
       radiusActive,
       nextRadius,
+      areaCentre,
+      clearArea,
+      areaPujas,
       lessCrowded,
       zones,
       toggleZone,

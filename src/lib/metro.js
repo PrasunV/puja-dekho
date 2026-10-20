@@ -107,3 +107,23 @@ export function timingText(metro, line, phase) {
       return null;
   }
 }
+
+/**
+ * Plain-words cautions for a station on a Puja day: the Orange Line does not run, and the Yellow and Purple
+ * Lines stop well before the Blue and Green Lines do. Empty outside the festival or when the lines are fine.
+ * @param {import('./types.js').MetroData} metro
+ * @param {import('./types.js').Station} station
+ * @param {import('./types.js').MetroPhase | null} phase
+ * @returns {string[]}
+ */
+export function metroNotes(metro, station, phase) {
+  if (!phase) return [];
+  const notes = [];
+  if (station.lines.includes('orange')) notes.push('Orange Line: no service on the main Puja days.');
+  for (const line of ['yellow', 'purple']) {
+    if (!station.lines.includes(line)) continue;
+    const hours = timingText(metro, line, phase);
+    if (hours) notes.push(`${line[0].toUpperCase()}${line.slice(1)} Line runs ${hours.replace(/(\d)-(\d)/g, '$1 – $2')} only. Plan another way back at night.`);
+  }
+  return notes;
+}

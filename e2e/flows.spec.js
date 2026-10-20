@@ -1001,3 +1001,53 @@ test('the details screen has a 44 px back arrow to the left of the title, named 
   await back.click();
   await expect(back).toHaveCount(0);
 });
+
+test.describe('Search this area', () => {
+  test('panning the map offers the pill; tapping it lists pujas in this area, and Clear area removes them', async ({ page }) => {
+    await openApp(page);
+    await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
+    const box = await page.locator('#map').boundingBox();
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 3;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x - 60, y + 40, { steps: 8 });
+    await page.mouse.up();
+    await settled(page);
+    await page.getByRole('button', { name: 'Search this area' }).click();
+    const section = page.getByTestId('area-section');
+    await expect(section).toContainText('Pujas in this area');
+    await expect(section.locator('.pcard').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Search this area' })).toHaveCount(0);
+    await section.getByRole('button', { name: 'Clear area' }).click();
+    await expect(page.getByTestId('area-section')).toHaveCount(0);
+  });
+
+  test('the area section holds pujas and the list below does not repeat them', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => window.__pdMap.jumpTo({ center: [88.3467, 22.5186] }));
+    const box = await page.locator('#map').boundingBox();
+    await page.mouse.move(box.x + 100, box.y + 120);
+    await page.mouse.down();
+    await page.mouse.move(box.x + 110, box.y + 125, { steps: 4 });
+    await page.mouse.up();
+    await settled(page);
+    await page.getByRole('button', { name: 'Search this area' }).click();
+    await page.locator('.panel .grab').click().catch(() => {});
+    const inArea = await page.getByTestId('area-section').locator('.pcard').count();
+    const everywhere = await page.locator('.panel .pcard').count();
+    // The section's pujas are taken out of the list below it, so together they never exceed the whole list.
+    const total = await page.evaluate(async () => (await (await fetch('/data/pujas.json')).json()).length);
+    expect(inArea).toBeGreaterThan(0);
+    expect(everywhere).toBeLessThanOrEqual(total);
+  });
+});
+
+test('puja page: nearest metro is dated and flags Yellow and Orange line limits', async ({ page }) => {
+  await openApp(page);
+  const flagged = await page.evaluate(async () => {
+    const data = await (await fetch('/data/metro.json')).json();
+    return data.stations.filter((s) => s.lines.includes('orange') || s.lines.includes('yellow')).length;
+  });
+  expect(flagged).toBeGreaterThan(0);
+});

@@ -23,7 +23,7 @@ import Explainer from './features/layout/Explainer.jsx';
 import OutsideCard from './features/layout/OutsideCard.jsx';
 import Header from './features/layout/Header.jsx';
 import MotionLab from './features/layout/MotionLab.jsx';
-import { MapTools, OfflineBadge, ShowKolkata, ViewCount, VisitorChip } from './features/layout/MapOverlays.jsx';
+import { MapTools, OfflineBadge, SearchAreaPill, ShowKolkata, ViewCount, VisitorChip } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
 import GreetingMedia from './features/greeting/GreetingMedia.jsx';
 import { claimGreeting, warmGreeting } from './features/greeting/greetings.js';
@@ -197,6 +197,16 @@ function Loaded({ data }) {
               ? 'near'
               : 'browse'
   );
+  // "Search this area": the pill shows after the person moves the map; tapping it lists the pujas near the middle of what they framed.
+  const [areaPill, setAreaPill] = useState(false);
+  const searchThisArea = useCallback(() => {
+    const viewport = mapRef.current?.getViewport();
+    if (!viewport) return;
+    filters.setAreaCentre(viewport.centre);
+    setAreaPill(false);
+    setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
+  }, [filters]);
+
   // Opening something from the peek brings the sheet up to the middle.
   useEffect(() => {
     if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro'))
@@ -494,7 +504,7 @@ function Loaded({ data }) {
                   onCentredChange={setCentred}
                   following={following}
                   onFollowStop={() => setFollowing(false)}
-                  onUserMoved={() => {}}
+                  onUserMoved={() => setAreaPill(true)}
                   onMapTap={() => {
                     if (!desktop) setSheet('peek');
                   }}
@@ -508,6 +518,7 @@ function Loaded({ data }) {
             <OfflineBadge online={online} />
             <MotionLab />
             <ViewCount visits={visitCount} live={liveCount} bottom={pillBottom} full={!desktop && sheet === 'full'} />
+            <SearchAreaPill visible={areaPill && view === 'browse'} onSearch={searchThisArea} />
             <ShowKolkata visible={far} onClick={showKolkata} />
             {showVisitorChip && <VisitorChip km={farKm} onClose={() => setVisitorChipClosed(true)} />}
             <MapTools
