@@ -16,8 +16,8 @@ export const GREETINGS = [
     label: 'Shubho Maha Ashtami',
     width: 400,
     height: 140,
-    // Everyone, every open, browser or installed app, on any day, until the next greeting (Nabami) replaces it.
-    days: null,
+    // Switched off: no days. (It ran for everyone, every open, from 19 Oct until the Navami greeting was due.)
+    days: [],
     maxShows: null,
     installedToo: true,
   },

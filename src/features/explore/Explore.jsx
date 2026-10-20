@@ -108,7 +108,7 @@ export default function Explore() {
         </div>
       )}
       {!position && locationStatus !== 'asking' && results.length > 0 && (
-        <div className="sub">Listed A to Z. Turn on location to sort by distance.</div>
+        <div className="sub">{filters.curated ? 'Our picks first, then the rest.' : 'Listed A to Z. Turn on location to sort by distance.'}</div>
       )}
     </div>
   );

@@ -108,6 +108,8 @@ function Loaded({ data }) {
   );
   /** Google Maps behaviour: first tap centres on you, second follows you, third stops. It never changes the radius. */
   const onLocationButton = () => {
+    // A visitor can still see where they are, but "near me" has nothing to offer from out there.
+    if (far) toast("Near me works once you're in Kolkata.");
     if (following) setFollowing(false);
     else if (rawPosition && centred) setFollowing(true);
     else {
@@ -173,7 +175,7 @@ function Loaded({ data }) {
 
   // Sheet state: a chosen station replaces the radius; lines only draw and list.
   const station = nav.stationId ? (data.stById.get(nav.stationId) ?? null) : null;
-  const filters = usePujaFilters({ data, position, station });
+  const filters = usePujaFilters({ data, position, station, curated: far });
   const near = useNearPuja(data.pujas, position);
   /** "Show Kolkata" for people outside the city: the cluster alone, without the far-away dot. */
   const showKolkata = useCallback(() => {

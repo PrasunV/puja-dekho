@@ -55,8 +55,9 @@ const ZONE_AREA_LABELS = new Set(['Other', 'South Kolkata', 'North Kolkata', 'Ce
  * @param {import('../lib/types.js').Position | null} input.position  null when location is off or far away
  * @param {import('../lib/types.js').Station | null} input.station  A chosen metro station replaces the radius
  * @param {Date} [input.now] The moment the typical crowd is read for (tests pass one)
+ * @param {boolean} [input.curated] A visitor with no distances: Featured pujas first, then the data file's own order, instead of A to Z
  */
-export function usePujaFilters({ data, position, station, now }) {
+export function usePujaFilters({ data, position, station, now, curated = false }) {
   const [radius, setRadius] = useState(DEFAULT_RADIUS_M);
   const [lessCrowded, setLessCrowded] = useState(false);
   const [area, setArea] = useState(/** @type {string | null} */ (null));
@@ -147,8 +148,13 @@ export function usePujaFilters({ data, position, station, now }) {
     const by = stationDistances ?? distances;
     const list = [...matching];
     if (by) return list.sort((a, b) => (by.get(a.id) ?? 0) - (by.get(b.id) ?? 0) || a.n.localeCompare(b.n));
+    if (curated && data) {
+      // Our own order: the Featured pujas first, then everything else as the data file lists it.
+      const place = new Map(data.pujas.map((puja, index) => [puja.id, index]));
+      return list.sort((a, b) => Number(Boolean(b.f)) - Number(Boolean(a.f)) || (place.get(a.id) ?? 0) - (place.get(b.id) ?? 0));
+    }
     return list.sort((a, b) => a.n.localeCompare(b.n));
-  }, [matching, stationDistances, distances]);
+  }, [matching, stationDistances, distances, curated, data]);
 
   /** Pujas inside the radius that pass the other filters. This is the "X" in the header. */
   const nearCount = useMemo(() => (radiusActive ? matching.filter(inRadius).length : matching.length), [matching, radiusActive, inRadius]);
@@ -161,6 +167,7 @@ export function usePujaFilters({ data, position, station, now }) {
 
   return useMemo(
     () => ({
+      curated,
       radius,
       chooseRadius,
       radiusActive,
@@ -208,6 +215,7 @@ export function usePujaFilters({ data, position, station, now }) {
         .join(' · '),
     }),
     [
+      curated,
       radius,
       chooseRadius,
       radiusActive,

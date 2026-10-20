@@ -967,6 +967,23 @@ test.describe('visitor mode and the opening height', () => {
     await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'));
     await expect(page.locator('.visitor-chip')).toHaveCount(0);
   });
+
+  test('a visitor sees our picks first, and the near-me button says it works in Kolkata', async ({ page }) => {
+    await open35(page);
+    await page.context().setGeolocation({ latitude: 23.52, longitude: 87.31 }); // Durgapur
+    await openApp(page);
+    await page.locator('.outside').getByRole('button', { name: 'Keep both in view' }).click();
+    const featured = await page.evaluate(() => window.__pd.data.pujas.filter((p) => p.f).map((p) => p.n));
+    expect(featured.length).toBeGreaterThan(0);
+    // The sheet is at 35% here, so the map buttons are in reach.
+    await page.locator('.fab.loc').click();
+    await expect(page.getByText("Near me works once you're in Kolkata.")).toBeVisible();
+    await page.locator('.grab').click();
+    await page.locator('.grab').click(); // full: the list is in view
+    const first = await page.locator('.pcard .pname').first().textContent();
+    expect(featured).toContain(first?.trim());
+    await expect(page.getByText('Our picks first, then the rest.')).toBeVisible();
+  });
 });
 
 test('the details screen has a 44 px back arrow to the left of the title, named "Back to the list"', async ({ page }) => {
