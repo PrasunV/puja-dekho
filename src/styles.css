@@ -2798,3 +2798,11 @@ select {
   color: var(--accent);
   font-weight: 600;
 }
+.actions .btn.share {
+  flex: 0 0 44px;
+  width: 44px;
+  padding: 0;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ink) 8%, var(--bg));
+  border-color: transparent;
+}

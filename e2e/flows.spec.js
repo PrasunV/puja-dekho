@@ -141,9 +141,7 @@ test('the "Opens in Google Maps" hint goes away for good once Get directions has
   await page.evaluate(() => document.querySelector('.actions a')?.addEventListener('click', (e) => e.preventDefault())); // stay here
   await page.getByRole('link', { name: /Get directions/ }).click();
   await expect(page.locator('.actions-hint')).toBeVisible(); // not yanked away mid-tap
-  await page.reload();
-  await page.locator('.grab').click();
-  await page.locator('.pcard-main').first().click();
+  await page.reload(); // the address holds the puja, so the reload lands on its details again
   await expect(page.locator('.actions')).toBeVisible();
   await expect(page.locator('.actions-hint')).toHaveCount(0);
 });
@@ -1050,4 +1048,47 @@ test('puja page: nearest metro is dated and flags Yellow and Orange line limits'
     return data.stations.filter((s) => s.lines.includes('orange') || s.lines.includes('yellow')).length;
   });
   expect(flagged).toBeGreaterThan(0);
+});
+
+test.describe('shared links and the Back to Kolkata chip', () => {
+  test('a shared puja link opens its details, and Back goes to the list', async ({ page }) => {
+    await page.goto('/?puja=S001');
+    await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'), null, { timeout: 20_000 });
+    await expect(page.locator('.panel')).toContainText('22 Palli Sarodotsab');
+    await expect(page.getByRole('button', { name: 'Back to the list' })).toBeVisible();
+    await page.getByRole('button', { name: 'Back to the list' }).click();
+    await expect(page.getByRole('button', { name: 'Back to the list' })).toHaveCount(0);
+    await expect(page).not.toHaveURL(/puja=/);
+  });
+
+  test('an unknown puja id in the link falls back to the list', async ({ page }) => {
+    await page.goto('/?puja=NOPE');
+    await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'), null, { timeout: 20_000 });
+    await expect(page.getByRole('button', { name: 'Back to the list' })).toHaveCount(0);
+    await expect(page).not.toHaveURL(/puja=/);
+  });
+
+  test('opening a puja puts its link in the address bar; Share copies it', async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await openApp(page);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+      window.__pd.openPuja('S001');
+    });
+    await expect(page).toHaveURL(/\?puja=S001/);
+    await page.getByRole('button', { name: /^Share / }).click();
+    await expect(page.getByText('Link copied')).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\?puja=S001$/);
+  });
+
+  test('panning off the city shows Back to Kolkata, and it frames the pujas again', async ({ page }) => {
+    await openApp(page);
+    await page.evaluate(() => window.__pdMap.jumpTo({ center: [77.209, 28.6139], zoom: 9 }));
+    await settled(page);
+    const chip = page.getByRole('button', { name: 'Back to Kolkata' });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await settled(page);
+    await expect(page.getByRole('button', { name: 'Back to Kolkata' })).toHaveCount(0);
+  });
 });

@@ -8,6 +8,7 @@ import { formatDistance, todayIst, walkMinutes } from '../../lib/geo.js';
 import { metroNotes, phaseFor, stationLines, timingText } from '../../lib/metro.js';
 import { nearStations } from '../../lib/pujas.js';
 import { storage } from '../../lib/storage.js';
+import { pujaUrl } from '../../hooks/useNav.js';
 
 /** Nearest metro stations with today's hours. */
 function NearestMetro({ puja }) {
@@ -112,6 +113,24 @@ export function PujaActions({ puja }) {
   // "Opens in Google Maps" is shown until someone has used Get directions once; after that it is gone for good.
   // It is read once, so it does not vanish (and shift the buttons) in the middle of the tap.
   const [hint] = useState(() => !storage.get('mapsHint', false));
+  // Share hands the puja's own link to the phone's share sheet; where there is none, it copies the link.
+  const share = async () => {
+    const url = `${location.origin}${pujaUrl(puja.id)}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: puja.n, text: `${puja.n}, Durga Puja in Kolkata`, url });
+        return;
+      } catch (error) {
+        if (error?.name === 'AbortError') return; // the person closed the share sheet
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Link copied');
+    } catch {
+      toast("Couldn't copy the link. Copy it from the address bar.");
+    }
+  };
   return (
     <div className="actions">
       <div className="row actions-row">
@@ -128,6 +147,13 @@ export function PujaActions({ puja }) {
           <Icon name="nav" />
           Get directions
         </a>
+        <button type="button" className="btn share" aria-label={`Share ${puja.n}`} onClick={share}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
+            <path d="m16 6-4-4-4 4" />
+            <path d="M12 2v13" />
+          </svg>
+        </button>
         <button type="button" className="btn save" onClick={() => toast('Saving is coming soon')}>
           <svg className="save-heart" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path

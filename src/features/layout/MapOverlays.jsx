@@ -189,14 +189,14 @@ export function SearchAreaPill({ visible, onSearch }) {
 
 /**
  * For people outside Kolkata: one tap to frame the city alone. Always on the map, so it works with the sheet at its lowest.
- * @param {{ visible: boolean, onClick: () => void }} props
+ * @param {{ visible: boolean, onClick: () => void, label?: string }} props
  */
-export function ShowKolkata({ visible, onClick }) {
+export function ShowKolkata({ visible, onClick, label = 'Show Kolkata' }) {
   if (!visible) return null;
   return (
     <button type="button" className="show-kolkata" onClick={onClick}>
       <Icon name="myloc" size={16} />
-      Show Kolkata
+      {label}
     </button>
   );
 }

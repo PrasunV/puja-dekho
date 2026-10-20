@@ -40,6 +40,7 @@ import { makePin } from './pin.js';
  * @property {(centred: boolean) => void} onCentredChange  Whether the person's dot is in the middle of the visible map
  * @property {boolean} following                             Keep the map on the person as they move
  * @property {() => void} onFollowStop                       Following ended (the person dragged the map, or another screen took the camera)
+ * @property {(empty: boolean) => void} [onEmptyView]   After every move: true when no puja is on screen
  * @property {() => void} onUserMoved                        The person finished dragging, pinching or scrolling the map
  * @property {() => void} onMapTap                         A tap on empty map (not a puja, cluster or drag)
  * @property {(id: string) => void} onPuja
@@ -278,6 +279,7 @@ const MapView = forwardRef(
       following,
       onFollowStop,
       onUserMoved,
+      onEmptyView,
       onMapTap,
       onPuja,
       onStation,
@@ -310,6 +312,7 @@ const MapView = forwardRef(
       following,
       onFollowStop,
       onUserMoved,
+      onEmptyView,
       onMapTap,
       votes,
       desktop,
@@ -325,6 +328,7 @@ const MapView = forwardRef(
         following,
         onFollowStop,
         onUserMoved,
+        onEmptyView,
         onMapTap,
         votes,
         desktop,
@@ -375,6 +379,11 @@ const MapView = forwardRef(
       });
       map.on('moveend', () => {
         syncCentred();
+        // No puja dot or cluster anywhere on screen: the person has drifted off the map of pujas.
+        // Asked once the map has drawn, since a jump has not painted its dots yet when it ends.
+        map.once('idle', () => {
+          if (map.getLayer('pujas')) callbacks.current.onEmptyView?.(map.queryRenderedFeatures({ layers: ['clusters', 'pujas'] }).length === 0);
+        });
         if (dragging) {
           dragging = false;
           callbacks.current.onUserMoved();

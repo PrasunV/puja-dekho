@@ -6,7 +6,7 @@ import { ErrorBoundary } from './components/ui/ErrorBoundary.jsx';
 import { FAR_FROM_KOLKATA_M, MAP_CENTER, ORS_KEY, REPORT_FORM_URL } from './config.js';
 import { useLocation } from './hooks/useLocation.js';
 import { useMediaQuery } from './hooks/useMediaQuery.js';
-import { useNav } from './hooks/useNav.js';
+import { HOME, useNav } from './hooks/useNav.js';
 import { useNearPuja } from './hooks/useNearPuja.js';
 import { useOnline } from './hooks/useOnline.js';
 import { usePujaData } from './hooks/usePujaData.js';
@@ -199,6 +199,8 @@ function Loaded({ data }) {
   );
   // "Search this area": the pill shows after the person moves the map; tapping it lists the pujas near the middle of what they framed.
   const [areaPill, setAreaPill] = useState(false);
+  /** No puja on screen (panned off the city): the chip says "Back to Kolkata". */
+  const [emptyView, setEmptyView] = useState(false);
   const searchThisArea = useCallback(() => {
     const viewport = mapRef.current?.getViewport();
     if (!viewport) return;
@@ -263,6 +265,21 @@ function Loaded({ data }) {
     }
     prevView.current = view;
   }, [view, nav.pujaId, nav.stationId]);
+
+  // A shared link (`?puja=ID`) opens that puja's details. An id we do not know falls back to the list.
+  const deepLinkChecked = useRef(false);
+  useEffect(() => {
+    if (deepLinkChecked.current || !data) return;
+    deepLinkChecked.current = true;
+    if (!nav.pujaId) return;
+    const puja = data.byId.get(nav.pujaId);
+    if (!puja) {
+      go(HOME, { replace: true });
+      return;
+    }
+    requestAnimationFrame(() => setSheet((s) => (s === 'full' ? s : 'half')));
+    setTimeout(() => mapRef.current?.flyToPuja(puja), 600);
+  }, [data, nav.pujaId, go]);
 
   // Navigation.
   const openPuja = useCallback(
@@ -505,6 +522,7 @@ function Loaded({ data }) {
                   following={following}
                   onFollowStop={() => setFollowing(false)}
                   onUserMoved={() => setAreaPill(true)}
+                  onEmptyView={setEmptyView}
                   onMapTap={() => {
                     if (!desktop) setSheet('peek');
                   }}
@@ -519,7 +537,7 @@ function Loaded({ data }) {
             <MotionLab />
             <ViewCount visits={visitCount} live={liveCount} bottom={pillBottom} full={!desktop && sheet === 'full'} />
             <SearchAreaPill visible={areaPill && view === 'browse'} onSearch={searchThisArea} />
-            <ShowKolkata visible={far} onClick={showKolkata} />
+            <ShowKolkata visible={far || emptyView} onClick={showKolkata} label={emptyView ? 'Back to Kolkata' : undefined} />
             {showVisitorChip && <VisitorChip km={farKm} onClose={() => setVisitorChipClosed(true)} />}
             <MapTools
               locationStatus={rawStatus}
