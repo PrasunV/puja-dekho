@@ -173,6 +173,10 @@ test.describe('location card states', () => {
     await expect(card).toContainText('Your location never leaves your phone.');
     await expect(card.getByRole('button', { name: 'Show pujas near me' })).toBeVisible();
     expect((await card.locator('.loc-card-btn').boundingBox()).height).toBeGreaterThanOrEqual(39.5);
+    // The primary action wears the brand red, and the card is set in Plus Jakarta Sans.
+    expect(await card.locator('.loc-card-btn').evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(179, 29, 36)');
+    await page.evaluate(() => document.fonts.ready);
+    expect(await page.evaluate(() => document.fonts.check("14px 'Plus Jakarta Sans Variable'"))).toBe(true);
   });
 
   test('blocked, then still blocked after a retry', async ({ page }) => {

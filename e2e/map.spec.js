@@ -1,6 +1,6 @@
 import { expect, firstPujaOnScreen, openApp, test } from './fixtures.js';
 
-test('map draws pujas, and metro stations once a line is switched on, in Inter', async ({ page }) => {
+test('map draws pujas, and metro stations once a line is switched on, in Plus Jakarta Sans', async ({ page }) => {
   await openApp(page);
   await page.getByRole('button', { name: /Blue/ }).first().click();
   await page.waitForTimeout(1500);
@@ -15,7 +15,7 @@ test('map draws pujas, and metro stations once a line is switched on, in Inter',
   expect(info.canvas).toBe(true);
   expect(info.drawn).toBeGreaterThan(0);
   expect(info.stations).toBeGreaterThan(5);
-  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('Inter');
+  expect(await page.evaluate(() => getComputedStyle(document.body).fontFamily)).toContain('Plus Jakarta Sans');
 });
 
 test('tapping a puja opens its page and selects it on the map', async ({ page }) => {

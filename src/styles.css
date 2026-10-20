@@ -39,7 +39,7 @@
   --h-compact: 48px;
   --hit: 48px;
   --shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.08);
-  --font: 'Inter Variable', 'Noto Sans Bengali Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font: 'Plus Jakarta Sans Variable', 'Noto Sans Bengali Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-body: var(--font);
   --nav-h: 0px;
   --side: 440px;
@@ -2980,14 +2980,18 @@ select {
   padding: 0 16px;
   border: 0;
   border-radius: 999px;
-  background: #4b0e14;
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary, #fff);
   font: inherit;
   font-size: 14px;
   font-weight: 600;
 }
+.loc-card-btn:hover:not([disabled]) {
+  background: var(--primary-hover);
+}
 .loc-card-btn[aria-busy='true'] {
-  background: #7a4f55;
+  /* lighter while finding, as the spec asks */
+  background: color-mix(in srgb, var(--primary) 60%, white);
 }
 .loc-card-btn[aria-busy='true'] .ic {
   animation: loc-spin 1s linear infinite;

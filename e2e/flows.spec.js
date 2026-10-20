@@ -789,7 +789,7 @@ test.describe('people viewed / exploring now pill', () => {
     expect(await wheels(page)).toBe('1240'); // every wheel really rests on its digit
     const wide = await page.locator('.view-pill').boundingBox();
     expect(wide?.height).toBeLessThanOrEqual(32);
-    expect(wide?.width).toBeLessThanOrEqual(210);
+    expect(wide?.width).toBeLessThanOrEqual(220);
 
     // ...then it flips back to viewed on its own, and the dot goes out.
     await expect.poll(() => label(page), { timeout: 10_000 }).toBe('15 people viewed');

@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import '@fontsource-variable/inter';
-// Inter has no Bengali letters; the browser loads this file only when Bengali text appears.
+import '@fontsource-variable/plus-jakarta-sans';
+// Plus Jakarta Sans (doc 00) has no Bengali letters; the browser loads this file only when Bengali text appears.
 import '@fontsource-variable/noto-sans-bengali';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './styles.css';
