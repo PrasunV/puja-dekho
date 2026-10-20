@@ -5,7 +5,7 @@ import { POPULAR_IDS, POPULAR_MAX } from '../../data/popular.js';
 import { formatDistance, walkMinutes } from '../../lib/geo.js';
 
 /**
- * "Popular pujas": a hand-picked, swipeable strip with pagination dots. It shows only picked pujas that
+ * "Must-visit pujas": a hand-picked, swipeable strip with pagination dots. It shows only picked pujas that
  * are inside the active radius (and pass the other filters) and hides itself when there are none.
  * It is called Popular, not Trending, because nothing about it is live.
  */
@@ -31,8 +31,8 @@ export default function PopularStrip() {
   };
 
   return (
-    <section className="popular" aria-label="Popular pujas">
-      <h3>Popular pujas</h3>
+    <section className="popular" aria-label="Must-visit pujas">
+      <h3>Must-visit pujas</h3>
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- a scrollable strip must be reachable by keyboard */}
       <div className="popular-track" ref={trackRef} onScroll={onScroll} tabIndex={0} aria-label="Swipe to see more popular pujas">
         {items.map((puja) =>

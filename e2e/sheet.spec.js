@@ -315,8 +315,10 @@ test('a drag that starts on a puja card does not open it', async ({ page }) => {
   await expect(page.locator('.puja-page, .pp')).toHaveCount(0);
 });
 
-test('the handle still works as a button: tap cycles peek, half, full', async ({ page }) => {
+test('the handle still works as a button: tap cycles peek, initial, half, full', async ({ page }) => {
   await openAt(page, 'peek');
+  await page.locator('.grab').click();
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
   await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
   await page.locator('.grab').click();
@@ -359,10 +361,10 @@ test.describe('motion lab', () => {
     await sampleHeights(page);
     const box = await panelBox(page);
     await swipe(page, { x: 120, y: box.y + 50 }, { x: 120, y: box.y + 5 }, FLICK);
-    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
     await page.waitForTimeout(700);
     const heights = await page.evaluate(() => window.__heights);
-    const half = await restingHeight(page, 0.5);
+    const half = await restingHeight(page, 0.35);
     expect(Math.max(...heights)).toBeLessThan(half + 1); // an ease-out never overshoots
     expect(Math.abs(heights.at(-1) - half)).toBeLessThan(1);
     await expect(page.locator('.motion-lab-read')).toContainText(/settled \(Quick ease-out\)/);

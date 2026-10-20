@@ -23,24 +23,23 @@ export function useBrowseHeadline() {
 
 /** Banner when the location is off, blocked or the person is far away (PRD section 8). */
 function LocationBanner() {
-  const { locationStatus, locate, farKm } = useApp();
+  const { locationStatus, locate } = useApp();
   if (locationStatus === 'on') return null;
-  const far = locationStatus === 'far';
+  // Far away: the chip under the filter row says so (see VisitorChip), so no card here.
+  if (locationStatus === 'far') return null;
   const denied = locationStatus === 'denied';
   return (
     <div className="banner" role="status">
       <Icon name={denied ? 'myloc-off' : 'myloc'} size={22} />
       <div className="grow">
-        <b>{far ? `You're about ${farKm} km from Kolkata` : denied ? 'Location is blocked' : 'See pujas near you'}</b>
+        <b>{denied ? 'Location is blocked' : 'See pujas near you'}</b>
         <div className="sub">
-          {far
-            ? 'Browse the whole city, or pick a station or area under Filters. Distances switch on when you are in Kolkata.'
-            : denied
-              ? 'Allow location for this site in your browser settings, then tap the button on the map. Your location never leaves your phone.'
-              : 'Turn on location to see the pujas around you. It never leaves your phone.'}
+          {denied
+            ? 'Allow location for this site in your browser settings, then tap the button on the map. Your location never leaves your phone.'
+            : 'Turn on location to see the pujas around you. It never leaves your phone.'}
         </div>
       </div>
-      {!far && !denied && (
+      {!denied && (
         <button type="button" className="btn small dark" aria-busy={locationStatus === 'asking'} onClick={() => locate()}>
           {locationStatus === 'asking' ? 'Finding you…' : 'Turn on location'}
         </button>

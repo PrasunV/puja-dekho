@@ -2,10 +2,10 @@ import { animate, motion, useMotionValue } from 'motion/react';
 import { activeSheetMotion, reportSheetGesture } from './sheetMotion.js';
 import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-export const SHEET_STATES = /** @type {const} */ (['peek', 'half', 'full']);
+export const SHEET_STATES = /** @type {const} */ (['peek', 'initial', 'half', 'full']);
 
 /** PRD section 3: a peek that fits the handle and one line, a mid state for summaries, and full height. */
-const SHARE = { peek: 0.14, half: 0.5 };
+const SHARE = { peek: 0.14, initial: 0.35, half: 0.5 };
 /** The full sheet stops this far short of the top of the map, so a sliver of map stays visible. */
 const FULL_GAP_PX = 8;
 
@@ -26,18 +26,18 @@ const rubber = (/** @type {number} */ over) => RUBBER_PX * (1 - 1 / ((over * 0.5
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /**
- * The three heights for a stage of this height.
+ * The four heights for a stage of this height.
  * @param {number} stage
  */
-const snapsFor = (stage) => ({ peek: stage * SHARE.peek, half: stage * SHARE.half, full: stage - FULL_GAP_PX });
+const snapsFor = (stage) => ({ peek: stage * SHARE.peek, initial: stage * SHARE.initial, half: stage * SHARE.half, full: stage - FULL_GAP_PX });
 
 /**
  * The list panel. A draggable bottom sheet on phones with three snap points; a fixed side panel on desktop.
  * At the peek only `peek` shows (one line). Above it `children` scroll and `footer` stays pinned at the bottom.
  *
  * @param {object} props
- * @param {'peek' | 'half' | 'full'} props.sheet
- * @param {(s: 'peek' | 'half' | 'full') => void} props.onSheetChange
+ * @param {'peek' | 'initial' | 'half' | 'full'} props.sheet
+ * @param {(s: 'peek' | 'initial' | 'half' | 'full') => void} props.onSheetChange
  * @param {boolean} props.desktop
  * @param {React.ReactNode} props.peek  The one line shown at the peek
  * @param {React.ReactNode} [props.footer]  Buttons pinned at the bottom
@@ -96,7 +96,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     anim: /** @type {ReturnType<typeof animate> | null} */ (null),
     moving: false,
     swallowUntil: 0,
-    goTo: /** @type {((state: 'peek' | 'half' | 'full', velocity?: number) => void) | null} */ (null),
+    goTo: /** @type {((state: 'peek' | 'initial' | 'half' | 'full', velocity?: number) => void) | null} */ (null),
   });
   useEffect(() => {
     live.current.sheet = sheet;
@@ -142,7 +142,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
       stage.toggleAttribute('data-sheet-full', !on && L.target === 'full');
     };
     /** Spring to a state. `velocity` is px per second, positive when the sheet is rising. */
-    const goTo = (/** @type {'peek' | 'half' | 'full'} */ state, velocity = 0) => {
+    const goTo = (/** @type {'peek' | 'initial' | 'half' | 'full'} */ state, velocity = 0) => {
       L.target = state;
       L.anim?.stop();
       setMoving(true);
@@ -172,6 +172,9 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     setMoving(false);
     setReady(true);
     const off = height.on('change', publish);
+    // The people pill and the map buttons can arrive after the sheet has settled (they wait on data): give them the height too.
+    const arrivals = new MutationObserver(() => publish(height.get()));
+    arrivals.observe(stage, { childList: true });
 
     // A rotation or a keyboard resizes the map: jump to the same state at the new size.
     const watcher = new ResizeObserver(() => {
@@ -319,6 +322,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
       const h = height.get();
       const states = /** @type {const} */ ([
         ['peek', s.peek],
+        ['initial', s.initial],
         ['half', s.half],
         ['full', s.full],
       ]);
@@ -399,6 +403,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     panel.addEventListener('click', onClickCapture, true);
     return () => {
       off();
+      arrivals.disconnect();
       watcher.disconnect();
       L.anim?.stop();
       panel.removeEventListener('touchstart', onTouchStart);
@@ -430,7 +435,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
         className="peek-line"
         aria-hidden={sheet !== 'peek'}
         tabIndex={sheet === 'peek' ? 0 : -1}
-        onClick={() => onSheetChange('half')}
+        onClick={() => onSheetChange('initial')}
       >
         {(sheet === 'peek' || moving) && peek}
       </button>

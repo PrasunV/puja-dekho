@@ -23,7 +23,7 @@ import Explainer from './features/layout/Explainer.jsx';
 import OutsideCard from './features/layout/OutsideCard.jsx';
 import Header from './features/layout/Header.jsx';
 import MotionLab from './features/layout/MotionLab.jsx';
-import { MapTools, OfflineBadge, ShowKolkata, ViewCount } from './features/layout/MapOverlays.jsx';
+import { MapTools, OfflineBadge, ShowKolkata, ViewCount, VisitorChip } from './features/layout/MapOverlays.jsx';
 import Peek from './features/layout/Peek.jsx';
 import GreetingMedia from './features/greeting/GreetingMedia.jsx';
 import { claimGreeting, warmGreeting } from './features/greeting/greetings.js';
@@ -62,7 +62,12 @@ function Loaded({ data }) {
 
   // Screen state. `nav` is what the sheet shows apart from the list; every change is a browser history entry.
   const [nav, go, back] = useNav();
-  const [sheet, setSheet] = useState(/** @type {'peek' | 'half' | 'full'} */ ('peek'));
+  const [sheet, setSheet] = useState(
+    /** @type {'peek' | 'initial' | 'half' | 'full'} */ (
+      // The list opens at 35% on every load. (Most tests were written for the peek and ask for it with __PD_E2E_OPEN__.)
+      window.__PD_E2E__ && !window.__PD_E2E_OPEN__ ? 'peek' : 'initial'
+    ),
+  );
   const [routeState, setRouteState] = useState(
     /** @type {{ id: string, route: import('./lib/route.js').Route, origin: { lat: number, lng: number }, at: number } | null} */ (null),
   );
@@ -83,6 +88,8 @@ function Loaded({ data }) {
   const locationStatus = /** @type {'idle' | 'asking' | 'on' | 'denied' | 'far'} */ (far ? 'far' : rawStatus);
   const farKm = far && rawPosition ? Math.round(distanceFromKolkata(rawPosition) / 1000) : null;
   const showOutside = far && !outsideSeen;
+  const [visitorChipClosed, setVisitorChipClosed] = useState(false);
+  const showVisitorChip = far && farKm != null && !visitorChipClosed;
   const [centred, setCentred] = useState(false);
   const [following, setFollowing] = useState(false);
 
@@ -127,9 +134,19 @@ function Loaded({ data }) {
   useEffect(() => {
     if (permission === null || showExplainer || showOutside || desktop) return undefined;
     if (!claimGreeting('list')) return undefined;
-    const frame = requestAnimationFrame(() => setSheet((s) => (s === 'peek' ? 'half' : s)));
+    const frame = requestAnimationFrame(() => setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s)));
     return () => cancelAnimationFrame(frame);
   }, [permission, showExplainer, showOutside, desktop]);
+
+  // The list opens at 35% on every load. Someone who turns out to be in Kolkata gets it raised to half, once, the
+  // moment their first fix arrives; a visitor (or anyone without a location) stays at 35%.
+  const liftedForLocal = useRef(false);
+  useEffect(() => {
+    if (desktop || !position || liftedForLocal.current) return undefined;
+    liftedForLocal.current = true;
+    const frame = requestAnimationFrame(() => setSheet((s) => (s === 'initial' ? 'half' : s)));
+    return () => cancelAnimationFrame(frame);
+  }, [position, desktop]);
 
   // Without a location the map shows the whole city and the list says "271 pujas in Kolkata".
   const cityMode =
@@ -182,7 +199,7 @@ function Loaded({ data }) {
   useEffect(() => {
     if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro'))
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to a navigation change; there is no event to hang it on
-      setSheet((s) => (s === 'peek' ? 'half' : s));
+      setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
   }, [view, desktop]);
 
   // The radius chip zooms the map to fit the circle.
@@ -278,7 +295,7 @@ function Loaded({ data }) {
       if (turningOn) {
         setZoneFocus(true);
         // Bring the list up so the count and the pujas of the chosen areas are what the sheet shows.
-        setSheet((current) => (current === 'peek' ? 'half' : current));
+        setSheet((current) => (current === 'peek' ? 'initial' : current));
       }
       // Whatever was open (a puja, a station, Metro nearby) closes: the sheet now shows the chosen areas.
       if (nav.pujaId || nav.stationId || nav.metro) go({ pujaId: null, stationId: null, metro: false }, { replace: true });
@@ -299,7 +316,7 @@ function Loaded({ data }) {
   /** The Metro button: nearest stations with walking distance in the sheet. */
   const openMetro = useCallback(() => {
     go({ metro: true, pujaId: null, stationId: null });
-    if (!desktop) setSheet((s) => (s === 'peek' ? 'half' : s));
+    if (!desktop) setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
     const fit = (point) => {
       const nearest = data.stations
         .filter((s) => s.lines.length)
@@ -444,7 +461,7 @@ function Loaded({ data }) {
       <AppContext.Provider value={context}>
         <div id="app">
           <Header />
-          <main className="stage">
+          <main className="stage" data-visitor-chip={showVisitorChip || undefined}>
             <ErrorBoundary
               fallback={(reset) => (
                 <div id="map" className="map-failed" role="alert">
@@ -490,6 +507,7 @@ function Loaded({ data }) {
             <MotionLab />
             <ViewCount visits={visitCount} live={liveCount} bottom={pillBottom} full={!desktop && sheet === 'full'} />
             <ShowKolkata visible={far} onClick={showKolkata} />
+            {showVisitorChip && <VisitorChip km={farKm} onClose={() => setVisitorChipClosed(true)} />}
             <MapTools
               locationStatus={rawStatus}
               centred={centred}

@@ -14,12 +14,15 @@ test('opens at the peek: header says how many pujas are near, no search, no sort
   await expect(page.locator('.made-with')).toContainText('made with love');
 });
 
-test('sheet has three heights: peek 14%, half 50%, full', async ({ page }) => {
+test('sheet has four heights: peek 14%, initial 35%, half 50%, full', async ({ page }) => {
   await openApp(page);
   const stage = (await page.locator('.stage').boundingBox()).height;
   const heightOf = async () => (await page.locator('.panel').boundingBox()).height;
   await expect.poll(heightOf).toBeGreaterThan(stage * 0.1);
   expect(await heightOf()).toBeLessThan(stage * 0.2);
+  await page.locator('.grab').click();
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
+  await expect.poll(heightOf).toBeGreaterThan(stage * 0.3);
   await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
   await expect.poll(heightOf).toBeGreaterThan(stage * 0.45);
@@ -104,7 +107,8 @@ test('Blue line chip shows the line on the map and a station list; Back clears i
 
 test('puja page: facts, typical crowd, Get directions as a Google Maps walking link, Save is coming soon', async ({ page }) => {
   await openApp(page);
-  await page.locator('.grab').click();
+  await page.locator('.grab').click(); // initial
+  await page.locator('.grab').click(); // half
   await page.locator('.pcard-main').first().click();
   await expect(page.locator('.panel .back')).toBeVisible();
   await expect(page.locator('.crowd-chip')).toContainText(/Usually (Low|Moderate|High) at this hour/);
@@ -114,6 +118,7 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   await page.getByRole('button', { name: /^Save/ }).click();
   await expect(page.locator('.toast')).toContainText(/coming soon/i);
   await expect(page.getByText(/Routes may differ/)).toHaveCount(0); // Google Maps shows the real route
+  await expect(page.locator('.actions-hint')).toHaveText('Opens in Google Maps'); // the first time only
   // Both buttons are at most 40 px tall, share one weight, and Save carries the heart and a two-line "Coming soon".
   const [primary, save] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
   expect(primary?.height).toBeLessThanOrEqual(40);
@@ -126,6 +131,21 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   expect(await page.locator('.soon').evaluate((e) => getComputedStyle(e).fontWeight)).toBe('350');
   // No rule above the footer: the list fades out instead.
   expect(await page.locator('.panel-foot').evaluate((e) => getComputedStyle(e).borderTopWidth)).toBe('0px');
+});
+
+test('the "Opens in Google Maps" hint goes away for good once Get directions has been used', async ({ page }) => {
+  await openApp(page);
+  await page.locator('.grab').click();
+  await page.locator('.pcard-main').first().click();
+  await expect(page.locator('.actions-hint')).toBeVisible();
+  await page.evaluate(() => document.querySelector('.actions a')?.addEventListener('click', (e) => e.preventDefault())); // stay here
+  await page.getByRole('link', { name: /Get directions/ }).click();
+  await expect(page.locator('.actions-hint')).toBeVisible(); // not yanked away mid-tap
+  await page.reload();
+  await page.locator('.grab').click();
+  await page.locator('.pcard-main').first().click();
+  await expect(page.locator('.actions')).toBeVisible();
+  await expect(page.locator('.actions-hint')).toHaveCount(0);
 });
 
 test('the phone Back button steps back from a puja to the list, keeping the sheet', async ({ page }) => {
@@ -530,7 +550,7 @@ test.describe('area chips', () => {
 
 test.describe('area chips drive the sheet', () => {
   const zoneCount = (page, zs) => page.evaluate((ids) => window.__pd.data.pujas.filter((p) => ids.includes(p.z)).length, zs);
-  const chip = (page, zone) => page.getByRole('button', { name: new RegExp(`^${zone} Kolkata`) });
+  const chip = (page, zone) => page.getByRole('button', { name: zone === 'Other' ? /^Other areas/ : new RegExp(`^${zone} Kolkata`) });
 
   test('the Less crowded chip is not shown', async ({ page }) => {
     await openApp(page);
@@ -833,6 +853,8 @@ test.describe('people viewed / exploring now pill', () => {
       return Boolean(b && b.x >= 0 && b.y >= 0 && b.x + b.width <= 390 && b.y + b.height <= 844);
     };
     await expect.poll(inside).toBe(true);
+    await page.locator('.grab').click(); // initial
+    await expect.poll(inside).toBe(true);
     await page.locator('.grab').click(); // half
     await expect.poll(inside).toBe(true);
     await page.locator('.grab').click(); // full
@@ -899,4 +921,66 @@ test.describe('people viewed / exploring now pill', () => {
     await page.reload();
     expect(new URL((await again).url()).searchParams.get('id')).toBe(id);
   });
+});
+
+test.describe('visitor mode and the opening height', () => {
+  test.use({ viewport: { width: 390, height: 844 }, permissions: ['geolocation'] });
+  const open35 = (page) => page.addInitScript(() => (window.__PD_E2E_OPEN__ = true));
+
+  test('a visitor 150 km away: list at 35%, one closable chip, no radius chip, short area names', async ({ page }) => {
+    await open35(page);
+    await page.context().setGeolocation({ latitude: 23.52, longitude: 87.31 }); // Durgapur
+    await openApp(page);
+    // First visit from far away: the one-time card comes first.
+    await page.locator('.outside').getByRole('button', { name: 'Keep both in view' }).click();
+    const stage = (await page.locator('.stage').boundingBox()).height;
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'initial');
+    await expect.poll(async () => (await page.locator('.panel').boundingBox()).height).toBeCloseTo(stage * 0.35, -1);
+    const chip = page.locator('.visitor-chip');
+    await expect(chip).toContainText(/Pujas are in Kolkata for now\. You're \d+ km away, so we're showing the city\./);
+    await expect(page.locator('.dist-chip')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'South Kolkata' })).toContainText('South Kol.');
+    await page.getByRole('button', { name: 'South Kolkata' }).click();
+    await expect(page.getByRole('button', { name: /South Kolkata, selected/ })).toContainText('South Kolkata');
+    await chip.getByRole('button', { name: 'Dismiss' }).click();
+    await expect(chip).toHaveCount(0);
+    await expect(page.locator('.panel')).not.toHaveAttribute('data-sheet', 'full');
+  });
+
+  test('someone in Kolkata: opens at 35%, then half once their location arrives; no visitor chip', async ({ page }) => {
+    await open35(page);
+    await page.context().setGeolocation({ latitude: 22.5186, longitude: 88.3467 });
+    await openApp(page);
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
+    await expect(page.locator('.visitor-chip')).toHaveCount(0);
+    await expect(page.locator('.dist-chip')).toBeVisible();
+  });
+
+  test('26 km from Kolkata is a visitor, 24 km is not', async ({ page }) => {
+    await open35(page);
+    // 0.009 degrees of latitude is about 1 km; the map centre is 22.5185, 88.35.
+    await page.context().setGeolocation({ latitude: 22.5185 + 0.2338, longitude: 88.35 });
+    await openApp(page);
+    await expect(page.locator('.visitor-chip')).toBeVisible();
+    await page.context().setGeolocation({ latitude: 22.5185 + 0.2158, longitude: 88.35 });
+    await page.reload();
+    await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'));
+    await expect(page.locator('.visitor-chip')).toHaveCount(0);
+  });
+});
+
+test('the details screen has a 44 px back arrow to the left of the title, named "Back to the list"', async ({ page }) => {
+  await openApp(page);
+  await page.locator('.grab').click();
+  await page.locator('.grab').click();
+  await page.locator('.pcard-main').first().click();
+  const back = page.getByRole('button', { name: 'Back to the list' });
+  await expect(back).toBeVisible();
+  const box = await back.boundingBox();
+  expect(Math.round(box.width)).toBe(44);
+  expect(Math.round(box.height)).toBe(44);
+  const title = await page.locator('.panel h2').boundingBox();
+  expect(box.x + box.width).toBeLessThanOrEqual(title.x);
+  await back.click();
+  await expect(back).toHaveCount(0);
 });

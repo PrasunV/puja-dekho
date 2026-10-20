@@ -14,8 +14,8 @@ export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
 export const MAP_CENTER = /** @type {const} */ ([22.5185, 88.35]);
 export const MAP_ZOOM = 13;
 
-/** Beyond this distance from Kolkata, the person's location is not used for distances or for moving the map. */
-export const FAR_FROM_KOLKATA_M = 40_000;
+/** Beyond this distance from Kolkata (25 km) a person is a visitor: their location is not used for distances or for moving the map. */
+export const FAR_FROM_KOLKATA_M = 25_000;
 
 /** The location button never leaves the map zoomed out further than this (Leaflet scale, about street level). */
 export const RECENTER_MIN_ZOOM = 16;

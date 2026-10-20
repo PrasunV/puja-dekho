@@ -27,7 +27,7 @@ import { createContext, useContext } from 'react';
  * @property {() => void} openDirections  Called when Get directions is tapped
  * @property {ReturnType<typeof import('../hooks/useNearPuja.js').useNearPuja>} near
  * @property {(message: string, kind?: '' | 'ok' | 'err') => void} toast
- * @property {(sheet: 'peek' | 'half' | 'full') => void} setSheet
+ * @property {(sheet: 'peek' | 'initial' | 'half' | 'full') => void} setSheet
  * @property {React.RefObject<import('../features/map/MapView.jsx').MapHandle | null>} mapRef
  */
 

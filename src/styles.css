@@ -1784,6 +1784,9 @@ select {
 .panel[data-sheet='peek'] {
   height: 14%;
 }
+.panel[data-sheet='initial'] {
+  height: 35%;
+}
 .panel[data-sheet='half'] {
   height: 50%;
 }
@@ -2689,4 +2692,86 @@ select {
   .greet-shimmer::after {
     animation: none;
   }
+}
+
+/* ---- visitor chip: one line under the filter row for people outside Kolkata ---- */
+.visitor-chip {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 6px 6px 12px;
+  border: 1px solid var(--line, #e4e4e4);
+  border-radius: 14px;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 18px;
+}
+.visitor-chip > span {
+  flex: 1;
+  min-width: 0;
+}
+.visitor-chip-x {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+/* The map's own buttons make room for it. */
+.stage[data-visitor-chip] .show-kolkata,
+.stage[data-visitor-chip] .search-area {
+  top: 66px;
+}
+.stage[data-visitor-chip] .maplibregl-ctrl-top-left {
+  margin-top: 56px;
+}
+@media (min-width: 900px) {
+  .visitor-chip {
+    max-width: 440px;
+    right: auto;
+  }
+}
+
+/* ---- details: a 44 px back arrow to the left of the title (the largest control on the sheet) ---- */
+.detail-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.detail-id {
+  flex: 1;
+  min-width: 0;
+}
+.back.back-btn {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  gap: 0;
+  border: 1px solid var(--line, #e4e4e4);
+  border-radius: 50%;
+  background: var(--surface, #fff);
+  color: var(--ink);
+  cursor: pointer;
+}
+.back.back-btn::after {
+  content: '';
+  position: absolute;
+  inset: -2px; /* a 48 px tap area */
 }

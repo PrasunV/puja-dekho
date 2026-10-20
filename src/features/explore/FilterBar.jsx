@@ -8,7 +8,7 @@ import { RADIUS_STEPS } from '../../config.js';
 // Less crowded chip is switched off for now (see the commented block in FilterBar below).
 // import { CROWD_NOTE } from '../../lib/crowd.js';
 import { formatBand } from '../../lib/geo.js';
-import { ZONES } from '../../hooks/usePujaFilters.js';
+import { ZONES, zoneChipLabel } from '../../hooks/usePujaFilters.js';
 import FilterPanel from './FilterPanel.jsx';
 
 /**
@@ -141,7 +141,7 @@ function RadiusChip() {
  * the five area chips (South to Other), Blue line and Green line. Chips are quick filters and their state is always visible.
  */
 export default function FilterBar() {
-  const { filters, nav, setLines, toggleZone } = useApp();
+  const { filters, nav, setLines, toggleZone, locationStatus } = useApp();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(/** @type {HTMLButtonElement | null} */ (null));
   const close = () => {
@@ -164,7 +164,8 @@ export default function FilterBar() {
           Filters
           {filters.filterCount > 0 && <span className="badge">{filters.filterCount}</span>}
         </button>
-        <RadiusChip />
+        {/* A visitor outside Kolkata has nothing within a radius of them, so the chip is not offered. */}
+        {locationStatus !== 'far' && <RadiusChip />}
         {/* Less crowded chip: switched off for now, kept for when crowd data covers every zone.
         <button
           type="button"
@@ -182,8 +183,8 @@ export default function FilterBar() {
         {ZONES.map((zone) => (
           <ToggleChip
             key={zone.id}
-            name={`${zone.label} Kolkata`}
-            label={zone.label}
+            name={zone.id === 'other' ? 'Other areas' : `${zone.label} Kolkata`}
+            label={zoneChipLabel(zone, filters.zones.includes(zone.id))}
             selected={filters.zones.includes(zone.id)}
             onToggle={() => toggleZone(zone.id)}
           />

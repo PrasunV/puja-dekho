@@ -85,7 +85,7 @@ test.describe('far from Kolkata', () => {
     await card.getByRole('button', { name: 'Show Kolkata' }).click();
     await expect(card).toHaveCount(0);
     await page.locator('.peek-line').click();
-    await expect(page.getByText(/km from Kolkata/).first()).toBeVisible();
+    await expect(page.locator('.visitor-chip')).toContainText(/km away/);
     await expect(page.locator('.show-kolkata')).toBeVisible();
     const lng = await page.evaluate(() => window.__pdMap.getCenter().lng);
     expect(lng).toBeLessThan(89);
@@ -105,7 +105,7 @@ test.describe('far from Kolkata', () => {
     await page.waitForSelector('.me-dot');
     await expect(page.locator('.outside')).toHaveCount(0);
     await page.locator('.peek-line').click();
-    await expect(page.getByText(/km from Kolkata/).first()).toBeVisible();
+    await expect(page.locator('.visitor-chip')).toContainText(/km away/);
     await expect(page.locator('.show-kolkata')).toBeVisible();
   });
 });

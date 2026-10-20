@@ -17,6 +17,16 @@ export const ZONES = Object.freeze([
   { id: 'other', label: 'Other' },
 ]);
 /**
+ * What a zone chip says: short while it is off ("South Kol."), the full name once it is on ("South Kolkata"),
+ * so a visitor reading the row knows these are parts of Kolkata.
+ * @param {{ id: string, label: string }} zone
+ * @param {boolean} selected
+ */
+export function zoneChipLabel(zone, selected) {
+  if (zone.id === 'other') return selected ? 'Other areas' : 'Other';
+  return selected ? `${zone.label} Kolkata` : `${zone.label} Kol.`;
+}
+/**
  * Plain-words name for the chosen zones, in chip order: `South Kolkata`, `South & North Kolkata`,
  * `South, North & East Kolkata`, with `Other areas` (Howrah and the suburbs) added at the end.
  * @param {string[]} ids

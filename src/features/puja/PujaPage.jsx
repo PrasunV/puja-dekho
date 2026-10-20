@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
 import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
@@ -6,6 +7,7 @@ import { tripFor, tripText } from '../../lib/route.js';
 import { formatDistance, todayIst, walkMinutes } from '../../lib/geo.js';
 import { phaseFor, stationLines, timingText } from '../../lib/metro.js';
 import { nearStations } from '../../lib/pujas.js';
+import { storage } from '../../lib/storage.js';
 
 /** Nearest metro stations with today's hours. */
 function NearestMetro({ puja }) {
@@ -47,21 +49,25 @@ function NearestMetro({ puja }) {
 /**
  * The fields of a puja that exist in the data, and nothing else (PRD open question 11).
  * Today that is area, address, heritage, alternate names and the typical crowd.
- * @param {{ puja: import('../../lib/types.js').Puja }} props
+ * @param {{ puja: import('../../lib/types.js').Puja, lead?: import('react').ReactNode }} props
+ *   `lead` sits to the left of the title (the Back button on the details screen).
  */
-export function PujaFields({ puja }) {
+export function PujaFields({ puja, lead }) {
   const { filters, route } = useApp();
   const trip = tripFor(filters.distances?.get(puja.id), route);
   return (
     <div className="stack">
-      <div>
-        <h2>{puja.n}</h2>
-        {trip && <div className="sub num">{tripText(trip)}</div>}
-        <div className="row wrap mt8">
-          <TypicalCrowd puja={puja} />
-          <span className="tag">{puja.ar}</span>
-          {puja.h && <span className="tag accent">{puja.e ? `Since ${puja.e}` : 'Heritage'}</span>}
-          {puja.f && <span className="tag accent">Featured</span>}
+      <div className="detail-head">
+        {lead}
+        <div className="detail-id">
+          <h2>{puja.n}</h2>
+          {trip && <div className="sub num">{tripText(trip)}</div>}
+          <div className="row wrap mt8">
+            <TypicalCrowd puja={puja} />
+            <span className="tag">{puja.ar}</span>
+            {puja.h && <span className="tag accent">{puja.e ? `Since ${puja.e}` : 'Heritage'}</span>}
+            {puja.f && <span className="tag accent">Featured</span>}
+          </div>
         </div>
       </div>
       <dl className="facts">
@@ -91,11 +97,14 @@ export function PujaFields({ puja }) {
 
 /**
  * Get directions and Save, pinned to the bottom of the sheet. Directions hands off to Google Maps in
- * walking mode; Save is labelled "Coming soon", stays tappable so it does not look broken, and says so.
+ * walking mode (a one-time hint says so); Save is labelled "Coming soon", stays tappable so it does not look broken, and says so.
  * @param {{ puja: import('../../lib/types.js').Puja }} props
  */
 export function PujaActions({ puja }) {
   const { openDirections, toast } = useApp();
+  // "Opens in Google Maps" is shown until someone has used Get directions once; after that it is gone for good.
+  // It is read once, so it does not vanish (and shift the buttons) in the middle of the tap.
+  const [hint] = useState(() => !storage.get('mapsHint', false));
   return (
     <div className="actions">
       <div className="row actions-row">
@@ -104,7 +113,10 @@ export function PujaActions({ puja }) {
           target="_blank"
           rel="noopener noreferrer"
           href={`https://www.google.com/maps/dir/?api=1&travelmode=walking&destination=${puja.la},${puja.lo}`}
-          onClick={openDirections}
+          onClick={() => {
+            storage.set('mapsHint', true);
+            openDirections();
+          }}
         >
           <Icon name="nav" />
           Get directions
@@ -126,6 +138,7 @@ export function PujaActions({ puja }) {
           </span>
         </button>
       </div>
+      {hint && <div className="actions-hint">Opens in Google Maps</div>}
     </div>
   );
 }
@@ -136,12 +149,16 @@ export default function PujaPage() {
   const puja = pujaId ? data.byId.get(pujaId) : undefined;
   if (!puja) return null; // can render once more while the panel animates out
   return (
-    <div className="stack">
-      <button type="button" className="back" onClick={back}>
-        <Icon name="back" />
-        Back
-      </button>
-      <PujaFields puja={puja} />
-    </div>
+    <PujaFields
+      puja={puja}
+      lead={
+        <button type="button" className="back back-btn" aria-label="Back to the list" onClick={back}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5" />
+            <path d="m12 19-7-7 7-7" />
+          </svg>
+        </button>
+      }
+    />
   );
 }
