@@ -22,29 +22,34 @@ export function useBrowseHeadline() {
   });
 }
 
-/** Banner when the location is off, blocked or the person is far away (PRD section 8). */
+/**
+ * The location card (doc 01): one text column and a button with its icon inside. Shown under the heading until
+ * location is allowed; it is also the one passive error state, so it says what happened, then what to do.
+ */
 function LocationBanner() {
-  const { locationStatus, locate } = useApp();
-  if (locationStatus === 'on') return null;
-  // Far away: the chip under the filter row says so (see VisitorChip), so no card here.
-  if (locationStatus === 'far') return null;
-  const denied = locationStatus === 'denied';
+  const { locationStatus, locationFailure, locationRetries, locate } = useApp();
+  // Allowed, or far away (the visitor chip says so): no card.
+  if (locationStatus === 'on' || locationStatus === 'far') return null;
+  const finding = locationStatus === 'asking';
+  const failed = locationStatus === 'denied';
+  const noSignal = failed && locationFailure === 'nosignal';
+  const content = noSignal
+    ? { head: "Couldn't find your location", body: 'Check that GPS is on, then retry.', button: 'Retry' }
+    : failed
+      ? {
+          head: 'Location is blocked for this site',
+          body: locationRetries > 0 ? 'Still blocked. Check site settings.' : 'Allow it in site settings, then retry.',
+          button: 'Retry',
+        }
+      : { head: 'Find pujas near you in Kolkata', body: 'Your location never leaves your phone.', button: 'Show pujas near me' };
   return (
-    <div className="banner" role="status">
-      <Icon name={denied ? 'myloc-off' : 'myloc'} size={22} />
-      <div className="grow">
-        <b>{denied ? 'Location is blocked' : 'See pujas near you'}</b>
-        <div className="sub">
-          {denied
-            ? 'Allow location for this site in your browser settings, then tap the button on the map. Your location never leaves your phone.'
-            : 'Turn on location to see the pujas around you. It never leaves your phone.'}
-        </div>
-      </div>
-      {!denied && (
-        <button type="button" className="btn small dark" aria-busy={locationStatus === 'asking'} onClick={() => locate()}>
-          {locationStatus === 'asking' ? 'Finding you…' : 'Turn on location'}
-        </button>
-      )}
+    <div className="loc-card" role="status" data-state={finding ? 'finding' : failed ? (noSignal ? 'nosignal' : 'blocked') : 'default'}>
+      <div className="loc-card-head">{content.head}</div>
+      <div className="loc-card-body">{content.body}</div>
+      <button type="button" className="loc-card-btn" aria-busy={finding} disabled={finding} onClick={() => locate()}>
+        <Icon name="locate" size={16} />
+        {finding ? 'Finding you…' : content.button}
+      </button>
     </div>
   );
 }

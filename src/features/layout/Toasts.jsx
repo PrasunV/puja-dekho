@@ -16,7 +16,12 @@ export default function Toasts() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8 }}
           >
-            {toast.message}
+            <span>{toast.message}</span>
+            {toast.action && (
+              <button type="button" className="toast-action" onClick={toast.action.onClick}>
+                {toast.action.label}
+              </button>
+            )}
           </motion.div>
         ))}
       </AnimatePresence>

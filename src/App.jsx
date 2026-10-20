@@ -82,7 +82,28 @@ function Loaded({ data }) {
     if (isFarFromKolkata(point)) return;
     if (isFirstFix) mapRef.current?.autoCenter(point);
   }, []);
-  const { position: rawPosition, status: rawStatus, locate: requestLocation } = useLocation(onFix);
+  // The location card is the error state. Only when it is out of view (sheet at the peek, or another screen open) does a
+  // failure also show a neutral toast with Retry. A ref, because the sheet and view are worked out further down.
+  const cardHiddenRef = useRef(false);
+  const retryRef = useRef(/** @type {() => void} */ (() => {}));
+  const onLocationFail = useCallback(
+    (/** @type {'blocked' | 'nosignal'} */ why) => {
+      if (!cardHiddenRef.current) return;
+      toast(
+        why === 'blocked' ? 'Location is blocked. Allow it in site settings.' : "Couldn't find your location. Check that GPS is on.",
+        'dark',
+        { label: 'Retry', onClick: () => retryRef.current() },
+      );
+    },
+    [toast],
+  );
+  const {
+    position: rawPosition,
+    status: rawStatus,
+    failure: locationFailure,
+    retries: locationRetries,
+    locate: requestLocation,
+  } = useLocation(onFix, onLocationFail);
   const far = rawPosition != null && isFarFromKolkata(rawPosition);
   const position = far ? null : rawPosition;
   const locationStatus = /** @type {'idle' | 'asking' | 'on' | 'denied' | 'far'} */ (far ? 'far' : rawStatus);
@@ -197,6 +218,11 @@ function Loaded({ data }) {
               ? 'near'
               : 'browse'
   );
+  useEffect(() => {
+    cardHiddenRef.current = sheet === 'peek' || view !== 'browse';
+    retryRef.current = () => requestLocation();
+  }, [sheet, view, requestLocation]);
+
   // "Search this area": the pill shows after the person moves the map; tapping it lists the pujas near the middle of what they framed.
   const [areaPill, setAreaPill] = useState(false);
   /** No puja on screen (panned off the city): the chip says "Back to Kolkata". */
@@ -419,6 +445,8 @@ function Loaded({ data }) {
       desktop,
       position,
       locationStatus,
+      locationFailure,
+      locationRetries,
       farKm,
       showKolkata,
       locate,
@@ -445,6 +473,8 @@ function Loaded({ data }) {
       desktop,
       position,
       locationStatus,
+      locationFailure,
+      locationRetries,
       farKm,
       showKolkata,
       locate,

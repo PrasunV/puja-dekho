@@ -3,9 +3,10 @@ import { createContext, useCallback, useContext, useRef, useState } from 'react'
 const TOAST_MS = 4500;
 const MAX_VISIBLE = 3;
 
-/** @typedef {{ id: number, message: string, kind: '' | 'ok' | 'err' }} ToastItem */
+/** @typedef {{ label: string, onClick: () => void }} ToastAction */
+/** @typedef {{ id: number, message: string, kind: '' | 'ok' | 'err' | 'dark', action?: ToastAction }} ToastItem */
 
-const ToastActions = createContext(/** @type {(message: string, kind?: '' | 'ok' | 'err') => void} */ (() => {}));
+const ToastActions = createContext(/** @type {(message: string, kind?: ToastItem['kind'], action?: ToastAction) => void} */ (() => {}));
 const ToastList = createContext(/** @type {ToastItem[]} */ ([]));
 
 /**
@@ -15,11 +16,11 @@ const ToastList = createContext(/** @type {ToastItem[]} */ ([]));
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState(/** @type {ToastItem[]} */ ([]));
   const nextId = useRef(0);
-  /** @type {(message: string, kind?: ToastItem['kind']) => void} */
-  const show = useCallback((message, kind = '') => {
+  /** @type {(message: string, kind?: ToastItem['kind'], action?: ToastAction) => void} */
+  const show = useCallback((message, kind = '', action) => {
     nextId.current += 1;
     const id = nextId.current;
-    setToasts((list) => [...list.slice(-(MAX_VISIBLE - 1)), { id, message, kind }]);
+    setToasts((list) => [...list.slice(-(MAX_VISIBLE - 1)), { id, message, kind, action }]);
     setTimeout(() => setToasts((list) => list.filter((item) => item.id !== id)), TOAST_MS);
   }, []);
   return (
@@ -29,7 +30,7 @@ export function ToastProvider({ children }) {
   );
 }
 
-/** @returns {(message: string, kind?: '' | 'ok' | 'err') => void} */
+/** @returns {(message: string, kind?: ToastItem['kind'], action?: ToastAction) => void} */
 export const useToast = () => useContext(ToastActions);
 /** @returns {ToastItem[]} */
 export const useToastList = () => useContext(ToastList);

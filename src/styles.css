@@ -2949,3 +2949,69 @@ select {
     animation: none;
   }
 }
+
+/* Location card (doc 01): one text column, button at the bottom left with its icon inside */
+.loc-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 8px 0;
+  padding: 10px 14px 12px;
+  border: 1px solid #e4e4e4;
+  border-radius: 16px;
+  background: #f6f3f2;
+  font-size: 14px;
+  line-height: 20px;
+}
+.loc-card-head {
+  font-weight: 500;
+  color: #3a2e30;
+}
+.loc-card-body {
+  font-weight: 400;
+  color: #5f5456;
+}
+.loc-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin-top: 8px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: #4b0e14;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.loc-card-btn[aria-busy='true'] {
+  background: #7a4f55;
+}
+.loc-card-btn[aria-busy='true'] .ic {
+  animation: loc-spin 1s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .loc-card-btn[aria-busy='true'] .ic {
+    animation: none;
+  }
+}
+
+/* Neutral dark toast (never brand red for errors) with an optional action */
+.toast.dark {
+  background: #2b2527;
+  color: #fff;
+}
+.toast-action {
+  flex: none;
+  min-height: 48px;
+  margin: -12px -8px -12px 0;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+}

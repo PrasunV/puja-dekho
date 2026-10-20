@@ -9,6 +9,8 @@ import { createContext, useContext } from 'react';
  * @property {boolean} desktop
  * @property {import('../lib/types.js').Position | null} position  The person's location, or null when it is off or they are outside Kolkata
  * @property {'idle' | 'asking' | 'on' | 'denied' | 'far'} locationStatus
+ * @property {'blocked' | 'nosignal' | null} locationFailure  Why there is no location: the browser said no, or it could not find one
+ * @property {number} locationRetries  Taps on Retry made while already failing
  * @property {number | null} farKm  Distance to Kolkata in km when the person is outside it, else null
  * @property {() => void} showKolkata  Frame the whole city on the map (no personal dot)
  * @property {(then?: (p: import('../lib/types.js').Position) => void) => void} locate

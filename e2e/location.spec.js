@@ -141,3 +141,70 @@ test.describe('tap area', () => {
     await expect(page.locator('.panel .back')).toBeVisible();
   });
 });
+
+test.describe('location card states', () => {
+  /** A phone whose location lookup fails with this error code (1 blocked, 2 no signal, 3 timeout). */
+  const failWith = (code) => async ({ page }) => {
+    await page.addInitScript((errorCode) => {
+      try {
+        localStorage.setItem('pd_explainerSeen', 'true');
+      } catch {
+        /* ignore */
+      }
+      const state = { state: 'prompt', onchange: null, addEventListener() {}, removeEventListener() {} };
+      navigator.permissions.query = () => Promise.resolve(state);
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          getCurrentPosition: (_ok, fail) => setTimeout(() => fail({ code: errorCode }), 150),
+          watchPosition: () => 1,
+          clearWatch: () => {},
+        },
+      });
+    }, code);
+  };
+
+  test('default: names the benefit and the scope, answers where the location goes', async ({ page }) => {
+    await failWith(1)({ page });
+    await openApp(page);
+    await page.locator('.grab').click();
+    const card = page.locator('.loc-card');
+    await expect(card).toContainText('Find pujas near you in Kolkata');
+    await expect(card).toContainText('Your location never leaves your phone.');
+    await expect(card.getByRole('button', { name: 'Show pujas near me' })).toBeVisible();
+    expect((await card.locator('.loc-card-btn').boundingBox()).height).toBeGreaterThanOrEqual(39.5);
+  });
+
+  test('blocked, then still blocked after a retry', async ({ page }) => {
+    await failWith(1)({ page });
+    await openApp(page);
+    await page.locator('.grab').click();
+    const card = page.locator('.loc-card');
+    await card.getByRole('button', { name: 'Show pujas near me' }).click();
+    await expect(card).toContainText('Location is blocked for this site');
+    await expect(card).toContainText('Allow it in site settings, then retry.');
+    await card.getByRole('button', { name: 'Retry' }).click();
+    await expect(card).toContainText('Still blocked. Check site settings.');
+  });
+
+  test('no signal: says it could not find you and to check GPS', async ({ page }) => {
+    await failWith(2)({ page });
+    await openApp(page);
+    await page.locator('.grab').click();
+    const card = page.locator('.loc-card');
+    await card.getByRole('button', { name: 'Show pujas near me' }).click();
+    await expect(card).toContainText("Couldn't find your location");
+    await expect(card).toContainText('Check that GPS is on, then retry.');
+  });
+
+  test('with the card out of view (peek) a failure shows a neutral dark toast with Retry, never red', async ({ page }) => {
+    await failWith(1)({ page });
+    await openApp(page);
+    await page.locator('.fab.loc').click();
+    const toast = page.locator('.toast');
+    await expect(toast).toContainText('Location is blocked. Allow it in site settings.');
+    await expect(toast).toHaveClass(/dark/);
+    await expect(toast.getByRole('button', { name: 'Retry' })).toBeVisible();
+    expect(await toast.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(43, 37, 39)');
+  });
+});
