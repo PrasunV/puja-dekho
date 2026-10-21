@@ -135,12 +135,12 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   await expect(page.locator('.soon-tip')).toHaveCount(0, { timeout: 4000 }); // gone after about 2 s
   await expect(page.getByText(/Routes may differ/)).toHaveCount(0); // Google Maps shows the real route
   await expect(page.locator('.actions-hint')).toHaveText('Opens in Google Maps'); // the first time only
-  // Both buttons are exactly 48 px tall (8pt grid, the Android touch-target norm), Get directions takes 60% of the row, and its label is one line.
+  // Both buttons are exactly 48 px tall (8pt grid, the Android touch-target norm), Get directions takes two thirds of the row (2 : 1), and its label is one line.
   const [primary, save] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
   expect(primary?.height).toBeCloseTo(48, 0);
   expect(save?.height).toBeCloseTo(48, 0);
-  expect(primary.width / (primary.width + save.width)).toBeGreaterThan(0.59);
-  expect(primary.width / (primary.width + save.width)).toBeLessThan(0.61);
+  expect(primary.width / (primary.width + save.width)).toBeGreaterThan(0.655);
+  expect(primary.width / (primary.width + save.width)).toBeLessThan(0.68);
   expect(Math.abs(primary.y - save.y)).toBeLessThan(1); // one row
   expect(await link.evaluate((e) => e.getBoundingClientRect().height < 56 && getComputedStyle(e).whiteSpace === 'nowrap')).toBe(true);
   const weights = await page.locator('.actions .btn').evaluateAll((els) => els.map((e) => getComputedStyle(e).fontWeight));
@@ -705,20 +705,65 @@ test.describe('report, credit and metro button', () => {
     await expect(page.locator('.fab-hint')).toHaveCount(0);
   });
 
-  test('the name in the credit line links to LinkedIn in blue, underlined', async ({ page }) => {
+  test('the whole credit is one link to LinkedIn: small text, name in blue and underlined, share icon, 48 px tall', async ({ page }) => {
     await openApp(page);
-    const link = page.locator('.made-with a');
-    await expect(link).toHaveText('Prasun');
+    const link = page.locator('a.made-with');
+    await expect(link).toContainText('made with love');
+    await expect(link).toContainText('by Prasun');
     await expect(link).toHaveAttribute('href', 'https://www.linkedin.com/in/prasun-mondal-b25320214/');
     await expect(link).toHaveAttribute('target', '_blank');
     await expect(link).toHaveAttribute('rel', /noopener/);
-    const style = await link.evaluate((el) => {
+    await expect(link).toHaveAttribute('aria-label', /Prasun, on LinkedIn \(opens in a new tab\)/);
+    const box = await link.boundingBox();
+    expect(box.height).toBeGreaterThanOrEqual(47.5);
+    const name = await page.locator('.mw-name').evaluate((el) => {
       const s = getComputedStyle(el);
       const [r, g, b] = s.color.match(/\d+/g).map(Number);
-      return { underline: s.textDecorationLine, blueDominant: b > r + 40 && b > g };
+      return { underline: s.textDecorationLine, blueDominant: b > r + 40 && b > g, weight: s.fontWeight };
     });
-    expect(style).toEqual({ underline: 'underline', blueDominant: true });
+    expect(name).toEqual({ underline: 'underline', blueDominant: true, weight: '600' });
+    expect(await link.evaluate((el) => getComputedStyle(el).fontSize)).toBe('11px');
+    const icon = await page.locator('.mw-icon').boundingBox();
+    expect(icon.width).toBeCloseTo(14, 0);
+    // the icon sits beside the name, on the same line
+    const nameBox = await page.locator('.mw-name').boundingBox();
+    expect(icon.x).toBeGreaterThan(nameBox.x + nameBox.width - 1);
+    expect(Math.abs(icon.y + icon.height / 2 - (nameBox.y + nameBox.height / 2))).toBeLessThan(6);
+    // a tap anywhere on the block, not just on the name, lands on the link
+    for (const [fx, fy] of [[0.1, 0.1], [0.5, 0.95], [0.9, 0.5]]) {
+      const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('a.made-with') != null, [box.x + box.width * fx, box.y + box.height * fy]);
+      expect(hit).toBe(true);
+    }
   });
+
+  test('top bar: the new logo, the name in red, and a small light version line from package.json', async ({ page }) => {
+    await openApp(page);
+    const brand = page.locator('a.brand');
+    await expect(brand).toHaveAttribute('href', '/');
+    expect((await brand.boundingBox()).height).toBeGreaterThanOrEqual(47.5);
+    const logo = page.locator('.brand-logo');
+    expect((await logo.boundingBox()).height).toBeCloseTo(32, 0);
+    expect(await logo.evaluate((e) => e.complete && e.naturalWidth > 0)).toBe(true);
+    await expect(page.locator('.brand-name')).toHaveText('Puja Dekho');
+    const pkg = JSON.parse((await import('node:fs')).readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+    const ver = page.locator('.brand-ver');
+    await expect(ver).toHaveText(`v${pkg.version}`);
+    const vs = await ver.evaluate((e) => ({ size: getComputedStyle(e).fontSize, weight: getComputedStyle(e).fontWeight }));
+    expect(vs).toEqual({ size: '10px', weight: '400' });
+    // the version sits under the name
+    const [nb, vb] = await Promise.all([page.locator('.brand-name').boundingBox(), ver.boundingBox()]);
+    expect(vb.y).toBeGreaterThan(nb.y + nb.height - 2);
+  });
+
+  for (const scheme of ['light', 'dark']) {
+    test(`top bar logo comes in the right colours for ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await openApp(page);
+      const src = await page.locator('.brand-logo').evaluate((e) => e.currentSrc);
+      expect(src).toContain(scheme === 'dark' ? 'logo-mark-dark.png' : 'logo-mark.png');
+      if (scheme === 'light') expect(src).not.toContain('dark');
+    });
+  }
 
   test('the Metro button toggles: tap to open, tap again to close', async ({ page }) => {
     await openApp(page);
@@ -1232,5 +1277,23 @@ test.describe('section labels are grey, in both themes', () => {
       await page.getByRole('button', { name: /^Filters/ }).first().click();
       await expect(page.getByRole('heading', { name: 'Radius' })).toHaveCSS('color', rgb);
     });
+  }
+});
+
+test('the action row stays on one line, Get directions at two thirds, on every phone width at 100% text', async ({ page }) => {
+  for (const [w, h] of [[320, 640], [360, 740], [390, 844], [430, 932]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await openApp(page);
+    await page.evaluate(() => window.__pd.openPuja('S001'));
+    const link = page.getByRole('link', { name: /Get directions/ });
+    await expect(link).toBeVisible();
+    const [a, b] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
+    expect(Math.abs(a.y - b.y), `${w}: one row`).toBeLessThan(1);
+    expect(a.height).toBeCloseTo(48, 0);
+    expect(b.height).toBeCloseTo(48, 0);
+    expect(a.width / (a.width + b.width), `${w}: ratio`).toBeGreaterThan(0.655);
+    expect(a.width / (a.width + b.width), `${w}: ratio`).toBeLessThan(0.68);
+    expect(await link.evaluate((e) => e.scrollWidth <= e.clientWidth + 1), `${w}: Get directions whole`).toBe(true);
+    expect(await page.getByRole('button', { name: /^Save/ }).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), `${w}: Save whole`).toBe(true);
   }
 });

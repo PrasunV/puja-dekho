@@ -41,6 +41,9 @@ export const REPORT_FORM_URL = import.meta.env?.VITE_REPORT_FORM_URL || 'https:/
 export const REPORT_HINT_AFTER_MS = 60_000;
 export const REPORT_HINT_SHOW_MS = 1_800;
 
+/** The version shown under the app name in the top bar: always whatever package.json says, so bumping it there is the only step. */
+export { version as APP_VERSION } from '../package.json';
+
 /** The maker's profile, linked from the credit line in the top bar. */
 export const MAKER = Object.freeze({ name: 'Prasun', url: 'https://www.linkedin.com/in/prasun-mondal-b25320214/' });
 

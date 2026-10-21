@@ -156,7 +156,8 @@ a {
   flex: none;
   background: var(--bg);
   border-bottom: 1px solid var(--line);
-  padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px 8px;
+  --gutter: 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 4px) var(--gutter) 8px;
   z-index: 1100;
   position: relative;
 }
@@ -169,9 +170,33 @@ a {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 48px; /* the tap area; the logo itself is 32px */
+  min-width: 0;
   text-decoration: none;
   color: var(--ink);
+  flex: 0 1 auto;
+}
+.brand-logo {
+  display: block;
   flex: none;
+  height: 32px;
+  width: auto;
+}
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.brand-ver {
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .brand-mark {
   width: 28px;
@@ -1036,9 +1061,14 @@ h2 {
   letter-spacing: -0.02em;
 }
 .brand-name {
-  font: 700 20px/1 var(--font);
+  font-family: var(--font);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--primary);
+  /* On a narrow phone at big text the name goes onto two lines ("Puja" / "Dekho"); it is never cut with an ellipsis. */
+  text-wrap: balance;
 }
 .top {
   border-bottom: 0;
@@ -1647,11 +1677,11 @@ select {
   align-items: center;
   gap: 8px;
   /* scrolls sideways when the chips do not fit, running to the screen edges */
-  margin: 0 -16px;
-  padding: 10px 16px 2px;
+  margin: 0 calc(-1 * var(--gutter, 16px));
+  padding: 10px var(--gutter, 16px) 2px;
   overflow-x: auto;
   overscroll-behavior-x: contain;
-  scroll-padding: 0 16px;
+  scroll-padding: 0 var(--gutter, 16px);
   scrollbar-width: none;
 }
 .bar-chips::-webkit-scrollbar {
@@ -1794,10 +1824,25 @@ select {
 
 /* Credit line, far right of the top bar (the search box is switched off for now). */
 .made-with {
-  margin-left: auto;
-  text-align: right;
-  font: 400 15px/1.3 var(--font);
-  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 48px; /* the whole credit is the tap area */
+  margin-inline-start: auto;
+  flex: none;
+  text-align: end;
+  text-decoration: none;
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.made-with:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+  border-radius: 8px;
 }
 
 /* ---- PRD build: sheet footer, peek line, popular strip, banners, crowd, explainer ---- */
@@ -1993,14 +2038,15 @@ select {
   text-align: center;
 }
 .actions .btn.grow {
-  /* 60% of the row (3 : 2). min-width keeps the words whole; only if both cannot fit at huge text does Save drop to its own line */
-  flex: 3 1 calc(60% - 5px);
+  /* two thirds of the row (2 : 1, the 8px gap taken out first). min-width keeps the words whole; only if both cannot fit at huge text does Save drop to its own line */
+  flex: 2 1 calc(66.667% - 5.333px);
   min-width: max-content;
 }
 .actions .btn.save {
   position: relative;
-  flex: 2 1 calc(40% - 5px);
+  flex: 1 1 calc(33.333% - 2.667px);
   min-width: max-content;
+  padding: 0 12px; /* a little tighter than the main button, so heart and 'Save' fit its third on a 320 px phone */
   background: color-mix(in srgb, var(--ink) 8%, var(--bg));
   border-color: transparent;
 }
@@ -2286,14 +2332,28 @@ select {
 }
 
 /* Credit line: the maker's name links to LinkedIn, in blue and underlined. */
-.made-with a {
+.mw-name {
   color: var(--link);
   text-decoration: underline;
   text-underline-offset: 2px;
   font-weight: 600;
 }
-.made-with a:hover {
+.made-with:hover .mw-name {
   text-decoration-thickness: 2px;
+}
+.mw-icon {
+  display: inline-block;
+  vertical-align: -2px;
+  margin-inline-start: 4px;
+  color: var(--link);
+}
+@media (max-width: 359px) {
+  .top {
+    --gutter: 12px; /* the top-bar guide: 12 below 360 wide */
+  }
+  .brand-logo {
+    height: 28px; /* the logo shrinks first; the tap areas never do */
+  }
 }
 
 /* Report issue hint: a small tooltip that names the flag button, shown for a moment. */
