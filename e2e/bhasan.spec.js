@@ -46,10 +46,11 @@ test.describe('while it is on', () => {
     await toHalf(page);
   });
 
-  test('order: ghat card, then two video cards, then Must-visit', async ({ page }) => {
+  test('order: ghat card, then the video cards (newest first), then Must-visit', async ({ page }) => {
     const ghat = page.getByTestId('ghat-card');
-    const live = page.getByTestId('video-live');
-    const replay = page.getByTestId('video-replay');
+    const live = page.getByTestId('video-0');
+    const second = page.getByTestId('video-1');
+    const replay = page.getByTestId('video-2');
     await expect(ghat).toContainText('Baje Kadomtala Ghat');
     await expect(ghat).toContainText('Strand Rd, B.B.D. Bagh');
     await expect(ghat).toContainText('Bhasan today');
@@ -58,7 +59,7 @@ test.describe('while it is on', () => {
     // One synchronous read, so a moving sheet cannot skew the comparison.
     const m = await page.evaluate(() => {
       const box = (sel) => document.querySelector(sel)?.getBoundingClientRect();
-      const [g, l, r, p] = ['[data-testid=ghat-card]', '[data-testid=video-live]', '[data-testid=video-replay]', '.popular'].map(box);
+      const [g, l, r, p] = ['[data-testid=ghat-card]', '[data-testid=video-0]', '[data-testid=video-1]', '.popular'].map(box);
       return { g, l, r, p };
     });
     expect(m.g.bottom).toBeLessThanOrEqual(m.l.top);
@@ -69,23 +70,27 @@ test.describe('while it is on', () => {
   });
 
   test('video cards open YouTube in a new tab; LIVE badge only when switched on; replay has its thumbnail', async ({ page }) => {
-    const live = page.getByTestId('video-live');
-    const replay = page.getByTestId('video-replay');
-    await expect(live).toHaveAttribute('href', 'https://www.youtube.com/channel/UCv3rFzn-GHGtqzXiaq3sWNg/live');
+    const live = page.getByTestId('video-0');
+    const second = page.getByTestId('video-1');
+    const replay = page.getByTestId('video-2');
+    await expect(live).toHaveAttribute('href', 'https://www.youtube.com/live/04sRqedFlMk');
+    await expect(second).toHaveAttribute('href', 'https://www.youtube.com/live/UxHc2lGvfiI');
+    await expect(second).toContainText('Zee 24 Ghanta');
     await expect(replay).toHaveAttribute('href', 'https://www.youtube.com/watch?v=MB1a8UAA4bA');
-    for (const card of [live, replay]) {
+    for (const card of [live, second, replay]) {
       await expect(card).toHaveAttribute('target', '_blank');
       await expect(card).toHaveAttribute('rel', 'noopener noreferrer');
     }
     await expect(live).toContainText('Watch live');
     await expect(replay).toContainText('Replay');
-    await expect(page.getByTestId('live-badge')).toHaveCount(0);
+    await expect(page.getByTestId('live-badge')).toHaveCount(BHASAN.videos.filter((v) => v.live).length); // the badge follows the `live` switch in the config
+    await expect(live.locator('img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/04sRqedFlMk/hqdefault.jpg');
     await expect(replay.locator('img')).toHaveAttribute('src', 'https://i.ytimg.com/vi/MB1a8UAA4bA/hqdefault.jpg');
     expect(await page.locator('.vid-card iframe, .vid-card video').count()).toBe(0);
   });
 
   test('titles clamp to two lines', async ({ page }) => {
-    for (const id of ['video-live', 'video-replay']) {
+    for (const id of ['video-0', 'video-1', 'video-2']) {
       const title = page.getByTestId(id).locator('.vid-title');
       expect(await title.evaluate((node) => getComputedStyle(node).webkitLineClamp)).toBe('2');
     }
@@ -131,8 +136,8 @@ test.describe('while it is on', () => {
       const [box, ghat, live, replay] = await Promise.all([
         page.getByTestId('bhasan').boundingBox(),
         page.getByTestId('ghat-card').boundingBox(),
-        page.getByTestId('video-live').boundingBox(),
-        page.getByTestId('video-replay').boundingBox(),
+        page.getByTestId('video-0').boundingBox(),
+        page.getByTestId('video-1').boundingBox(),
       ]);
       expect(Math.abs(ghat.width - box.width)).toBeLessThan(1);
       expect(Math.abs(live.width + replay.width + 12 - box.width)).toBeLessThan(1.5);

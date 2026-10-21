@@ -3,7 +3,8 @@
  * Everything here is edited by hand. Nothing is fetched, so no API key is needed.
  *
  * HOW TO UPDATE
- *  - Stream is live:     set `live: true` on the ABP Ananda row (the card then shows a red pulsing LIVE badge).
+ *  - Order:              cards show in this list's order, left to right. Put the newest stream first, replays last.
+ *  - Stream is live:     set `live: true` on its row (the card then shows a red pulsing LIVE badge).
  *  - Immersion time:     fill `ghat.window` with { start: '17:00', end: '21:00' } (24 h, India time) once it is confirmed.
  *                        While it is `null` the card only says "Bhasan today" and no time is shown anywhere.
  *  - Another replay:     change the `url`, `title` and `thumb` of the replay row.
@@ -25,11 +26,20 @@ export const BHASAN = Object.freeze({
   videos: Object.freeze([
     Object.freeze({
       type: 'live',
-      /** Set to `true` only while the channel is really streaming. */
-      live: false,
-      channel: 'ABP Ananda',
-      title: 'Bijaya Dasami | Durga Puja 2026 | Ganga ghats bhasan preparations',
-      url: 'https://www.youtube.com/channel/UCv3rFzn-GHGtqzXiaq3sWNg/live',
+      /** Set to `true` only while the stream is really on. Set it back to `false` when it ends. */
+      live: true,
+      channel: 'TV9 Bangla',
+      title: 'BIG BREAKING | দশমীর বিষাদ, ঘাটে ঘাটে চলছে প্রতিমা নিরঞ্জন | DURGA PUJA 2026 | BIJAYA DASHAMI',
+      url: 'https://www.youtube.com/live/04sRqedFlMk',
+      thumb: 'https://i.ytimg.com/vi/04sRqedFlMk/hqdefault.jpg',
+    }),
+    Object.freeze({
+      type: 'live',
+      live: true,
+      channel: 'Zee 24 Ghanta',
+      title: 'Durga Puja 2026 | আজ দশমী, বিদায়ের সুরেই ফেরার আশা...| Zee 24 Ghanta Live',
+      url: 'https://www.youtube.com/live/UxHc2lGvfiI',
+      thumb: 'https://i.ytimg.com/vi/UxHc2lGvfiI/hqdefault.jpg',
     }),
     Object.freeze({
       type: 'replay',

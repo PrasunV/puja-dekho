@@ -52,7 +52,7 @@ function PlayMark() {
   );
 }
 
-function VideoCard({ video }) {
+function VideoCard({ video, index }) {
   const [broken, setBroken] = useState(false);
   const isLive = video.type === 'live';
   const kind = isLive ? 'Watch live' : 'Replay';
@@ -60,7 +60,7 @@ function VideoCard({ video }) {
     <a
       className="vid-card"
       data-type={video.type}
-      data-testid={`video-${video.type}`}
+      data-testid={`video-${index}`}
       href={video.url}
       target="_blank"
       rel="noopener noreferrer"
@@ -105,8 +105,8 @@ export default function BhasanSection() {
           View live at
         </h3>
         <div className="vid-row">
-          {config.videos.map((video) => (
-            <VideoCard key={video.url} video={video} />
+          {config.videos.map((video, index) => (
+            <VideoCard key={video.url} video={video} index={index} />
           ))}
         </div>
       </section>
