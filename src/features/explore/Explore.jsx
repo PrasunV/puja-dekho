@@ -78,7 +78,7 @@ export default function Explore() {
           {appliedText && <div className="sub">{appliedText}</div>}
         </div>
         <div className="head-actions">
-              {filterCount > 0 && (
+          {filterCount > 0 && (
             <button type="button" className="btn text" onClick={clearFilters}>
               Clear all
             </button>
@@ -123,7 +123,12 @@ export default function Explore() {
           {rest.length > 0 && <div className="divider-row">Everywhere else</div>}
         </section>
       )}
-      {results.length > 1 && <SortMenu />}
+      {results.length > 0 && (
+        <div className="all-head">
+          <h3>All Pujas</h3>
+          {results.length > 1 && <SortMenu />}
+        </div>
+      )}
       {results.length === 0 ? (
         <div className="empty">
           <h3>No pujas match</h3>

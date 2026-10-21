@@ -1,6 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
-import { CrowdDot } from '../../components/ui/Crowd.jsx';
 import { POPULAR_IDS, POPULAR_MAX } from '../../data/popular.js';
 import { formatDistance, walkMinutes } from '../../lib/geo.js';
 
@@ -44,7 +43,6 @@ export default function PopularStrip() {
                 {filters.distances?.get(puja.id) != null && (
                   <span className="num sub">{`~${formatDistance(filters.distances.get(puja.id) ?? 0)} · ~${walkMinutes(filters.distances.get(puja.id) ?? 0)} min`}</span>
                 )}
-                <CrowdDot puja={puja} />
               </span>
             </button>
           ) : null,

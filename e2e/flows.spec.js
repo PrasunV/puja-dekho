@@ -1092,6 +1092,25 @@ test.describe('sort menu, loading and accessibility', () => {
     await expect(page.getByRole('menu')).toHaveCount(0);
   });
 
+  test('the list section is "All Pujas", with the sort drop-down (grey, medium weight, down arrow) at the right of the same line; rows carry no grey dots', async ({ page }) => {
+    await openApp(page);
+    await page.locator('.grab').click();
+    await page.locator('.grab').click();
+    const heading = page.getByRole('heading', { name: 'All Pujas' });
+    await expect(heading).toBeVisible();
+    const sort = page.getByRole('button', { name: /Sort:/ });
+    const [h, b] = await Promise.all([heading.boundingBox(), sort.boundingBox()]);
+    expect(Math.abs(h.y + h.height / 2 - (b.y + b.height / 2))).toBeLessThan(8); // one line
+    expect(b.x).toBeGreaterThan(h.x + h.width); // to the right of the heading
+    const panel = await page.locator('.panel-body').boundingBox();
+    expect(panel.x + panel.width - (b.x + b.width)).toBeLessThan(24); // right-most
+    const style = await sort.evaluate((el) => ({ w: getComputedStyle(el).fontWeight, bg: getComputedStyle(el).backgroundColor }));
+    expect(style.w).toBe('500');
+    expect(style.bg).not.toBe('rgba(0, 0, 0, 0)');
+    await expect(sort.locator('svg')).toHaveCount(1);
+    await expect(page.locator('.panel .pcard .crowd-dot, .panel .popular-card .crowd-dot')).toHaveCount(0);
+  });
+
   test('sorting never moves the map', async ({ page }) => {
     await openApp(page);
     await page.locator('.grab').click();

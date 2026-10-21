@@ -4,7 +4,7 @@ import { Icon } from '../../components/ui/Icon.jsx';
 import { SORT_LABELS } from '../../hooks/usePujaFilters.js';
 
 /**
- * "Sort: Nearest": one button that opens the choices in place (not a popover, so the list sheet cannot clip it).
+ * "Sort: Nearest": a grey, filled drop-down button at the right of the "All Pujas" heading. It opens the choices just under it.
  * The choices are radios: one is always picked. Sorting changes the list only, never the map.
  */
 export default function SortMenu() {
@@ -38,16 +38,9 @@ export default function SortMenu() {
   };
   return (
     <div className="sort" ref={wrap}>
-      <button
-        ref={button}
-        type="button"
-        className="sort-btn"
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="sort-label">Sort:</span> <b>{SORT_LABELS[filters.sort]}</b>
-        <Icon name="chevron" size={16} />
+      <button ref={button} type="button" className="sort-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span>{`Sort: ${SORT_LABELS[filters.sort]}`}</span>
+        <Icon name="chevron" size={18} />
       </button>
       {open && (
         <div className="sort-list" role="menu" aria-label="Sort the list">

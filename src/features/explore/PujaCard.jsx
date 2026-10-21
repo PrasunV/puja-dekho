@@ -1,11 +1,10 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { useApp } from '../../context/AppContext.js';
-import { CrowdDot } from '../../components/ui/Crowd.jsx';
 import { formatDistance, walkMinutes } from '../../lib/geo.js';
 
 /**
- * One row in the puja list: name, area, distance and a crowd dot.
+ * One row in the puja list: name, area, distance and the since-year. (No crowd dot: it was a grey dot that told nobody anything.)
  * @param {{ puja: import('../../lib/types.js').Puja, index: number, note?: string }} props
  */
 function PujaCard({ puja, index, note }) {
@@ -31,7 +30,6 @@ function PujaCard({ puja, index, note }) {
         <div className="pmeta">
           <span className="tag">{puja.ar}</span>
           {puja.h && <span className="tag accent">{puja.e ? `Since ${puja.e}` : 'Heritage'}</span>}
-          <CrowdDot puja={puja} />
           {note && <span className="sub">{note}</span>}
         </div>
       </button>
