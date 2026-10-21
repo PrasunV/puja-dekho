@@ -102,6 +102,9 @@ test.describe('while it is on', () => {
     await expect(sheet.getByRole('heading', { name: 'Baje Kadomtala Ghat' })).toBeVisible();
     await expect(sheet).toContainText('Bhasan today');
     await expect(sheet).toContainText('Known for its evening Ganga Aarti.');
+    // Area and distance read as one line of text under the name; the only chip is the status.
+    await expect(sheet.getByTestId('ghat-where')).toHaveText(/^Strand Rd, B\.B\.D\. Bagh · \d+(\.\d)? ?(km|m) away$/);
+    await expect(sheet.locator('.tag')).toHaveCount(1);
     await expect(sheet).toContainText('not confirmed');
     const directions = page.getByRole('link', { name: 'Get directions' });
     await expect(directions).toHaveAttribute('href', ghatDirectionsUrl());
@@ -191,5 +194,16 @@ test.describe('copy', () => {
     await page.clock.setFixedTime(IST('2026-10-24T00:30:00'));
     await openApp(page);
     await expect(page.locator('.head h2')).not.toHaveText('Bijoya Bhasan happening…');
+  });
+});
+
+test.describe('ghat details without location', () => {
+  test.use({ permissions: [] });
+  test('the area stays, with no distance and no leftover dot', async ({ page }) => {
+    await page.clock.setFixedTime(IST('2026-10-21T18:00:00'));
+    await openApp(page);
+    await toHalf(page);
+    await page.getByTestId('ghat-card').click();
+    await expect(page.getByTestId('ghat-where')).toHaveText('Strand Rd, B.B.D. Bagh');
   });
 });

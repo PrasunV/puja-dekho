@@ -29,10 +29,12 @@ export default function GhatPage() {
       <div className="detail-head" data-sheet-head>
         <div className="detail-id">
           <h2>{ghat.name}</h2>
-          {distance && <div className="sub num">{distance} away</div>}
+          <div className="sub" data-testid="ghat-where">
+            {ghat.area}
+            {distance && <span className="num">{` · ${distance} away`}</span>}
+          </div>
           <div className="row wrap mt8">
             <GhatChip status={status} />
-            <span className="tag">{ghat.area}</span>
           </div>
         </div>
         <button type="button" className="back back-btn" aria-label="Close details" onClick={back}>
