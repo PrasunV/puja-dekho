@@ -13,6 +13,7 @@ import { createApiRouter } from './routes/api.js';
 import { createLiveHandler } from './live.js';
 import { createVisitHandler } from './visits.js';
 import { createStatsHandler } from './stats.js';
+import { createShareHandler } from './share.js';
 import { createAggregates } from './services/aggregates.js';
 import { createDeviceService } from './services/devices.js';
 import { createReportService } from './services/reports.js';
@@ -47,6 +48,7 @@ export function createApp({ env = process.env, now = Date.now, dbPath } = {}) {
   app.use(securityHeaders);
   app.use('/api/visits', createVisitHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
   app.use('/api/stats', createStatsHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
+  app.use('/api/share', createShareHandler({ env }));
   app.use('/api/live', createLiveHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
   app.use('/api', (req, res, next) => ready.then(() => next(), next));
   app.use('/api', express.json({ limit: '20kb' }));

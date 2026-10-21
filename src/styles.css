@@ -3621,3 +3621,159 @@ select {
   color: var(--accent-ink);
   border: 1px solid var(--accent);
 }
+
+/* Share: the small button beside a card, and the sheet it opens */
+.vid-wrap {
+  position: relative;
+  min-width: 0;
+}
+.vid-card,
+.ghat-card {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.vid-wrap > .vid-card {
+  height: 100%;
+}
+.share-btn {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.share-btn::before {
+  content: '';
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  box-shadow: 0 0 0 1px var(--line);
+}
+.share-btn svg {
+  position: relative;
+}
+.share-btn.on-video {
+  top: 0;
+  right: 0;
+}
+.share-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.share-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 8, 10, 0.5);
+}
+.share-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  max-height: 92%;
+  overflow-y: auto;
+  padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 20px 20px 0 0;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+  display: grid;
+  gap: 12px;
+  touch-action: pan-y;
+}
+.share-grab {
+  justify-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+.share-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.share-head h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.share-preview {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-2);
+}
+.share-img {
+  aspect-ratio: 1.91 / 1;
+  background: linear-gradient(135deg, #5a1a22, #8a2a1a);
+}
+.share-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.share-meta {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px 12px;
+  font-family: var(--font), 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif;
+}
+.share-title {
+  font-size: 14px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.share-sub,
+.share-site {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+.share-msg {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.share-actions {
+  display: grid;
+  gap: 8px;
+}
+.share-actions .btn {
+  height: 48px;
+  gap: 8px;
+  justify-content: center;
+  white-space: nowrap;
+}
+.share-wa {
+  background: #25d366;
+  color: #08210f;
+  border-color: transparent;
+  text-decoration: none;
+}
+.share-copy {
+  background: color-mix(in srgb, var(--ink) 8%, var(--bg));
+  border-color: transparent;
+}
+
+/* "Share" is a little longer than "Save": slightly tighter so it keeps its third on a 320 px phone. */
+.actions .btn.save.share-act {
+  padding: 0 8px;
+  gap: 6px;
+}

@@ -86,3 +86,17 @@ export function ghatStatus(now = Date.now(), window = BHASAN.ghat.window) {
 /** Google Maps' own mode picker, aimed at the ghat by its Place ID (no travel mode forced). */
 export const ghatDirectionsUrl = (ghat = BHASAN.ghat) =>
   `https://www.google.com/maps/dir/?api=1&destination=${ghat.lat},${ghat.lng}&destination_place_id=${ghat.placeId}`;
+
+/** The YouTube video id inside a watch or live link, or null. */
+export const videoId = (/** @type {string} */ url) => /(?:\/live\/|[?&]v=)([A-Za-z0-9_-]{11})/.exec(url)?.[1] ?? null;
+
+/**
+ * The words for sharing, used by the share sheet AND by the link preview the server builds, so they never differ.
+ * No channel name appears anywhere: it is our title and a personal line.
+ * @param {'live' | 'replay' | 'ghat'} kind
+ */
+export function shareCopy(kind, ghat = BHASAN.ghat) {
+  if (kind === 'live') return { title: 'Bijoya Dashami, live now', sub: 'Live · Puja Dekho', message: 'Watch Dashami immersion live with me' };
+  if (kind === 'replay') return { title: 'Bijoya Dashami, watch again', sub: 'Replay · Puja Dekho', message: 'Watch this Dashami moment with me' };
+  return { title: `Bhasan today at ${ghat.name}`, sub: `Bhasan today · ${ghat.area}`, message: `Come with me to ${ghat.name} today` };
+}

@@ -1,8 +1,21 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
 import { Icon } from '../../components/ui/Icon.jsx';
 import { formatDistance, haversine } from '../../lib/geo.js';
+import ShareSheet from '../share/ShareSheet.jsx';
+import ShareIcon from '../share/ShareIcon.jsx';
+import { videoShare } from '../share/shareItems.js';
+import { useLongPress } from '../share/useLongPress.js';
 import { useBhasan } from './useBhasan.js';
+
+/** The small share button on a card. It sits beside the card (never inside the link) and has a 48 px tap area. */
+function ShareButton({ label, onShare, className = '' }) {
+  return (
+    <button type="button" className={`share-btn ${className}`} aria-label={label} onClick={onShare} data-testid="share-btn">
+      <ShareIcon />
+    </button>
+  );
+}
 
 /** The chip that says where the ghat stands today. "Bhasan on now" is the only live-style one. */
 export function GhatChip({ status }) {
@@ -52,11 +65,13 @@ function PlayMark() {
   );
 }
 
-function VideoCard({ video, index }) {
+function VideoCard({ video, index, onShare }) {
+  const press = useLongPress(onShare);
   const [broken, setBroken] = useState(false);
   const isLive = video.type === 'live';
   const kind = isLive ? 'Watch live' : 'Replay';
   return (
+    <div className="vid-wrap">
     <a
       className="vid-card"
       data-type={video.type}
@@ -64,7 +79,8 @@ function VideoCard({ video, index }) {
       href={video.url}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`${kind}: ${video.title}, ${video.channel}. Opens YouTube in a new tab`}
+      aria-label={`${kind}: ${video.title}, ${video.channel}. Opens YouTube in a new tab. Press and hold to share`}
+      {...press}
     >
       <span className="vid-thumb" aria-hidden="true">
         {video.thumb && !broken && <img src={video.thumb} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />}
@@ -85,6 +101,8 @@ function VideoCard({ video, index }) {
         <span className="vid-title">{video.title}</span>
       </span>
     </a>
+    <ShareButton label={`Share: ${video.title}`} onShare={onShare} className="on-video" />
+    </div>
   );
 }
 
@@ -94,6 +112,8 @@ function VideoCard({ video, index }) {
  */
 export default function BhasanSection() {
   const { active, config, status } = useBhasan();
+  const [sharing, setSharing] = useState(/** @type {import('../share/shareItems.js').ShareItem | null} */ (null));
+  const close = useCallback(() => setSharing(null), []);
   if (!active) return null;
   return (
     <div className="bhasan" data-testid="bhasan">
@@ -106,10 +126,11 @@ export default function BhasanSection() {
         </h3>
         <div className="vid-row">
           {config.videos.map((video, index) => (
-            <VideoCard key={video.url} video={video} index={index} />
+            <VideoCard key={video.url} video={video} index={index} onShare={() => setSharing(videoShare(video))} />
           ))}
         </div>
       </section>
+      <ShareSheet item={sharing} onClose={close} />
     </div>
   );
 }

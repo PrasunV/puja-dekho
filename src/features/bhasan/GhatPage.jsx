@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
 import { BentoCard } from '../../components/ui/Bento.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
 import { ghatDirectionsUrl } from '../../data/bhasan.js';
+import ShareIcon from '../share/ShareIcon.jsx';
+import ShareSheet from '../share/ShareSheet.jsx';
+import { ghatShare } from '../share/shareItems.js';
 import { GhatChip, useGhatDistance } from './BhasanSection.jsx';
 import { useBhasan } from './useBhasan.js';
 
@@ -68,11 +71,12 @@ export default function GhatPage() {
   );
 }
 
-/** Pinned buttons: Get directions (Google Maps picks the mode) and Show on map. */
+/** Pinned buttons: Get directions (Google Maps picks the mode) and Share (opens the share sheet). */
 export function GhatActions() {
   const { config } = useBhasan();
-  const { mapRef, setSheet, desktop } = useApp();
   const { ghat } = config;
+  const [sharing, setSharing] = useState(false);
+  const close = useCallback(() => setSharing(false), []);
   return (
     <div className="actions">
       <div className="row actions-row">
@@ -80,18 +84,12 @@ export function GhatActions() {
           <Icon name="nav" />
           Get directions
         </a>
-        <button
-          type="button"
-          className="btn save"
-          onClick={() => {
-            if (!desktop) setSheet((s) => (s === 'full' ? 'half' : s));
-            mapRef.current?.flyToPoint(ghat);
-          }}
-        >
-          <Icon name="pin" size={18} />
-          Show on map
+        <button type="button" className="btn save share-act" data-testid="ghat-share" onClick={() => setSharing(true)}>
+          <ShareIcon />
+          Share
         </button>
       </div>
+      <ShareSheet item={sharing ? ghatShare(ghat) : null} onClose={close} />
     </div>
   );
 }

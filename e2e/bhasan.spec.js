@@ -96,7 +96,7 @@ test.describe('while it is on', () => {
     }
   });
 
-  test('tapping the card opens the ghat details; Directions and Show on map; Close returns to the list', async ({ page }) => {
+  test('tapping the card opens the ghat details; Directions and Share; Close returns to the list', async ({ page }) => {
     await page.getByTestId('ghat-card').click();
     const sheet = page.getByTestId('ghat-page');
     await expect(sheet.getByRole('heading', { name: 'Baje Kadomtala Ghat' })).toBeVisible();
@@ -106,13 +106,11 @@ test.describe('while it is on', () => {
     const directions = page.getByRole('link', { name: 'Get directions' });
     await expect(directions).toHaveAttribute('href', ghatDirectionsUrl());
     await expect(directions).toHaveAttribute('target', '_blank');
-    await expect(page.getByRole('button', { name: 'Show on map' })).toBeVisible();
-    const before = await page.evaluate(() => window.__pdMap.getCenter().lat);
-    await page.getByRole('button', { name: 'Show on map' }).click();
+    await expect(page.getByTestId('ghat-share')).toHaveText('Share');
+    // Opening the details already flies the map to the ghat.
     await expect.poll(() => page.evaluate(() => window.__pdMap.isMoving())).toBe(false);
     const centre = await page.evaluate(() => window.__pdMap.getCenter());
     expect(Math.abs(centre.lng - 88.33875)).toBeLessThan(0.01);
-    expect(before).toBeDefined();
     await page.getByRole('button', { name: 'Close details' }).click();
     await expect(page.getByTestId('ghat-card')).toBeVisible();
   });
