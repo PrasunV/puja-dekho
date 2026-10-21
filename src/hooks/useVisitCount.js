@@ -12,7 +12,9 @@ export function useVisitCount() {
   const [count, setCount] = useState(() => /** @type {number | null} */ (storage.get('visitCount', null)));
   useEffect(() => {
     const controller = new AbortController();
-    api('/visits', { method: 'POST', signal: controller.signal })
+    // A link shared with a tag (`?s=wa`) is also counted, out of sight, as a visit from a shared link.
+    const tag = new URLSearchParams(location.search).get('s');
+    api(`/visits${tag ? `?s=${encodeURIComponent(tag.slice(0, 20))}` : ''}`, { method: 'POST', signal: controller.signal })
       .then((result) => {
         if (typeof result?.count !== 'number') return;
         setCount(result.count);

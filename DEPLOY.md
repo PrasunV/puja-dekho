@@ -113,3 +113,9 @@ sheets), and never in the installed app.
   India dates it plays on (`days: null` means any day). Add a row and drop the file in `public/anim/`.
 - To check one at any time: add `?greeting=maha-ashtami` to the address (not counted). `?greeting=off` turns it off.
   The count is kept in the phone's storage as `pd_greeted`.
+
+## Share-link count (private)
+
+Share the app with a tag so you can count who came from where: `https://puja-dekho.vercel.app/?s=wa` (WhatsApp), `?s=ig`, `?s=fb`. A tag is 1 to 20 letters, digits, `-` or `_`.
+Each device counts once per day per tag-visit, apart from the public "people viewed" number (which is unchanged).
+To read it, add a long secret as `STATS_KEY` in Vercel (Settings, Environment Variables), redeploy, then open `https://puja-dekho.vercel.app/api/stats?key=<STATS_KEY>`. It shows today and the last 7 days (India time). Nothing about it appears in the app.

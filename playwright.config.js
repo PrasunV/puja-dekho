@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: {
     command: 'rm -rf .e2e-data && node server/index.js',
     port: PORT,
-    env: { PORT: String(PORT), DATA_DIR: '.e2e-data', SECRET: 'e2e-secret' },
+    env: { PORT: String(PORT), DATA_DIR: '.e2e-data', SECRET: 'e2e-secret', STATS_KEY: 'e2e-stats-key' },
     reuseExistingServer: !process.env.CI,
   },
 });
