@@ -89,7 +89,7 @@ On phones the whole sheet is the handle: a vertical drag that starts anywhere on
 
 To compare other styles on a phone without a rebuild, open the app with `?motionlab` at the end of the address (a "Motion" chip appears at the top right) or `?sheetMotion=snappy` (also `spring`, `quick-out`, `decel`, `ios`, `bouncy`). The choice is remembered on that phone. The default lives in `src/features/layout/sheetMotion.js`.
 
-## Festival greeting (the Lottie animation in the first sheet)
+## Festival greeting (the Lottie animation, or a still picture, in the first sheet)
 
 When someone opens the app from a link in a browser, the first sheet they see plays a short Lottie greeting in place of
 its round icon: "See pujas around you" for people in Kolkata, "N pujas in Kolkata" for people far away. Only the
@@ -107,6 +107,8 @@ sheets), and never in the installed app.
 - Running the engine needs WebAssembly, so the content security policy has `'wasm-unsafe-eval'` in `script-src`. That
   allows WebAssembly only, not eval of JavaScript. It is set in `server/http/security.js` and mirrored in
   `vercel.json` (a test keeps them identical).
+- A greeting can also be a still picture: give its row `kind: 'image'` and a `.svg` or `.png` in `public/anim/` (Shubho Bijoya, `shubho-bijoya.svg`, is one). It fades in once decoded and stays; no player or engine is loaded for it.
+  It is on every open, any day, browser and installed app, until its row is set to `days: []`.
 - Greetings live in `src/features/greeting/greetings.js` (`GREETINGS`): an id, the file, a label, the size and the
   India dates it plays on (`days: null` means any day). Add a row and drop the file in `public/anim/`.
 - To check one at any time: add `?greeting=maha-ashtami` to the address (not counted). `?greeting=off` turns it off.

@@ -159,3 +159,65 @@ test('someone who has been here before gets it at the top of the main list sheet
   await expect.poll(() => phase(page), { timeout: 15_000 }).toBe('still');
   expect(await counts(page)).toEqual({ 'maha-ashtami': 1 });
 });
+
+// ---- Shubho Bijoya: a still picture, not an animation ----
+test.describe('shubho bijoya (still picture)', () => {
+  const openForced = async (page, scheme = 'light') => {
+    await page.emulateMedia({ colorScheme: scheme });
+    await page.addInitScript(() => {
+      const query = navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query = (d) => (d.name === 'geolocation' ? Promise.resolve({ state: 'prompt' }) : query(d));
+    });
+    await page.goto('/?greeting=shubho-bijoya');
+    await expect(page.locator('.explainer')).toBeVisible();
+  };
+
+  for (const scheme of ['light', 'dark']) {
+    test(`shows the picture whole, 260 wide, 3:1, no player, ${scheme}`, async ({ page }) => {
+      await openForced(page, scheme);
+      const box = page.locator('.explainer .greet-box');
+      await expect(box).toBeVisible();
+      await expect.poll(() => phase(page), { timeout: 15_000 }).toBe('still');
+      await expect(box).toHaveAttribute('aria-label', 'Shubho Bijoya');
+      const img = box.locator('img.greet-image');
+      await expect(img).toHaveAttribute('data-shown', 'true');
+      expect(await img.evaluate((e) => e.naturalWidth > 0)).toBe(true); // it really decoded
+      await expect(box.locator('canvas')).toHaveCount(0);
+      const b = await box.boundingBox();
+      expect(b.width).toBeCloseTo(260, 0);
+      expect(b.width / b.height).toBeCloseTo(3, 1);
+      await expect(page.locator('.explainer .explainer-icon')).toHaveCount(0);
+      await expect(page.locator('.explainer').getByRole('button', { name: 'Allow' })).toBeVisible();
+      await expect(box).not.toHaveAttribute('role', 'button'); // nothing to replay
+    });
+  }
+
+  test('when the file cannot load, the box folds away and the normal icon appears', async ({ page }) => {
+    await page.route('**/anim/shubho-bijoya.svg', (route) => route.abort());
+    await openForced(page);
+    await expect.poll(() => phase(page), { timeout: 15_000 }).toBe('gone');
+    await expect(page.locator('.explainer .explainer-icon')).toBeVisible();
+  });
+
+  test('asked for by id on a normal open (not forced), it shows, is counted, and the installed-app rule is on', async ({ page }) => {
+    await page.addInitScript(() => {
+      /** @type {any} */ (window).__PD_E2E_GREETING__ = { id: 'shubho-bijoya', maxShows: null, installedToo: true };
+      const query = navigator.permissions.query.bind(navigator.permissions);
+      navigator.permissions.query = (d) => (d.name === 'geolocation' ? Promise.resolve({ state: 'prompt' }) : query(d));
+    });
+    await page.goto('/');
+    await expect(page.locator('.explainer .greet-box')).toHaveAttribute('aria-label', 'Shubho Bijoya');
+    await expect.poll(() => counts(page), { timeout: 15_000 }).toEqual({ 'shubho-bijoya': 1 });
+    await page.reload();
+    await expect.poll(() => counts(page), { timeout: 15_000 }).toEqual({ 'shubho-bijoya': 2 }); // every open counts, none is held back
+  });
+
+  test('its rule: any day, every open, browser and installed app', async () => {
+    const src = (await import('node:fs')).readFileSync(new URL('../src/features/greeting/greetings.js', import.meta.url), 'utf8');
+    const block = src.slice(src.indexOf("id: 'shubho-bijoya'"));
+    expect(block).toMatch(/kind: 'image'/);
+    expect(block).toMatch(/days: null/);
+    expect(block).toMatch(/maxShows: null/);
+    expect(block).toMatch(/installedToo: true/);
+  });
+});

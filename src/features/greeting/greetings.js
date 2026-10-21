@@ -6,7 +6,8 @@ import { storage } from '../../lib/storage.js';
  * exactly as exported and add a row here. `days` are India dates (YYYY-MM-DD) it plays on; `null` means any day.
  * `maxShows` is how many opens a phone sees it for (`null`: every open). `installedToo` lets the installed app
  * (home-screen icon) see it as well as a browser. If two rows match today, the first one wins.
- * @typedef {{ id: string, file: string, label: string, width: number, height: number, days: string[] | null, maxShows: number | null, installedToo: boolean }} Greeting
+ * A row with `kind: 'image'` is a still picture (an SVG or PNG) instead of a .lottie animation: it fades in and stays.
+ * @typedef {{ id: string, kind?: 'lottie' | 'image', file: string, label: string, width: number, height: number, days: string[] | null, maxShows: number | null, installedToo: boolean }} Greeting
  */
 /** @type {Greeting[]} */
 export const GREETINGS = [
@@ -18,6 +19,19 @@ export const GREETINGS = [
     height: 140,
     // Switched off: no days. (It ran for everyone, every open, from 19 Oct until the Navami greeting was due.)
     days: [],
+    maxShows: null,
+    installedToo: true,
+  },
+  {
+    // Shubho Bijoya (Dashami, 21 Oct 2026): a still picture, on every open, browser and installed app, until it is switched off.
+    // To switch it off, set `days: []`. Listed after Ashtami so the e2e suite (which overrides the days) keeps testing Ashtami.
+    id: 'shubho-bijoya',
+    kind: 'image',
+    file: '/anim/shubho-bijoya.svg',
+    label: 'Shubho Bijoya',
+    width: 180,
+    height: 60,
+    days: null,
     maxShows: null,
     installedToo: true,
   },
@@ -66,12 +80,17 @@ function decide() {
   const rules = w.__PD_E2E__ ? { ...E2E_RULES, ...(typeof w.__PD_E2E_GREETING__ === 'object' ? w.__PD_E2E_GREETING__ : {}) } : {};
   const installed = isInstalledApp();
   const today = todayIst();
-  const greeting = GREETINGS.map((g) => ({ ...g, ...rules })).find(
-    (g) =>
-      (g.days === null || g.days.includes(today)) &&
-      (g.maxShows === null || (shownCounts()[g.id] ?? 0) < g.maxShows) &&
-      (!installed || g.installedToo),
-  );
+  // Under test (and in the preview) one row is in play: the one asked for by id, otherwise the first (Ashtami), so tests do not
+  // slide on to the next greeting once the first has had its opens.
+  const only = w.__PD_E2E__ ? /** @type {any} */ ((rules).id ?? GREETINGS[0].id) : null;
+  const greeting = GREETINGS.filter((g) => !only || g.id === only)
+    .map((g) => ({ ...g, ...rules }))
+    .find(
+      (g) =>
+        (g.days === null || g.days.includes(today)) &&
+        (g.maxShows === null || (shownCounts()[g.id] ?? 0) < g.maxShows) &&
+        (!installed || g.installedToo),
+    );
   return greeting ? { greeting, forced: false } : null;
 }
 
@@ -102,6 +121,23 @@ const loading = new Map();
  */
 export function loadGreeting(/** @type {Greeting} */ greeting) {
   let promise = loading.get(greeting.id);
+  if (!promise && greeting.kind === 'image') {
+    // A still picture: no player and no engine, just the image, decoded before it is shown so it appears whole.
+    promise = new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () =>
+        img.decode
+          ? img.decode().then(
+              () => resolve({ DotLottie: null, buffer: new ArrayBuffer(0) }),
+              () => resolve({ DotLottie: null, buffer: new ArrayBuffer(0) }),
+            )
+          : resolve({ DotLottie: null, buffer: new ArrayBuffer(0) });
+      img.onerror = () => reject(new Error('greeting image'));
+      img.src = greeting.file;
+    });
+    promise.catch(() => loading.delete(greeting.id));
+    loading.set(greeting.id, promise);
+  }
   if (!promise) {
     promise = Promise.all([
       import('@lottiefiles/dotlottie-web').then((m) => {

@@ -16,7 +16,51 @@ const START_AFTER_MS = 350;
 export default function GreetingMedia({ slot, fallback }) {
   const [claim] = useState(() => claimGreeting(slot));
   if (!claim) return <>{fallback}</>;
+  if (claim.greeting.kind === 'image') return <StillGreeting greeting={claim.greeting} forced={claim.forced} fallback={fallback} />;
   return <Player greeting={claim.greeting} forced={claim.forced} fallback={fallback} />;
+}
+
+/**
+ * A still greeting (a picture, not an animation): the shimmer holds the space, the picture fades in once it has loaded and
+ * decoded, and it stays. Not loaded within the budget: the box folds away and the normal icon takes over (not counted).
+ * @param {{ greeting: import('./greetings.js').Greeting, forced: boolean, fallback: import('react').ReactNode }} props
+ */
+function StillGreeting({ greeting, forced, fallback }) {
+  const [phase, setPhase] = useState(/** @type {'loading' | 'still' | 'gone'} */ ('loading'));
+  useEffect(() => {
+    let cancelled = false;
+    const give = setTimeout(() => setPhase((p) => (p === 'loading' ? 'gone' : p)), LOAD_BUDGET_MS);
+    loadGreeting(greeting).then(
+      () => !cancelled && setPhase((p) => (p === 'loading' ? 'still' : p)),
+      () => !cancelled && setPhase('gone'),
+    );
+    return () => {
+      cancelled = true;
+      clearTimeout(give);
+    };
+  }, [greeting]);
+  // Counted once it is really on screen, not for a failed load.
+  useEffect(() => {
+    if (phase === 'still' && !forced) markGreeted(greeting.id);
+  }, [phase, forced, greeting.id]);
+  return (
+    <>
+      <div className={`greet${phase === 'gone' ? ' gone' : ''}`} data-phase={phase} aria-hidden={phase === 'gone' || undefined}>
+        <div className="greet-fold">
+          <div
+            className="greet-box"
+            role="img"
+            aria-label={greeting.label}
+            style={{ aspectRatio: `${greeting.width} / ${greeting.height}` }}
+          >
+            <div className={`greet-shimmer${phase === 'still' ? ' off' : ''}`} />
+            <img className="greet-image" src={greeting.file} alt="" data-shown={phase === 'still' || undefined} draggable={false} />
+          </div>
+        </div>
+      </div>
+      {phase === 'gone' && <div className="greet-fallback">{fallback}</div>}
+    </>
+  );
 }
 
 /** @param {{ greeting: import('./greetings.js').Greeting, forced: boolean, fallback: import('react').ReactNode }} props */
