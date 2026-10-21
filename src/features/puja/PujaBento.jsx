@@ -79,11 +79,6 @@ export default function PujaBento({ puja }) {
             title="Getting there"
             preview={
               <>
-                <span className="bp-dots">
-                  {stations[0].station.lines.map((line) => (
-                    <Dot key={line} tone={line} />
-                  ))}
-                </span>
                 <b className="bp-big num">{`${walkMinutes(stations[0].distance)} min walk`}</b>
                 <span className="bp-sub">{`${stations[0].station.name}${stations.length > 1 ? ` and ${stations.length - 1} more` : ''}`}</span>
               </>

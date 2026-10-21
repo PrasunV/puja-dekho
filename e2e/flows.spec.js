@@ -128,20 +128,24 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   const link = page.getByRole('link', { name: /Get directions/ });
   await expect(link).toHaveAttribute('href', /google\.com\/maps\/dir\/.*walking|travelmode=walking/);
   await expect(link).toHaveAttribute('rel', /noopener/);
+  await expect(page.locator('.soon-tip')).toHaveCount(0);
   await page.getByRole('button', { name: /^Save/ }).click();
-  await expect(page.locator('.toast')).toContainText(/coming soon/i);
+  await expect(page.locator('.soon-tip')).toHaveText('Coming soon'); // a small bubble, not a toast
+  await expect(page.locator('.toast')).toHaveCount(0);
+  await expect(page.locator('.soon-tip')).toHaveCount(0, { timeout: 4000 }); // gone after about 2 s
   await expect(page.getByText(/Routes may differ/)).toHaveCount(0); // Google Maps shows the real route
   await expect(page.locator('.actions-hint')).toHaveText('Opens in Google Maps'); // the first time only
-  // Both buttons are 48 px tall (the Android touch-target norm), share one weight, and Save carries the heart and a two-line "Coming soon".
+  // Both buttons are exactly 48 px tall (8pt grid, the Android touch-target norm), Get directions takes 60% of the row, and its label is one line.
   const [primary, save] = await Promise.all([link.boundingBox(), page.getByRole('button', { name: /^Save/ }).boundingBox()]);
-  expect(primary?.height).toBeGreaterThanOrEqual(47.5);
-  expect(save?.height).toBeLessThanOrEqual(48.5);
+  expect(primary?.height).toBeCloseTo(48, 0);
+  expect(save?.height).toBeCloseTo(48, 0);
+  expect(primary.width / (primary.width + save.width)).toBeGreaterThan(0.59);
+  expect(primary.width / (primary.width + save.width)).toBeLessThan(0.61);
+  expect(Math.abs(primary.y - save.y)).toBeLessThan(1); // one row
+  expect(await link.evaluate((e) => e.getBoundingClientRect().height < 56 && getComputedStyle(e).whiteSpace === 'nowrap')).toBe(true);
   const weights = await page.locator('.actions .btn').evaluateAll((els) => els.map((e) => getComputedStyle(e).fontWeight));
   expect(new Set(weights)).toEqual(new Set(['500']));
   await expect(page.locator('.actions .btn.save .save-heart')).toHaveCount(1);
-  const soon = await page.locator('.soon').boundingBox();
-  expect(soon?.height).toBeGreaterThan(18); // two lines
-  expect(await page.locator('.soon').evaluate((e) => getComputedStyle(e).fontWeight)).toBe('350');
   // No rule above the footer: the list fades out instead.
   expect(await page.locator('.panel-foot').evaluate((e) => getComputedStyle(e).borderTopWidth)).toBe('0px');
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
 import { Icon } from '../../components/ui/Icon.jsx';
 import { TypicalCrowd } from '../../components/ui/Crowd.jsx';
@@ -51,10 +51,17 @@ export function PujaFields({ puja, trail }) {
  * @param {{ puja: import('../../lib/types.js').Puja }} props
  */
 export function PujaActions({ puja }) {
-  const { openDirections, toast } = useApp();
+  const { openDirections } = useApp();
   // "Opens in Google Maps" is shown until someone has used Get directions once; after that it is gone for good.
   // It is read once, so it does not vanish (and shift the buttons) in the middle of the tap.
   const [hint] = useState(() => !storage.get('mapsHint', false));
+  // Save is not built yet: tapping it shows a small "Coming soon" bubble above the button for two seconds.
+  const [soon, setSoon] = useState(false);
+  useEffect(() => {
+    if (!soon) return undefined;
+    const timer = setTimeout(() => setSoon(false), 2000);
+    return () => clearTimeout(timer);
+  }, [soon]);
   // SHARE IS PARKED for now (07:12, 21 Oct): kept here, commented out, to bring back later. Also restore the pujaUrl import above,
   // the share button below, the Share e2e test (flows.spec.js, now test.skip) and its `.btn.share` style.
   // Share hands the puja's own link to the phone's share sheet; where there is none, it copies the link.
@@ -100,7 +107,7 @@ export function PujaActions({ puja }) {
           </svg>
         </button>
         */}
-        <button type="button" className="btn save" onClick={() => toast('Saving is coming soon')}>
+        <button type="button" className="btn save" aria-describedby={soon ? 'save-soon' : undefined} onClick={() => setSoon(true)}>
           <svg className="save-heart" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path
               d="M12.62 20.81C12.28 20.93 11.72 20.93 11.38 20.81C8.48 19.82 2 15.69 2 8.69C2 5.6 4.49 3.1 7.56 3.1C9.38 3.1 10.99 3.98 12 5.34C13.01 3.98 14.63 3.1 16.44 3.1C19.51 3.1 22 5.6 22 8.69C22 15.69 15.52 19.82 12.62 20.81Z"
@@ -111,10 +118,11 @@ export function PujaActions({ puja }) {
             />
           </svg>
           Save
-          <span className="soon">
-            <span>Coming</span>
-            <span>soon</span>
-          </span>
+          {soon && (
+            <span id="save-soon" className="soon-tip" role="status">
+              Coming soon
+            </span>
+          )}
         </button>
       </div>
       {hint && <div className="actions-hint">Opens in Google Maps</div>}

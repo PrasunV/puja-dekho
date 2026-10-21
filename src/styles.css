@@ -1973,18 +1973,17 @@ select {
 }
 .actions-row {
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 .actions .btn {
-  min-height: 48px;
-  height: auto;
-  padding: 6px 14px;
-  gap: 7px;
+  height: 48px; /* both buttons: one fixed height on the 8pt grid */
+  padding: 0 16px;
+  gap: 8px;
   font-size: 15px;
   font-weight: 500;
   line-height: 1.3;
   text-align: center;
-  white-space: normal;
+  white-space: nowrap; /* "Get directions" is always one line */
 }
 .actions-hint {
   color: var(--muted);
@@ -1994,11 +1993,14 @@ select {
   text-align: center;
 }
 .actions .btn.grow {
-  flex: 1 1 9em;
-  min-width: 0;
+  /* 60% of the row (3 : 2). min-width keeps the words whole; only if both cannot fit at huge text does Save drop to its own line */
+  flex: 3 1 calc(60% - 5px);
+  min-width: max-content;
 }
 .actions .btn.save {
-  flex: 1 1 auto;
+  position: relative;
+  flex: 2 1 calc(40% - 5px);
+  min-width: max-content;
   background: color-mix(in srgb, var(--ink) 8%, var(--bg));
   border-color: transparent;
 }
@@ -2008,14 +2010,41 @@ select {
 .save-heart path {
   stroke: currentColor;
 }
-.soon {
-  display: flex;
-  flex-direction: column;
-  font-size: 11px;
-  font-weight: 350;
-  line-height: 12px;
-  color: var(--muted);
-  text-align: left;
+.soon-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: soon-in 0.16s ease-out;
+}
+.soon-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-top-color: var(--ink);
+}
+@keyframes soon-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .soon-tip {
+    animation: none;
+  }
 }
 .near-head {
   display: flex;
@@ -3134,10 +3163,10 @@ select {
 .bento-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
   min-height: 56px;
-  padding: 8px 16px;
+  padding: 8px 12px 8px 16px; /* the arrow sits a little closer to the edge so titles get more room */
   border: 0;
   background: none;
   color: var(--tile-head);
@@ -3147,6 +3176,10 @@ select {
 .bento-head .ic {
   flex: none;
 }
+.bento-head > .ic {
+  width: 16px; /* the left icon: 75% of the old 20px, on the 4/8pt grid; the arrow on the right stays 20px */
+  height: 16px;
+}
 .bento-title {
   flex: 1;
   min-width: 0;
@@ -3154,7 +3187,9 @@ select {
   font-size: 16px;
   font-weight: 650;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  white-space: nowrap; /* one line: cut with an ellipsis, never broken mid-word */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bento-chev {
   flex: none;
@@ -3181,17 +3216,26 @@ select {
   margin-bottom: 2px;
 }
 .bp-big {
+  max-width: 100%;
   color: var(--tile-head);
   font-size: 20px;
   font-weight: 700;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .bp-sub {
+  max-width: 100%;
   color: var(--tile-body);
   font-size: 14px;
   line-height: 1.35;
   overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2; /* two lines, then an ellipsis; the full text is in the open tile */
+  line-clamp: 2;
+  overflow: hidden;
 }
 .bento-clip {
   overflow: hidden;

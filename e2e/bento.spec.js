@@ -29,6 +29,37 @@ test.describe('jubilee rule', () => {
 });
 
 test.describe('detail sheet: facts strip and bento cards', () => {
+  test('tile icons are 16 px, no blue dot in the metro tile, titles stay on one line, icon and arrow stay put', async ({ page }) => {
+    for (const [w, scale] of [[390, 1], [320, 1.5]]) {
+      await page.setViewportSize({ width: w, height: 740 });
+      await openDetail(page, 'S001');
+      if (scale !== 1) {
+        await page.evaluate((f) => {
+          for (const sheet of document.styleSheets) for (const r of sheet.cssRules) if (r.style && r.style.fontSize?.endsWith('px')) r.style.fontSize = `${parseFloat(r.style.fontSize) * f}px`;
+        }, scale);
+      }
+      await expect(page.locator('#card-metro .bento-preview .dot')).toHaveCount(0);
+      const geo = await page.evaluate(() =>
+        ['metro', 'heritage'].map((id) => {
+          const card = document.querySelector(`#card-${id}`).getBoundingClientRect();
+          const icon = document.querySelector(`#card-${id} .bento-head svg`).getBoundingClientRect();
+          const chev = document.querySelector(`#card-${id} .bento-chev`).getBoundingClientRect();
+          const title = document.querySelector(`#card-${id} .bento-title`);
+          const cs = getComputedStyle(title);
+          return { iw: icon.width, iLeft: icon.left - card.left, cRight: card.right - chev.right, lines: title.getBoundingClientRect().height / parseFloat(cs.lineHeight), nowrap: cs.whiteSpace, ell: cs.textOverflow };
+        }),
+      );
+      for (const g of geo) {
+        expect(g.iw).toBeCloseTo(16, 0);
+        expect(g.iLeft).toBeCloseTo(17, 0); // fixed on the left (16 px padding plus the 1 px border)
+        expect(g.cRight).toBeCloseTo(13, 0); // arrow fixed on the right (12 px padding plus the 1 px border)
+        expect(g.lines).toBeLessThan(1.1); // one line, never "Heritag / e"
+        expect(g.nowrap).toBe('nowrap');
+        expect(g.ell).toBe('ellipsis');
+      }
+    }
+  });
+
   test('a puja with a since-year shows the facts strip, Getting there, Heritage and Address', async ({ page }) => {
     await openDetail(page, 'S001'); // since 1938
     await expect(page.locator('.facts-strip')).not.toContainText('All day'); // the always-true "Open: All day" cell is gone

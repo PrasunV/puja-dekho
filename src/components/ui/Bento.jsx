@@ -21,7 +21,7 @@ export function BentoCard({ id, icon, title, preview, open, onToggle, full = fal
       data-full={full || undefined}
     >
       <button type="button" className="bento-head" aria-expanded={open} aria-controls={`bento-${id}`} onClick={onToggle}>
-        <Icon name={icon} size={22} />
+        <Icon name={icon} size={16} />
         <span className="bento-title">{title}</span>
         <span className="bento-chev" data-open={open}>
           <Icon name="chevron" size={20} />

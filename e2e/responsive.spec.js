@@ -52,7 +52,7 @@ async function problems(page) {
       if (cs.visibility === 'hidden' || cs.display === 'none' || el.closest('[inert], [hidden], .maplibregl-map, .peek-line, .preview-controls, [aria-hidden="true"]')) continue;
       const clips = cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
       const scroller = cs.overflowX === 'auto' || cs.overflowX === 'scroll' || cs.overflowY === 'auto' || cs.overflowY === 'scroll';
-      const ellipsis = cs.textOverflow === 'ellipsis';
+      const ellipsis = cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none'); // cut on purpose, with an ellipsis
       if (hasOwnText(el) && clips && !scroller && !ellipsis) {
         if (el.scrollWidth > el.clientWidth + 1) out.push(`text clipped sideways: ${label(el)}`);
         if (el.scrollHeight > el.clientHeight + 1) out.push(`text clipped vertically: ${label(el)}`);
