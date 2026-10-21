@@ -28,8 +28,8 @@ export default function Explainer({ onAllow, onLater }) {
               </span>
             }
           />
-          <h2 id="ex-title">See pujas around you</h2>
-          <p>Allow your location to see the pujas close to where you are standing. It stays on your phone and is never sent anywhere.</p>
+          <h2 id="ex-title">Shubho Bijoya!</h2>
+          <p>Wishing you joy and sweet moments this Bijoya. Turn on your location to see the pujas near you and the pandals people visited in 2026. Your location stays on your phone.</p>
         </div>
         <div className="sheet-foot stacked">
           {/* eslint-disable-next-line jsx-a11y/no-autofocus -- a modal dialog moves focus to its main action */}
