@@ -3409,6 +3409,215 @@ select {
 .all-head h3,
 .sheet-sec h3,
 .pop h3,
-.line-head h3 {
+.line-head h3,
+.bhasan-h {
   color: var(--label);
+}
+
+/* Bhasan specials: the ghat card and the Live / Replay row, above "Must-visit pujas" */
+.bhasan {
+  display: grid;
+  gap: 12px;
+  margin: 4px 0 8px;
+}
+.ghat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 88px;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  box-shadow: var(--shadow-sm);
+}
+.ghat-ic {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.ghat-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.ghat-name {
+  font-size: 16px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  overflow: hidden;
+}
+.ghat-area {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ghat-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 4px;
+}
+.ghat-dist {
+  color: var(--muted);
+  font-size: 13px;
+}
+.ghat-go {
+  flex: none;
+  display: grid;
+  color: var(--muted);
+  transform: rotate(-90deg);
+}
+.pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bhasan-pulse 1.8s ease-out infinite;
+}
+@keyframes bhasan-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot {
+    animation: none;
+  }
+}
+.vid-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.vid-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+.vid-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 64px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5a1a22, #8a2a1a);
+  color: #fff;
+}
+.vid-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.vid-play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.55);
+}
+.live-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #d93025;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+.vid-text {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  font-family: var(--font), 'Noto Sans Bengali', 'Nirmala UI', 'Vrinda', sans-serif;
+}
+.vid-kind {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.vid-kind b {
+  color: var(--ink);
+}
+.vid-title {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.ghat-note {
+  margin: 0;
+  color: var(--ink);
+  font-size: 15px;
+}
+.ghat-pin {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 3px var(--accent), var(--shadow-sm);
+  cursor: pointer;
+}
+
+.bhasan-h {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+/* Same colours as the icon beside it: soft orange fill, orange ring. */
+.ghat-vip {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid var(--accent);
 }

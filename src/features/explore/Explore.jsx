@@ -5,6 +5,8 @@ import { formatBand } from '../../lib/geo.js';
 import { zoneName } from '../../hooks/usePujaFilters.js';
 import { headline } from '../../lib/headline.js';
 import PopularStrip from './PopularStrip.jsx';
+import BhasanSection from '../bhasan/BhasanSection.jsx';
+import { useBhasan } from '../bhasan/useBhasan.js';
 import SortMenu from './SortMenu.jsx';
 import PujaCard from './PujaCard.jsx';
 
@@ -56,9 +58,12 @@ function LocationBanner() {
 
 /** The Browse state: header, banner, Popular strip and the puja list. */
 export default function Explore() {
-  const { filters, position, setStation, locationStatus } = useApp();
+  const { filters, position, setStation, locationStatus, station } = useApp();
   const { results, nearCount, radius, radiusActive, nextRadius, filterCount, appliedText, visibleCount, showMore } = filters;
   const title = useBrowseHeadline();
+  // While Bhasan is on, the plain list (no filters, no area) leads with it instead of the puja count.
+  const bhasan = useBhasan();
+  const bhasanLead = bhasan.active && !filters.areaCentre && filters.filterCount === 0 && filters.zones.length === 0 && !station;
   const clearFilters = () => {
     filters.clearOthers();
     setStation(null);
@@ -74,8 +79,8 @@ export default function Explore() {
     <div className="stack">
       <div className="head" data-sheet-head>
         <div>
-          <h2>{title}</h2>
-          {appliedText && <div className="sub">{appliedText}</div>}
+          <h2>{bhasanLead ? 'Bijoya Bhasan happening…' : title}</h2>
+          {bhasanLead ? <div className="sub">Visit ghats near you</div> : appliedText && <div className="sub">{appliedText}</div>}
         </div>
         <div className="head-actions">
           {filterCount > 0 && (
@@ -96,6 +101,7 @@ export default function Explore() {
           )}
         </div>
       )}
+      {!areaCentre && <BhasanSection />}
       {!areaCentre && <PopularStrip />}
       {areaCentre && (
         <section aria-label="Pujas in this area" data-testid="area-section">

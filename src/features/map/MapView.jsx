@@ -12,6 +12,7 @@ import { makePin } from './pin.js';
  * @typedef {object} MapHandle  Imperative camera controls for the parent
  * @property {(puja: import('../../lib/types.js').Puja) => void} flyToPuja
  * @property {(stationId: string) => void} flyToStation
+ * @property {(point: { lat: number, lng: number }) => void} flyToPoint   Fly to any spot (the Bhasan ghat)
  * @property {(position?: import('../../lib/types.js').Position) => void} recenter   Fly back to the person from anywhere, zoomed in
  * @property {(position: import('../../lib/types.js').Position) => void} autoCenter  Same, but only if the person has not moved the map yet
  * @property {(points: [number, number][]) => void} fitPoints  `[lat, lng]` pairs
@@ -29,6 +30,9 @@ import { makePin } from './pin.js';
  * @property {string[]} saved
  * @property {Record<string, boolean>} layers
  * @property {string | null} selectedId
+ * @property {{ name: string, lat: number, lng: number } | null} [ghat]   The Bhasan ghat, marked while the special is on
+ * @property {boolean} [ghatSelected]   Its details are open: it gets the red pin and name
+ * @property {() => void} [onGhat]
  * @property {import('../../lib/types.js').Position | null} position
  * @property {[number, number][]} tourPoints                       `[lat, lng]` pairs
  * @property {boolean} roadMode
@@ -267,6 +271,9 @@ const MapView = forwardRef(
       saved,
       layers,
       selectedId,
+      ghat = null,
+      ghatSelected = false,
+      onGhat,
       position,
       tourPoints,
       roadMode,
@@ -306,6 +313,7 @@ const MapView = forwardRef(
       roadMode,
       onRoadPick,
       onPuja,
+      onGhat,
       onStation,
       onVote,
       onCentredChange,
@@ -322,6 +330,7 @@ const MapView = forwardRef(
         roadMode,
         onRoadPick,
         onPuja,
+        onGhat,
         onStation,
         onVote,
         onCentredChange,
@@ -486,6 +495,27 @@ const MapView = forwardRef(
         marker.remove();
       };
     }, [ready, selectedId, data]);
+
+    // The Bhasan ghat: an orange-ringed marker that opens its details, or the red pin with its name once opened.
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!ready || !map || !ghat) return undefined;
+      let inner;
+      if (ghatSelected) inner = makePin(ghat.name);
+      else {
+        inner = el('button', { class: 'ghat-pin', type: 'button', 'aria-label': `${ghat.name}, bhasan today. Open details` });
+        inner.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+        inner.addEventListener('click', (event) => {
+          event.stopPropagation(); // a tap on the marker must not reach the map
+          callbacks.current.onGhat?.();
+        });
+      }
+      const marker = new maplibregl.Marker({ element: holder(inner), anchor: ghatSelected ? 'bottom' : 'center' }).setLngLat([ghat.lng, ghat.lat]).addTo(map);
+      marker.getElement().classList.add('sel-pin-holder');
+      return () => {
+        marker.remove();
+      };
+    }, [ready, ghat, ghatSelected]);
 
     // Metro lines and stations appear only for the lines switched on (and for stations the Metro list highlights).
     useEffect(() => {
@@ -683,6 +713,17 @@ const MapView = forwardRef(
             center: [puja.lo, puja.la],
             zoom: Math.max(map.getZoom(), toMapZoom(17)),
             duration: 500,
+            offset: visibleOffset(callbacks.current.desktop),
+          });
+        },
+        flyToPoint(point) {
+          const map = mapRef.current;
+          if (!map) return;
+          callbacks.current.onFollowStop();
+          map.flyTo({
+            center: [point.lng, point.lat],
+            zoom: Math.max(map.getZoom(), toMapZoom(16)),
+            duration: 600,
             offset: visibleOffset(callbacks.current.desktop),
           });
         },

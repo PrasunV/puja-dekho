@@ -31,6 +31,9 @@ import Toasts from './features/layout/Toasts.jsx';
 import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
 import NearPuja from './features/puja/NearPuja.jsx';
 import PujaPage, { PujaActions } from './features/puja/PujaPage.jsx';
+import GhatPage, { GhatActions } from './features/bhasan/GhatPage.jsx';
+import { BHASAN } from './data/bhasan.js';
+import { useBhasan } from './features/bhasan/useBhasan.js';
 
 // Start fetching the greeting animation straight away, if this open gets one.
 warmGreeting();
@@ -198,6 +201,15 @@ function Loaded({ data }) {
   const station = nav.stationId ? (data.stById.get(nav.stationId) ?? null) : null;
   const filters = usePujaFilters({ data, position, station, curated: far });
   const near = useNearPuja(data.pujas, position);
+  const bhasan = useBhasan();
+  // While the Bhasan card is up, the list opens at half so the ghat and the videos are seen without a drag.
+  useEffect(() => {
+    // Wait until we know where the person is: a visitor far from Kolkata keeps the 35% opening.
+    const settled = (locationStatus === 'on' && !far) || locationStatus === 'denied';
+    if (desktop || !bhasan.active || !settled) return undefined;
+    const frame = requestAnimationFrame(() => setSheet((s) => (s === 'initial' ? 'half' : s)));
+    return () => cancelAnimationFrame(frame);
+  }, [desktop, bhasan.active, far, locationStatus]);
   /** "Show Kolkata" for people outside the city: the cluster alone, without the far-away dot. */
   const showKolkata = useCallback(() => {
     mapRef.current?.fitCity(data.pujas.map((puja) => /** @type {[number, number]} */ ([puja.la, puja.lo])));
@@ -206,9 +218,11 @@ function Loaded({ data }) {
   // The latest of the two quick filters wins the sheet: choosing an area shows its list, choosing a line shows the line.
   const [zoneFocus, setZoneFocus] = useState(false);
   const view = /** @type {import('./context/AppContext.js').AppValue['view']} */ (
-    nav.pujaId
-      ? 'puja'
-      : nav.stationId
+    nav.ghat
+      ? 'ghat'
+      : nav.pujaId
+        ? 'puja'
+        : nav.stationId
         ? 'station'
         : nav.metro
           ? 'metro'
@@ -237,7 +251,7 @@ function Loaded({ data }) {
 
   // Opening something from the peek brings the sheet up to the middle.
   useEffect(() => {
-    if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro'))
+    if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro' || view === 'ghat'))
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to a navigation change; there is no event to hang it on
       setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
   }, [view, desktop]);
@@ -310,7 +324,7 @@ function Loaded({ data }) {
   // Navigation.
   const openPuja = useCallback(
     (id) => {
-      go({ pujaId: id });
+      go({ pujaId: id, ghat: false });
       if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
       const puja = data.byId.get(id);
       if (puja) setTimeout(() => mapRef.current?.flyToPuja(puja), 30);
@@ -319,17 +333,22 @@ function Loaded({ data }) {
   );
   const openStation = useCallback(
     (id) => {
-      go({ stationId: id, pujaId: null, metro: false });
+      go({ stationId: id, pujaId: null, metro: false, ghat: false });
       if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
       setTimeout(() => mapRef.current?.flyToStation(id), 30);
     },
     [desktop, go],
   );
-  const setStation = useCallback((id) => go({ stationId: id, pujaId: null, metro: false }), [go]);
+  const openGhat = useCallback(() => {
+    go({ ghat: true, pujaId: null, stationId: null, metro: false });
+    if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
+    setTimeout(() => mapRef.current?.flyToPoint(BHASAN.ghat), 30);
+  }, [desktop, go]);
+  const setStation = useCallback((id) => go({ stationId: id, pujaId: null, metro: false, ghat: false }), [go]);
   const setLines = useCallback(
     (lines) => {
       if (lines.length) setZoneFocus(false);
-      go({ lines, stationId: null, pujaId: null, metro: false }, { replace: lines.length > 0 && nav.lines.length > 0 });
+      go({ lines, stationId: null, pujaId: null, metro: false, ghat: false }, { replace: lines.length > 0 && nav.lines.length > 0 });
       // Frame the whole selected line(s): a line like Green can lie entirely outside the current view.
       const byId = new Map(data.stations.map((stop) => [stop.id, stop]));
       const points = lines.flatMap((line) =>
@@ -353,9 +372,9 @@ function Loaded({ data }) {
         setSheet((current) => (current === 'peek' ? 'initial' : current));
       }
       // Whatever was open (a puja, a station, Metro nearby) closes: the sheet now shows the chosen areas.
-      if (nav.pujaId || nav.stationId || nav.metro) go({ pujaId: null, stationId: null, metro: false }, { replace: true });
+      if (nav.pujaId || nav.stationId || nav.metro || nav.ghat) go({ pujaId: null, stationId: null, metro: false, ghat: false }, { replace: true });
     },
-    [filters, nav.pujaId, nav.stationId, nav.metro, go],
+    [filters, nav.pujaId, nav.stationId, nav.metro, nav.ghat, go],
   );
 
   const highlightedStations = useMemo(() => {
@@ -370,7 +389,7 @@ function Loaded({ data }) {
 
   /** The Metro button: nearest stations with walking distance in the sheet. */
   const openMetro = useCallback(() => {
-    go({ metro: true, pujaId: null, stationId: null });
+    go({ metro: true, pujaId: null, stationId: null, ghat: false });
     if (!desktop) setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
     const fit = (point) => {
       const nearest = data.stations
@@ -436,8 +455,8 @@ function Loaded({ data }) {
 
   // Test-only hook, enabled by the e2e suite via `window.__PD_E2E__`.
   useEffect(() => {
-    if (window.__PD_E2E__) window.__pd = { data, openPuja, openStation, openMetro, near };
-  }, [data, openPuja, openStation, openMetro, near]);
+    if (window.__PD_E2E__) window.__pd = { data, openPuja, openStation, openMetro, openGhat, near };
+  }, [data, openPuja, openStation, openMetro, openGhat, near]);
 
   const context = useMemo(
     () => ({
@@ -460,6 +479,7 @@ function Loaded({ data }) {
       toggleZone,
       openPuja,
       openStation,
+      openGhat,
       back,
       openDirections,
       route,
@@ -487,6 +507,7 @@ function Loaded({ data }) {
       toggleZone,
       openPuja,
       openStation,
+      openGhat,
       back,
       openDirections,
       route,
@@ -498,7 +519,10 @@ function Loaded({ data }) {
   let screen = <Explore />;
   /** @type {React.ReactNode} */
   let footer = null;
-  if (view === 'puja' && nav.pujaId) {
+  if (view === 'ghat') {
+    screen = <GhatPage />;
+    footer = <GhatActions />;
+  } else if (view === 'puja' && nav.pujaId) {
     const puja = data.byId.get(nav.pujaId);
     screen = <PujaPage />;
     footer = puja ? <PujaActions puja={puja} /> : null;
@@ -540,6 +564,9 @@ function Loaded({ data }) {
                   saved={NONE}
                   layers={MAP_LAYERS}
                   selectedId={selectedId}
+                  ghat={bhasan.active ? BHASAN.ghat : null}
+                  ghatSelected={view === 'ghat'}
+                  onGhat={openGhat}
                   position={rawPosition}
                   tourPoints={NONE}
                   roadMode={false}

@@ -1186,12 +1186,14 @@ test.describe('sort menu, loading and accessibility', () => {
 
   test('touch targets are at least 48 px, and the peek content is inert when the list is open', async ({ page }) => {
     await openApp(page);
-    await page.locator('.grab').click();
-    await page.locator('.grab').click();
+    // The list opens at half while the Bhasan card is up, so step the handle until it does.
+    for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1) await page.locator('.grab').click();
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
     const filters = await page.getByRole('button', { name: /Filters/ }).first().boundingBox();
     expect(filters.height).toBeGreaterThanOrEqual(47.5);
     // Sort looks 40 px tall but its tap area is 48: a tap 3.5 px above and below the pill still lands on it.
     const sort = page.getByRole('button', { name: /Sort:/ });
+    await sort.scrollIntoViewIfNeeded(); // the Bhasan cards push it below the fold
     const sb = await sort.boundingBox();
     expect(sb.height).toBeGreaterThanOrEqual(39.5);
     expect(sb.height).toBeLessThan(44);

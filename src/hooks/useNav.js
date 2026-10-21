@@ -7,9 +7,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * @property {string | null} stationId  Results for a metro station are open
  * @property {boolean} metro   The "Metro nearby" list is open
  * @property {string[]} lines   Metro lines switched on (`blue`, `green`)
+ * @property {boolean} ghat   The Bhasan ghat's details are open
  */
 
-export const HOME = Object.freeze({ pujaId: null, stationId: null, metro: false, lines: /** @type {string[]} */ ([]) });
+export const HOME = Object.freeze({ pujaId: null, stationId: null, metro: false, lines: /** @type {string[]} */ ([]), ghat: false });
 
 /** The address of a puja's page: `/?puja=S001`. This is what Share copies and what a shared link opens. */
 export const pujaUrl = (/** @type {string} */ id) => `${location.pathname}?puja=${encodeURIComponent(id)}`;
@@ -66,7 +67,7 @@ export function useNav() {
     if (
       history.state?.pd &&
       history.length > 1 &&
-      (navRef.current.pujaId || navRef.current.stationId || navRef.current.metro || navRef.current.lines.length)
+      (navRef.current.pujaId || navRef.current.stationId || navRef.current.metro || navRef.current.lines.length || navRef.current.ghat)
     ) {
       history.back();
     } else go(HOME, { replace: true });
