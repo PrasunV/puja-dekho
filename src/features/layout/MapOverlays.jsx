@@ -230,8 +230,8 @@ const holdMs = () => Number(/** @type {any} */ (globalThis).__PD_PILL_HOLD_MS__)
  * Small pill at the top-left corner of the list sheet. It opens on how many people have viewed the app, rolls over
  * to how many are exploring right now (a green dot appears), then rolls back, and so on. It only says "exploring
  * now" while somebody else has used the app in the last 2 hours, so a quiet app never claims to be busy; otherwise
- * it stays on "viewed". The pill eases to the width of its text. Always on screen: it rides above the sheet, and
- * sits in the sheet's own corner when the sheet is full height.
+ * it stays on "viewed". The pill eases to the width of its text. It rides above the sheet and fades away as the sheet
+ * opens to full height (BottomSheet.jsx sets its opacity); at full it is hidden.
  * @param {{ visits: number | null, live: { count: number, recent: number } | null, bottom: string | number, full: boolean }} props
  */
 export function ViewCount({ visits, live, bottom, full }) {
@@ -258,7 +258,7 @@ export function ViewCount({ visits, live, bottom, full }) {
   const state = showLive ? 'exploring now' : 'viewed';
   const number = count.toLocaleString('en-IN');
   return (
-    <div className={`view-pill${full ? ' on-sheet' : ''}`} style={{ bottom }} role="img" aria-label={`${number} ${noun} ${state}`}>
+    <div className="view-pill" aria-hidden={full || undefined} style={{ bottom }} role="img" aria-label={`${number} ${noun} ${state}`}>
       <span className="view-icon" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 256 256" fill="currentColor">
           <path d={USERS_PATH} />

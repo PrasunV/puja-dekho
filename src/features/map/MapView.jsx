@@ -72,7 +72,7 @@ const panelHeight = () => document.querySelector('.panel')?.getBoundingClientRec
 const sheetTargetHeight = () => {
   const panel = /** @type {HTMLElement | null} */ (document.querySelector('.panel'));
   if (!panel) return 300;
-  const share = { peek: 0.12, initial: 0.35, half: 0.57, full: 0.85 }[panel.dataset.sheet ?? 'half'] ?? 0.57;
+  const share = { peek: 0.12, initial: 0.35, half: 0.57, full: 0.93 }[panel.dataset.sheet ?? 'half'] ?? 0.57;
   const parent = panel.offsetParent ?? panel.parentElement;
   return parent ? parent.clientHeight * share : panel.getBoundingClientRect().height;
 };

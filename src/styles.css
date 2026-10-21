@@ -370,7 +370,7 @@ a {
   height: 57%;
 }
 .panel[data-sheet='full'] {
-  height: 85%;
+  height: 93%;
 }
 .grab {
   flex: none;
@@ -2498,11 +2498,6 @@ select {
     display: none;
   }
 }
-.view-pill.on-sheet {
-  top: 10px;
-  z-index: 1100;
-  box-shadow: none;
-}
 @media (min-width: 900px) {
   .view-pill {
     left: calc(var(--side) + 12px);
@@ -2519,13 +2514,15 @@ select {
 .panel-foot {
   touch-action: none;
 }
-/* The list scrolls only when the sheet is fully open; below that a vertical drag moves the sheet. */
+/* The list scrolls at every height, by finger too. The handle and the title block are the sheet's own grips: a drag
+   there moves the sheet. A drag down on a list that is already at its top also lowers the sheet (BottomSheet.jsx). */
 @media (max-width: 899px) {
-  /* The list scrolls at 35% and 57% too (wheel, keyboard, assistive tech). A finger's vertical drag still belongs to the
-     sheet first (it rises, then the list scrolls), so native touch panning is off there; sideways swipes stay native. */
   .panel:not([data-sheet='full']) .panel-body {
     overflow-y: auto;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
+  }
+  .panel [data-sheet-head] {
+    touch-action: none;
   }
 }
 /* The peek line sits over the top of the list and fades out as the sheet rises; the list fades in under it. */
@@ -2548,6 +2545,7 @@ select {
 }
 /* Map buttons ride on the sheet's top edge and fade away as it opens to full height (BottomSheet.jsx sets their opacity). */
 .stage[data-sheet-full] .map-tools,
+.stage[data-sheet-full] .view-pill,
 .stage[data-sheet-full] .show-kolkata {
   visibility: hidden;
   pointer-events: none;

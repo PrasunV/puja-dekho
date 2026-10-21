@@ -14,7 +14,7 @@ test('opens at the peek: header says how many pujas are near, no search, no sort
   await expect(page.locator('.made-with')).toContainText('made with love');
 });
 
-test('sheet has four heights: peek 12%, initial 35%, half 57%, full 85%', async ({ page }) => {
+test('sheet has four heights: peek 12%, initial 35%, half 57%, full 93%', async ({ page }) => {
   await openApp(page);
   const stage = (await page.locator('.stage').boundingBox()).height;
   const heightOf = async () => (await page.locator('.panel').boundingBox()).height;
@@ -29,7 +29,7 @@ test('sheet has four heights: peek 12%, initial 35%, half 57%, full 85%', async 
   await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
   await expect.poll(heightOf).toBeGreaterThan(stage * 0.8);
-  await expect.poll(async () => Math.abs((await heightOf()) - stage * 0.85)).toBeLessThan(2);
+  await expect.poll(async () => Math.abs((await heightOf()) - stage * 0.93)).toBeLessThan(2);
 });
 
 test('the list scrolls at 35% (wheel and keyboard), not only when the sheet is full', async ({ page }) => {
@@ -865,7 +865,7 @@ test.describe('people viewed / exploring now pill', () => {
     await expect(page.locator('.od-cell:not(.off)')).toHaveCount(4);
   });
 
-  test('stays on screen at every sheet height while it rolls', async ({ page }) => {
+  test('stays on screen at every sheet height except full, where it is hidden, while it rolls', async ({ page }) => {
     await visits(page, { count: 15 });
     await live(page, { count: 8, recent: 3 });
     await openApp(page);
@@ -880,8 +880,7 @@ test.describe('people viewed / exploring now pill', () => {
     await expect.poll(inside).toBe(true);
     await page.locator('.grab').click(); // full
     await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
-    await expect(page.locator('.view-pill')).toHaveClass(/on-sheet/);
-    await expect.poll(inside).toBe(true);
+    await expect(page.locator('.view-pill')).toBeHidden(); // at full height the counter is gone
     await expect.poll(() => label(page), { timeout: 10_000 }).toMatch(/exploring now$/);
     await expect.poll(inside).toBe(true);
   });

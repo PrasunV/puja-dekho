@@ -4,8 +4,8 @@ import { startTransition, useEffect, useLayoutEffect, useRef, useState } from 'r
 
 export const SHEET_STATES = /** @type {const} */ (['peek', 'initial', 'half', 'full']);
 
-/** Doc 01: peek 12%, list 35%, detail 57%, full 85% (the top 15% of the map stays in view, so the header and chips stay reachable). */
-const SHARE = { peek: 0.12, initial: 0.35, half: 0.57, full: 0.85 };
+/** Peek 12%, list 35%, detail 57%, full 93% (a full drag up takes the sheet nearly to the top of the map; the header and chips are outside the map, so they stay reachable). */
+const SHARE = { peek: 0.12, initial: 0.35, half: 0.57, full: 0.93 };
 
 /** People who ask for less motion get a short, plain ease instead of whatever motion style is chosen. */
 const REDUCED = { duration: 0.18, ease: /** @type {const} */ ('easeOut') };
@@ -145,7 +145,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
       for (const el of /** @type {HTMLElement[]} */ (Array.from(stage.children))) {
         if (el.classList.contains('map-tools') || el.classList.contains('view-pill') || el.classList.contains('show-kolkata')) {
           el.style.setProperty('--sheet-h', `${h + L.bottom}px`);
-          if (!el.classList.contains('view-pill')) el.style.opacity = String(clamp01(1 - toFull * 2.5));
+          el.style.opacity = String(clamp01(1 - toFull * 2.5));
         }
       }
       // The peek line fades out over the first third of the way to half; the list and footer fade in behind it.
@@ -219,7 +219,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     footArrivals.observe(panel, { childList: true });
 
     /* ---- the gesture ---- */
-    /** @type {null | { x0: number, y0: number, lastY: number, mode: 'undecided' | 'sheet' | 'content' | 'ignore', inBody: boolean, sideways: boolean, raw: number, samples: { t: number, y: number }[] }} */
+    /** @type {null | { x0: number, y0: number, lastY: number, mode: 'undecided' | 'sheet' | 'content' | 'ignore', inBody: boolean, sideways: boolean, zone: boolean, raw: number, samples: { t: number, y: number }[] }} */
     let g = null;
     let lastTouchAt = 0;
     const body = () => bodyRef.current;
@@ -244,6 +244,8 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
         mode: 'undecided',
         inBody: !!(el && body()?.contains(el)),
         sideways: !!horizontalScrollerAt(el),
+        // The list zone: inside the list but not on its title block. A finger there scrolls the list; the handle and the title move the sheet.
+        zone: !!(el && body()?.contains(el) && !el.closest('[data-sheet-head], .grab')),
         raw: 0,
         samples: [{ t, y }],
       };
@@ -315,11 +317,12 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
           return;
         }
         const list = body();
-        const atFull = height.get() >= snaps().full - 1;
-        if (g.inBody && atFull && list && (dy < 0 || list.scrollTop > 0)) {
-          // Fully open and the list has somewhere to go: let it scroll. We step in if it comes back to the top.
+        const scrollable = !!list && list.scrollHeight - list.clientHeight > 1;
+        if (g.zone && scrollable && list && (dy < 0 || list.scrollTop > 0)) {
+          // A finger on the list scrolls the list, at every sheet height. The sheet only steps in when the finger
+          // pulls down and the list is already at its top (that lowers the sheet), or when the list is too short to scroll.
           g.mode = 'content';
-          reportSheetGesture({ what: 'list is scrolling (sheet is full)' });
+          reportSheetGesture({ what: 'list is scrolling' });
           g.lastY = y;
           return;
         }

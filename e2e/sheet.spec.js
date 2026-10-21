@@ -9,7 +9,7 @@ const panelBox = async (page) => await page.locator('.panel').boundingBox();
 const stageHeight = async (page) => (await page.locator('.stage').boundingBox()).height;
 const restingHeight = async (page, share) => {
   const stage = await stageHeight(page);
-  return share === 'full' ? stage * 0.85 : stage * share;
+  return share === 'full' ? stage * 0.93 : stage * share;
 };
 const settledAt = (page, share) =>
   expect.poll(async () => Math.abs((await panelBox(page)).height - (await restingHeight(page, share))), { timeout: 4000 }).toBeLessThan(2);
@@ -65,12 +65,49 @@ test('a short, fast flick up from the peek line opens to the list (35%)', async 
   await settledAt(page, 0.35);
 });
 
-test('a flick from the middle of the list at half jumps straight to full', async ({ page }) => {
+test('a flick up on the title block at half jumps straight to full', async ({ page }) => {
   await openAt(page, 'half');
-  const at = await bodyPoint(page);
+  await page.locator('.panel-body').evaluate((el) => (el.scrollTop = 0));
+  const head = await page.locator('[data-sheet-head]').first().boundingBox();
+  const at = { x: 120, y: head.y + head.height / 2 };
   await swipe(page, at, { x: at.x, y: at.y - 60 }, FLICK);
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
   await settledAt(page, 'full');
+});
+
+for (const state of ['initial', 'half']) {
+  test(`a finger drag up on the list at ${state} scrolls the list and does not raise the sheet`, async ({ page }) => {
+    await openAt(page, 'peek');
+    while ((await sheetState(page)) !== state) await page.locator('.grab').click();
+    await settledAt(page, state === 'initial' ? 0.35 : 0.57);
+    const list = page.locator('.panel-body');
+    await list.evaluate((el) => (el.scrollTop = 0));
+    const card = page.locator('.pcard').first();
+    const box = await card.boundingBox();
+    const at = { x: box.x + 60, y: Math.min(box.y + box.height / 2, (await panelBox(page)).y + 200) };
+    await swipe(page, at, { x: at.x, y: at.y - 120 }, { ms: 400, steps: 16 });
+    await page.waitForTimeout(400);
+    await expect(page.locator('.panel')).toHaveAttribute('data-sheet', state);
+    expect(await list.evaluate((el) => el.scrollTop)).toBeGreaterThan(40);
+    await expect(page.locator('.puja-page, .pp')).toHaveCount(0);
+  });
+}
+
+test('a drag up on the handle raises the sheet even though the list is scrollable', async ({ page }) => {
+  await openAt(page, 'half');
+  const grab = await page.locator('.grab').boundingBox();
+  const at = { x: grab.x + grab.width / 2, y: grab.y + grab.height / 2 };
+  await swipe(page, at, { x: at.x, y: at.y - 70 }, FLICK);
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
+});
+
+test('full is above 92% of the map, and the people counter is gone there', async ({ page }) => {
+  await openAt(page, 'full');
+  const stage = await page.locator('.panel').evaluate((el) => (el.offsetParent ?? el.parentElement).clientHeight);
+  expect((await panelBox(page)).height / stage).toBeGreaterThan(0.92);
+  await expect(page.locator('.view-pill')).toBeHidden();
+  await page.locator('.grab').click(); // back to peek
+  await expect(page.locator('.view-pill')).toBeVisible();
 });
 
 test('a hard flick from the peek goes past half to full', async ({ page }) => {
@@ -147,7 +184,7 @@ test('the map buttons fade out as the sheet opens to full and return when it clo
   await openAt(page, 'half');
   await page.locator('.grab').click();
   await expect(page.locator('.map-tools')).toBeHidden();
-  await expect(page.locator('.view-pill')).toBeVisible();
+  await expect(page.locator('.view-pill')).toBeHidden(); // the counter goes with them at full height
   await page.locator('.grab').click();
   await expect(page.locator('.map-tools')).toBeVisible();
 });
@@ -205,15 +242,16 @@ test('a sideways swipe on the carousel scrolls the carousel and never moves the 
   expect(Math.abs((await panelBox(page)).height - heightBefore)).toBeLessThan(2);
 });
 
-test('a vertical swipe that starts on the carousel still moves the sheet', async ({ page }) => {
+test('a vertical swipe that starts on the carousel scrolls the list; the sheet stays', async ({ page }) => {
   await openAt(page, 'half');
   const track = page.locator('.popular-track');
   if (!(await track.isVisible())) await page.locator('.panel-body').evaluate((el) => (el.scrollTop = 0));
   const box = await track.boundingBox();
   const y = box.y + box.height / 2;
   const left = await track.evaluate((el) => el.scrollLeft);
-  await swipe(page, { x: 200, y }, { x: 208, y: y - 70 }, FLICK);
-  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
+  await swipe(page, { x: 200, y }, { x: 208, y: y - 70 }, { ms: 400, steps: 16 });
+  await page.waitForTimeout(300);
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
   expect(await track.evaluate((el) => el.scrollLeft)).toBe(left);
 });
 
@@ -306,13 +344,13 @@ test('tapping empty map collapses the sheet to the peek; tapping the sheet does 
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'peek');
 });
 
-test('a drag that starts on a puja card does not open it', async ({ page }) => {
+test('a drag that starts on a puja card scrolls the list and does not open the puja', async ({ page }) => {
   await openAt(page, 'half');
   const card = page.locator('.pcard').first();
   const box = await card.boundingBox();
-  await swipe(page, { x: box.x + 60, y: box.y + box.height / 2 }, { x: box.x + 60, y: box.y + box.height / 2 - 80 }, FLICK);
+  await swipe(page, { x: box.x + 60, y: box.y + box.height / 2 }, { x: box.x + 60, y: box.y + box.height / 2 - 80 }, { ms: 400, steps: 16 });
   await page.waitForTimeout(300);
-  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'full');
+  await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
   await expect(page.locator('.puja-page, .pp')).toHaveCount(0);
 });
 
