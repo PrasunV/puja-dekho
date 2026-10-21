@@ -11,17 +11,16 @@ import PujaBento from './PujaBento.jsx';
 /**
  * The fields of a puja that exist in the data, and nothing else (PRD open question 11).
  * Today that is area, address, heritage, alternate names and the typical crowd.
- * @param {{ puja: import('../../lib/types.js').Puja, lead?: import('react').ReactNode }} props
- *   `lead` sits to the left of the title (the Back button on the details screen).
+ * @param {{ puja: import('../../lib/types.js').Puja, trail?: import('react').ReactNode }} props
+ *   `trail` sits to the right of the title (the Close button on the details screen).
  */
-export function PujaFields({ puja, lead }) {
+export function PujaFields({ puja, trail }) {
   const { filters, route } = useApp();
   const trip = tripFor(filters.distances?.get(puja.id), route);
   const jubilee = heritage(puja.e)?.jubilee ?? null;
   return (
     <div className="stack">
-      <div className="detail-head">
-        {lead}
+      <div className="detail-head" data-sheet-head>
         <div className="detail-id">
           <h2>{puja.n}</h2>
           {trip && <div className="sub num">{tripText(trip)}</div>}
@@ -31,6 +30,7 @@ export function PujaFields({ puja, lead }) {
             {jubilee && <span className="tag accent">{jubilee}</span>}
           </div>
         </div>
+        {trail}
       </div>
       <PujaBento puja={puja} />
       {puja.ec && <div className="note">{`Sources disagree on the founding year (${puja.e} vs ${puja.ec}).`}</div>}
@@ -130,12 +130,9 @@ export default function PujaPage() {
   return (
     <PujaFields
       puja={puja}
-      lead={
-        <button type="button" className="back back-btn" aria-label="Back to the list" onClick={back}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M19 12H5" />
-            <path d="m12 19-7-7 7-7" />
-          </svg>
+      trail={
+        <button type="button" className="back back-btn" aria-label="Close details" onClick={back}>
+          <Icon name="x" size={22} />
         </button>
       }
     />

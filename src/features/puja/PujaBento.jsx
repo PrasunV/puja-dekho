@@ -15,30 +15,42 @@ const LINE_NAME = { blue: 'Blue Line', green: 'Green Line', yellow: 'Yellow Line
 const GROW = { duration: 0.26, ease: /** @type {const} */ ([0.25, 1, 0.5, 1]) };
 
 /**
- * One bento card: a header button (icon, title, chevron), a one-line preview while shut, the content while open.
- * It grows in place, like a place page on Google Maps.
- * @param {{ id: string, icon: import('../../components/ui/Icon.jsx').IconName, title: string, preview: string, open: boolean, onToggle: () => void, full?: boolean, children: import('react').ReactNode }} props
+ * One bento card: a header button (icon, title, chevron), a small visual preview while shut, the content while open.
+ * It grows in place like a Google place page. Width is a CSS transition (flex-basis) and the content grows by height,
+ * so nothing is ever scaled and no text is stretched mid-move; only the card's position is animated (layout="position").
+ * @param {{ id: string, icon: import('../../components/ui/Icon.jsx').IconName, title: string, preview: import('react').ReactNode, open: boolean, onToggle: () => void, full?: boolean, children: import('react').ReactNode }} props
  */
 function BentoCard({ id, icon, title, preview, open, onToggle, full = false, children }) {
   return (
-    <motion.div id={`card-${id}`} layout transition={{ layout: GROW }} className="bento-card" data-open={open} data-full={full || undefined} style={{ borderRadius: 20 }}>
-      <motion.div layout="position" transition={{ layout: GROW }}>
-        <button type="button" className="bento-head" aria-expanded={open} aria-controls={`bento-${id}`} onClick={onToggle}>
-          <Icon name={icon} size={22} />
-          <span className="bento-title">{title}</span>
-          <span className="bento-chev" data-open={open}>
-            <Icon name="chevron" size={20} />
-          </span>
-        </button>
-        {!open && <div className="bento-preview">{preview}</div>}
-        <AnimatePresence initial={false}>
-          {open && (
-            <motion.div id={`bento-${id}`} className="bento-body" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, delay: 0.1 }}>
-              {children}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+    <motion.div id={`card-${id}`} layout="position" transition={{ layout: GROW }} className="bento-card" data-open={open} data-full={full || undefined}>
+      <button type="button" className="bento-head" aria-expanded={open} aria-controls={`bento-${id}`} onClick={onToggle}>
+        <Icon name={icon} size={22} />
+        <span className="bento-title">{title}</span>
+        <span className="bento-chev" data-open={open}>
+          <Icon name="chevron" size={20} />
+        </span>
+      </button>
+      <AnimatePresence initial={false}>
+        {!open && (
+          <motion.div key="preview" className="bento-preview" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}>
+            {preview}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            id={`bento-${id}`}
+            className="bento-clip"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1, transition: { height: GROW, opacity: { duration: 0.2, delay: 0.08 } } }}
+            exit={{ height: 0, opacity: 0, transition: { height: GROW, opacity: { duration: 0.12 } } }}
+          >
+            <div className="bento-body">{children}</div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -50,7 +62,15 @@ export default function PujaBento({ puja }) {
 
   const stations = nearStations(data, puja, 2).filter((entry) => entry.distance <= MAX_STATION_M);
   const age = heritage(puja.e);
-  const toggle = (/** @type {'metro' | 'heritage' | 'address'} */ key) => setOpen((o) => ({ ...o, [key]: !o[key] }));
+  /** Opening a card lifts the sheet to full (so the content is not hidden below the fold) and brings the card into view. */
+  const reveal = (/** @type {'metro' | 'heritage' | 'address'} */ key) => {
+    setSheet('full');
+    setTimeout(() => document.getElementById(`card-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 320);
+  };
+  const toggle = (/** @type {'metro' | 'heritage' | 'address'} */ key) => {
+    if (!open[key]) reveal(key);
+    setOpen((o) => ({ ...o, [key]: !o[key] }));
+  };
   /** A facts-strip tap opens its card, lifts the sheet to full and brings the card into view. */
   const jump = (/** @type {'metro' | 'heritage'} */ key) => {
     setOpen((o) => ({ ...o, [key]: true }));
@@ -72,11 +92,8 @@ export default function PujaBento({ puja }) {
 
   return (
     <>
+      {(age || stations.length > 0) && (
       <div className="facts-strip">
-        <div className="fact">
-          <span className="fact-label">Open</span>
-          <b>All day</b>
-        </div>
         {age && (
           <button type="button" className="fact" onClick={() => jump('heritage')}>
             <span className="fact-label">
@@ -94,14 +111,25 @@ export default function PujaBento({ puja }) {
           </button>
         )}
       </div>
+      )}
 
-      <motion.div layout className="bento" data-stacked={stacked || undefined} transition={{ layout: GROW }}>
+      <div className="bento" data-stacked={stacked || undefined}>
         {stations.length > 0 && (
           <BentoCard
             id="metro"
             icon="train"
             title="Getting there"
-            preview={`${stations[0].station.name}${stations.length > 1 ? ` and ${stations.length - 1} more` : ''}`}
+            preview={
+              <>
+                <span className="bp-dots">
+                  {stations[0].station.lines.map((line) => (
+                    <Dot key={line} tone={line} />
+                  ))}
+                </span>
+                <b className="bp-big num">{`${walkMinutes(stations[0].distance)} min walk`}</b>
+                <span className="bp-sub">{`${stations[0].station.name}${stations.length > 1 ? ` and ${stations.length - 1} more` : ''}`}</span>
+              </>
+            }
             open={open.metro}
             onToggle={() => toggle('metro')}
           >
@@ -149,7 +177,12 @@ export default function PujaBento({ puja }) {
             id="heritage"
             icon="ribbon"
             title="Heritage"
-            preview={age.jubilee ? `${age.jubilee} this year. ${age.years} years of puja.` : `${age.years} years of puja. Next: ${age.next.name} in ${age.next.year}`}
+            preview={
+              <>
+                <b className="bp-big num">{age.years}</b>
+                <span className="bp-sub">{age.jubilee ? `years of puja · ${age.jubilee} year` : `years of puja · ${age.next.name} in ${age.next.year}`}</span>
+              </>
+            }
             open={open.heritage}
             onToggle={() => toggle('heritage')}
           >
@@ -174,7 +207,7 @@ export default function PujaBento({ puja }) {
           id="address"
           icon="pin"
           title="Address"
-          preview={puja.ad}
+          preview={<b className="bp-big">{puja.ar}</b>}
           open={open.address}
           onToggle={() => toggle('address')}
           full
@@ -192,7 +225,7 @@ export default function PujaBento({ puja }) {
             </a>
           </div>
         </BentoCard>
-      </motion.div>
+      </div>
     </>
   );
 }

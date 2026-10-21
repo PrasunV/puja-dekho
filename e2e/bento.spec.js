@@ -6,7 +6,7 @@ test.use({ viewport: { width: 390, height: 844 } });
 async function openDetail(page, id) {
   await openApp(page);
   await page.evaluate((pujaId) => window.__pd.openPuja(pujaId), id);
-  await expect(page.getByRole('button', { name: 'Back to the list' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close details' })).toBeVisible();
   await page.locator('.grab').click().catch(() => {});
 }
 
@@ -31,15 +31,17 @@ test.describe('jubilee rule', () => {
 test.describe('detail sheet: facts strip and bento cards', () => {
   test('a puja with a since-year shows the facts strip, Getting there, Heritage and Address', async ({ page }) => {
     await openDetail(page, 'S001'); // since 1938
-    await expect(page.locator('.facts-strip')).toContainText('Open');
-    await expect(page.locator('.facts-strip')).toContainText('All day');
+    await expect(page.locator('.facts-strip')).not.toContainText('All day'); // the always-true "Open: All day" cell is gone
+    await expect(page.locator('#card-metro .bento-preview')).toContainText('min walk'); // shut cards are small pictures, not clipped sentences
+    await expect(page.locator('#card-heritage .bento-preview')).toContainText('years of puja');
+    await expect(page.locator('#card-address .bento-preview')).toBeVisible();
     await expect(page.locator('.facts-strip')).toContainText('Since');
     await expect(page.locator('.facts-strip')).toContainText('1938');
     await expect(page.locator('.facts-strip')).toContainText('Nearest metro');
     await expect(page.getByRole('button', { name: /Getting there/ })).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('button', { name: /Heritage/ })).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByRole('button', { name: /Address/ })).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#card-heritage .bento-preview')).toContainText(/\d+ years of puja\. Next: .+ in \d{4}|Jubilee this year|Centenary this year/);
+    await expect(page.locator('#card-heritage .bento-preview')).toContainText(/years of puja · (.+ in \d{4}|.+ year)/);
   });
 
   test('closed, the two small cards sit side by side; opening either stacks both full width', async ({ page }) => {
@@ -94,7 +96,7 @@ test.describe('detail sheet: facts strip and bento cards', () => {
     const id = await page.evaluate(async () => (await (await fetch('/data/pujas.json')).json()).find((p) => !p.e)?.id);
     test.skip(!id, 'every puja has a since-year in this data');
     await page.evaluate((pujaId) => window.__pd.openPuja(pujaId), id);
-    await expect(page.getByRole('button', { name: 'Back to the list' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Close details' })).toBeVisible();
     await expect(page.locator('.facts-strip').getByText('Since')).toHaveCount(0);
     await expect(page.locator('#card-heritage')).toHaveCount(0);
   });

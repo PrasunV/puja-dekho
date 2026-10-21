@@ -72,7 +72,7 @@ export default function Explore() {
   const dividerAt = !areaCentre && filters.sort === 'nearest' && radiusActive && nearCount < results.length ? nearCount : -1;
   return (
     <div className="stack">
-      <div className="head">
+      <div className="head" data-sheet-head>
         <div>
           <h2>{title}</h2>
           {appliedText && <div className="sub">{appliedText}</div>}

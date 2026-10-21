@@ -27,7 +27,20 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
  * The four heights for a stage of this height.
  * @param {number} stage
  */
-const snapsFor = (stage) => ({ peek: stage * SHARE.peek, initial: stage * SHARE.initial, half: stage * SHARE.half, full: stage * SHARE.full });
+const snapsFor = (stage, floor = 0) => {
+  // Larger text (Android font size, iOS Dynamic Type) makes the title and the pinned buttons taller. The resting
+  // heights never go below `floor` (the buttons plus the title block), so something is always readable above them.
+  const full = stage * SHARE.full;
+  const initial = Math.min(Math.max(stage * SHARE.initial, floor), stage * SHARE.half);
+  const half = Math.min(Math.max(stage * SHARE.half, initial + 56), full - 56);
+  return { peek: stage * SHARE.peek, initial, half: Math.max(half, initial), full };
+};
+/** The title block, handle and breathing room that must stay visible above the pinned buttons. */
+const HANDLE_PX = 28;
+/** A little of whatever follows the title, so it is clear the sheet continues. */
+const PEEK_NEXT_PX = 56;
+/** A title block taller than this (a very long name at the largest text) is not allowed to claim the whole sheet. */
+const TITLE_MAX_PX = 260;
 
 /**
  * The list panel. A draggable bottom sheet on phones with three snap points; a fixed side panel on desktop.
@@ -89,6 +102,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     sheet,
     onSheetChange,
     stage: 0,
+    floor: 0,
     bottom: 0,
     target: sheet,
     anim: /** @type {ReturnType<typeof animate> | null} */ (null),
@@ -107,9 +121,17 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     if (!panel || !stage) return undefined;
     const L = live.current;
 
-    const snaps = () => snapsFor(L.stage);
+    const snaps = () => snapsFor(L.stage, L.floor);
+    /** The pinned buttons' height, plus the title block. Read here, never per frame. */
+    const readFloor = () => {
+      const foot = /** @type {HTMLElement | null} */ (panel.querySelector('.panel-foot'));
+      const title = /** @type {HTMLElement | null} */ (panel.querySelector('[data-sheet-head]'));
+      const titleH = Math.min(title ? title.offsetHeight : 0, TITLE_MAX_PX);
+      return (foot ? foot.offsetHeight : 0) + HANDLE_PX + titleH + PEEK_NEXT_PX;
+    };
     const measure = () => {
       L.stage = stage.clientHeight;
+      L.floor = readFloor();
       L.bottom = parseFloat(getComputedStyle(panel).bottom) || 0;
     };
     /**
@@ -175,15 +197,26 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     arrivals.observe(stage, { childList: true });
 
     // A rotation or a keyboard resizes the map: jump to the same state at the new size.
-    const watcher = new ResizeObserver(() => {
-      if (stage.clientHeight === L.stage) return;
+    const relayout = () => {
+      if (stage.clientHeight === L.stage && readFloor() === L.floor) return;
       measure();
       L.anim?.stop();
       L.anim = null;
       height.set(snaps()[L.target]);
       setMoving(false);
-    });
+    };
+    const watcher = new ResizeObserver(relayout);
     watcher.observe(stage);
+    // The pinned buttons change height when text grows or wraps, or when they come and go (list to details).
+    const footWatcher = new ResizeObserver(relayout);
+    const watchFoot = () => {
+      footWatcher.disconnect();
+      const foot = panel.querySelector('.panel-foot');
+      if (foot) footWatcher.observe(foot);
+    };
+    watchFoot();
+    const footArrivals = new MutationObserver(watchFoot);
+    footArrivals.observe(panel, { childList: true });
 
     /* ---- the gesture ---- */
     /** @type {null | { x0: number, y0: number, lastY: number, mode: 'undecided' | 'sheet' | 'content' | 'ignore', inBody: boolean, sideways: boolean, raw: number, samples: { t: number, y: number }[] }} */
@@ -403,6 +436,8 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
       off();
       arrivals.disconnect();
       watcher.disconnect();
+      footWatcher.disconnect();
+      footArrivals.disconnect();
       L.anim?.stop();
       panel.removeEventListener('touchstart', onTouchStart);
       panel.removeEventListener('touchmove', onTouchMove);

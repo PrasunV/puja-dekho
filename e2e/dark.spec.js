@@ -24,7 +24,7 @@ async function colours(page, selector) {
 }
 
 test('puja detail bento cards are dark with readable text', async ({ page }) => {
-  await page.addInitScript(() => { try { localStorage.setItem('pd_explainerSeen', 'true'); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem('pd_explainerSeen', 'true'); } catch { /* no storage */ } });
   await openApp(page);
   await page.evaluate(() => window.__pd.openPuja('S001'));
   await expect(page.locator('.bento-card').first()).toBeVisible();
@@ -37,7 +37,7 @@ test('puja detail bento cards are dark with readable text', async ({ page }) => 
 });
 
 test('sheet, toast surfaces follow the theme', async ({ page }) => {
-  await page.addInitScript(() => { try { localStorage.setItem('pd_explainerSeen', 'true'); } catch {} });
+  await page.addInitScript(() => { try { localStorage.setItem('pd_explainerSeen', 'true'); } catch { /* no storage */ } });
   await openApp(page);
   const panel = await colours(page, '.panel');
   expect(lum(panel.bg)).toBeLessThan(0.1);

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
-/** Height of one digit in the wheel, in px. Must match .od-win in styles.css. */
-const ITEM = 16;
+/** Height of one digit in the wheel, in em (so it grows with the text size). Must match .od-win in styles.css. */
+const ITEM = 1.35;
 /** A wheel is three runs of 0-9; it rests on the middle one so it can spin either way without running out. */
 const WHEEL = Array.from({ length: 30 }, (_, i) => i % 10);
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
@@ -53,7 +53,7 @@ function Wheel({ digit, run }) {
     const start = 10 + from;
     const end = run.dir === 'up' ? start + steps : start - steps;
     // The resting style already shows the new digit; the animation covers it from the old one to the new one.
-    el.animate([{ transform: `translateY(${-start * ITEM}px)` }, { transform: `translateY(${-end * ITEM}px)` }], {
+    el.animate([{ transform: `translateY(${-start * ITEM}em)` }, { transform: `translateY(${-end * ITEM}em)` }], {
       duration: run.ms,
       easing: EASE,
       fill: 'backwards',
@@ -62,7 +62,7 @@ function Wheel({ digit, run }) {
 
   return (
     <span className="od-win">
-      <span className="od-strip" ref={strip} style={{ transform: `translateY(${-(10 + digit) * ITEM}px)` }}>
+      <span className="od-strip" ref={strip} style={{ transform: `translateY(${-(10 + digit) * ITEM}em)` }}>
         {WHEEL.map((n, i) => (
           <span key={i}>{n}</span>
         ))}

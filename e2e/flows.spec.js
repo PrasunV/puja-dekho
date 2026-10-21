@@ -1008,18 +1008,19 @@ test.describe('visitor mode and the opening height', () => {
   });
 });
 
-test('the details screen has a 44 px back arrow to the left of the title, named "Back to the list"', async ({ page }) => {
+test('the details screen has a 44 px Close button at the right of the title, named "Close details"', async ({ page }) => {
   await openApp(page);
   await page.locator('.grab').click();
   await page.locator('.grab').click();
   await page.locator('.pcard-main').first().click();
-  const back = page.getByRole('button', { name: 'Back to the list' });
+  const back = page.getByRole('button', { name: 'Close details' });
   await expect(back).toBeVisible();
   const box = await back.boundingBox();
   expect(Math.round(box.width)).toBe(44);
   expect(Math.round(box.height)).toBe(44);
   const title = await page.locator('.panel h2').boundingBox();
-  expect(box.x + box.width).toBeLessThanOrEqual(title.x);
+  expect(box.x).toBeGreaterThanOrEqual(title.x + 40); // to the right of the title, not before it
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
   await back.click();
   await expect(back).toHaveCount(0);
 });
@@ -1145,16 +1146,16 @@ test.describe('shared links and the Back to Kolkata chip', () => {
     await page.goto('/?puja=S001');
     await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'), null, { timeout: 20_000 });
     await expect(page.locator('.panel')).toContainText('22 Palli Sarodotsab');
-    await expect(page.getByRole('button', { name: 'Back to the list' })).toBeVisible();
-    await page.getByRole('button', { name: 'Back to the list' }).click();
-    await expect(page.getByRole('button', { name: 'Back to the list' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Close details' })).toBeVisible();
+    await page.getByRole('button', { name: 'Close details' }).click();
+    await expect(page.getByRole('button', { name: 'Close details' })).toHaveCount(0);
     await expect(page).not.toHaveURL(/puja=/);
   });
 
   test('an unknown puja id in the link falls back to the list', async ({ page }) => {
     await page.goto('/?puja=NOPE');
     await page.waitForFunction(() => window.__pdMap?.getLayer('pujas'), null, { timeout: 20_000 });
-    await expect(page.getByRole('button', { name: 'Back to the list' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Close details' })).toHaveCount(0);
     await expect(page).not.toHaveURL(/puja=/);
   });
 
