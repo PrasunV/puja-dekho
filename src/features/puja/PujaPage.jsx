@@ -4,7 +4,7 @@ import { Icon } from '../../components/ui/Icon.jsx';
 import { TypicalCrowd } from '../../components/ui/Crowd.jsx';
 import { tripFor, tripText } from '../../lib/route.js';
 import { storage } from '../../lib/storage.js';
-import { pujaUrl } from '../../hooks/useNav.js';
+// import { pujaUrl } from '../../hooks/useNav.js'; // Share is parked (see PujaActions); restore with it.
 import { heritage } from '../../lib/heritage.js';
 import PujaBento from './PujaBento.jsx';
 
@@ -55,24 +55,26 @@ export function PujaActions({ puja }) {
   // "Opens in Google Maps" is shown until someone has used Get directions once; after that it is gone for good.
   // It is read once, so it does not vanish (and shift the buttons) in the middle of the tap.
   const [hint] = useState(() => !storage.get('mapsHint', false));
+  // SHARE IS PARKED for now (07:12, 21 Oct): kept here, commented out, to bring back later. Also restore the pujaUrl import above,
+  // the share button below, the Share e2e test (flows.spec.js, now test.skip) and its `.btn.share` style.
   // Share hands the puja's own link to the phone's share sheet; where there is none, it copies the link.
-  const share = async () => {
-    const url = `${location.origin}${pujaUrl(puja.id)}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: puja.n, text: `${puja.n}, Durga Puja in Kolkata`, url });
-        return;
-      } catch (error) {
-        if (error?.name === 'AbortError') return; // the person closed the share sheet
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      toast('Link copied');
-    } catch {
-      toast("Couldn't copy the link. Copy it from the address bar.");
-    }
-  };
+  // const share = async () => {
+  //   const url = `${location.origin}${pujaUrl(puja.id)}`;
+  //   if (navigator.share) {
+  //     try {
+  //       await navigator.share({ title: puja.n, text: `${puja.n}, Durga Puja in Kolkata`, url });
+  //       return;
+  //     } catch (error) {
+  //       if (error?.name === 'AbortError') return; // the person closed the share sheet
+  //     }
+  //   }
+  //   try {
+  //     await navigator.clipboard.writeText(url);
+  //     toast('Link copied');
+  //   } catch {
+  //     toast("Couldn't copy the link. Copy it from the address bar.");
+  //   }
+  // };
   return (
     <div className="actions">
       <div className="row actions-row">
@@ -89,6 +91,7 @@ export function PujaActions({ puja }) {
           <Icon name="nav" />
           Get directions
         </a>
+        {/* SHARE PARKED, restore with the `share` handler above:
         <button type="button" className="btn share" aria-label={`Share ${puja.n}`} onClick={share}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" />
@@ -96,6 +99,7 @@ export function PujaActions({ puja }) {
             <path d="M12 2v13" />
           </svg>
         </button>
+        */}
         <button type="button" className="btn save" onClick={() => toast('Saving is coming soon')}>
           <svg className="save-heart" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
             <path

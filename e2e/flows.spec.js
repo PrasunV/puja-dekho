@@ -146,6 +146,17 @@ test('puja page: facts, typical crowd, Get directions as a Google Maps walking l
   expect(await page.locator('.panel-foot').evaluate((e) => getComputedStyle(e).borderTopWidth)).toBe('0px');
 });
 
+test('the action row fits at 360 px: Get directions is not clipped and there is no Share button', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await openApp(page);
+  await page.evaluate(() => window.__pd.openPuja('S001'));
+  const link = page.getByRole('link', { name: /Get directions/ });
+  await expect(link).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Share / })).toHaveCount(0);
+  const clipped = await link.evaluate((e) => e.scrollWidth > e.clientWidth + 1);
+  expect(clipped).toBe(false);
+});
+
 test('the "Opens in Google Maps" hint goes away for good once Get directions has been used', async ({ page }) => {
   await openApp(page);
   await page.locator('.grab').click();
@@ -1147,7 +1158,8 @@ test.describe('shared links and the Back to Kolkata chip', () => {
     await expect(page).not.toHaveURL(/puja=/);
   });
 
-  test('opening a puja puts its link in the address bar; Share copies it', async ({ page, context }) => {
+  // Share button is parked (commented out in PujaPage.jsx); un-skip when it returns.
+  test.skip('opening a puja puts its link in the address bar; Share copies it', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await openApp(page);
     await page.evaluate(() => {
