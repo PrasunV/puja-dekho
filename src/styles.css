@@ -11,6 +11,7 @@
   --maroon-hover: #36090e;
   --on-maroon: #ffffff;
   --muted: #6a6a6a;
+  --label: #6a6a6a; /* section labels: Must-visit pujas, All Pujas, filter sections, map layers, metro line groups */
   --line: #dddddd;
   --primary: #b31d24;
   --on-primary: #ffffff;
@@ -64,6 +65,7 @@
     --maroon-hover: #ffe6e8;
     --on-maroon: #3a0b10;
     --muted: #a8a8a8;
+    --label: #a8a8a8;
     --line: #333333;
     --primary: #e0434b;
     --on-primary: #1a0507;
@@ -2861,8 +2863,9 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 48px; /* the touch-target norm */
-  padding: 8px 12px 8px 16px;
+  position: relative;
+  min-height: 40px; /* what you see; the tap area is 48px via ::after, which does not move the layout */
+  padding: 6px 10px 6px 16px;
   border: 0;
   border-radius: 999px;
   background: var(--surface-2);
@@ -2878,6 +2881,14 @@ select {
 }
 .sort-btn svg {
   flex: none;
+}
+.sort-btn::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0; /* up and down only, so the right edge never moves or overflows */
+}
+.all-head .sort {
+  margin-left: auto; /* stays at the far right even when the heading wraps it onto its own line */
 }
 .sort-list {
   position: absolute;
@@ -3270,4 +3281,13 @@ select {
 
 .bento-form {
   padding-top: 12px;
+}
+
+/* Section labels are quiet: grey, not the near-black of titles and puja names. */
+.popular h3,
+.all-head h3,
+.sheet-sec h3,
+.pop h3,
+.line-head h3 {
+  color: var(--label);
 }

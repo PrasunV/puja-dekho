@@ -1102,8 +1102,10 @@ test.describe('sort menu, loading and accessibility', () => {
     const [h, b] = await Promise.all([heading.boundingBox(), sort.boundingBox()]);
     expect(Math.abs(h.y + h.height / 2 - (b.y + b.height / 2))).toBeLessThan(8); // one line
     expect(b.x).toBeGreaterThan(h.x + h.width); // to the right of the heading
-    const panel = await page.locator('.panel-body').boundingBox();
-    expect(panel.x + panel.width - (b.x + b.width)).toBeLessThan(24); // right-most
+    const row = await page.locator('.all-head').boundingBox();
+    expect(Math.abs(row.x + row.width - (b.x + b.width))).toBeLessThan(1); // exactly the right edge of the row
+    expect(b.height).toBeGreaterThanOrEqual(39.5);
+    expect(b.height).toBeLessThan(44); // 40 px pill
     const style = await sort.evaluate((el) => ({ w: getComputedStyle(el).fontWeight, bg: getComputedStyle(el).backgroundColor }));
     expect(style.w).toBe('500');
     expect(style.bg).not.toBe('rgba(0, 0, 0, 0)');
@@ -1137,10 +1139,21 @@ test.describe('sort menu, loading and accessibility', () => {
     await openApp(page);
     await page.locator('.grab').click();
     await page.locator('.grab').click();
-    for (const name of [/Sort:/, /Filters/]) {
-      const box = await page.getByRole('button', { name }).first().boundingBox();
-      expect(box.height).toBeGreaterThanOrEqual(47.5);
-    }
+    const filters = await page.getByRole('button', { name: /Filters/ }).first().boundingBox();
+    expect(filters.height).toBeGreaterThanOrEqual(47.5);
+    // Sort looks 40 px tall but its tap area is 48: a tap 3.5 px above and below the pill still lands on it.
+    const sort = page.getByRole('button', { name: /Sort:/ });
+    const sb = await sort.boundingBox();
+    expect(sb.height).toBeGreaterThanOrEqual(39.5);
+    expect(sb.height).toBeLessThan(44);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const r = document.querySelector('.sort-btn').getBoundingClientRect(); // measured and probed in one go, so the sheet cannot move in between
+          return [r.top - 3.5, r.bottom + 3.5].every((y) => document.elementFromPoint(r.left + r.width / 2, y)?.closest('.sort-btn') != null);
+        }),
+      )
+      .toBe(true);
     await expect(page.locator('.peek-line')).toHaveAttribute('inert', '');
     const fab = await page.locator('.fab').first().boundingBox();
     expect(Math.min(fab.width, fab.height)).toBeGreaterThanOrEqual(47.5);
@@ -1200,4 +1213,20 @@ test.describe('shared links and the Back to Kolkata chip', () => {
     await settled(page);
     await expect(page.getByRole('button', { name: 'Back to Kolkata' })).toHaveCount(0);
   });
+});
+
+test.describe('section labels are grey, in both themes', () => {
+  for (const [scheme, rgb] of [['light', 'rgb(106, 106, 106)'], ['dark', 'rgb(168, 168, 168)']]) {
+    test(`Must-visit pujas and All Pujas use the label grey in ${scheme}`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await openApp(page);
+      await page.locator('.grab').click();
+      await page.locator('.grab').click();
+      for (const name of ['Must-visit pujas', 'All Pujas']) {
+        await expect(page.getByRole('heading', { name })).toHaveCSS('color', rgb);
+      }
+      await page.getByRole('button', { name: /^Filters/ }).first().click();
+      await expect(page.getByRole('heading', { name: 'Radius' })).toHaveCSS('color', rgb);
+    });
+  }
 });

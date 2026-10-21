@@ -137,6 +137,15 @@ for (const scheme of ['light', 'dark']) {
         await page.screenshot({ path: `${shot}-a.png` });
         await page.locator('.grab').click(); // half
         await page.waitForTimeout(600);
+        // The sort pill sits on the right edge of the "All Pujas" row (even when the heading wraps it), and is 40 px tall at normal text.
+        const sortGeo = await page.evaluate(() => {
+          const row = document.querySelector('.all-head').getBoundingClientRect();
+          const b = document.querySelector('.sort-btn').getBoundingClientRect();
+          return { gap: row.right - b.right, h: b.height, inside: b.left >= row.left - 0.5 };
+        });
+        expect(Math.abs(sortGeo.gap), 'sort pill at the right edge').toBeLessThan(1);
+        expect(sortGeo.inside, 'sort pill inside the row').toBe(true);
+        if (scale === 1) expect(sortGeo.h).toBeCloseTo(40, 0);
         await page.locator('.panel-body').evaluate((e) => e.scrollTo(0, 600));
         await page.waitForTimeout(300);
         expect(await problems(page), 'list scrolled at 57%').toEqual([]);
