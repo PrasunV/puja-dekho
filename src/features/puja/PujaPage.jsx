@@ -1,58 +1,12 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext.js';
-import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
 import { TypicalCrowd } from '../../components/ui/Crowd.jsx';
 import { tripFor, tripText } from '../../lib/route.js';
-import { formatDistance, todayIst, walkMinutes } from '../../lib/geo.js';
-import { metroNotes, phaseFor, stationLines, timingText } from '../../lib/metro.js';
-import { nearStations } from '../../lib/pujas.js';
 import { storage } from '../../lib/storage.js';
 import { pujaUrl } from '../../hooks/useNav.js';
-
-/** Nearest metro stations with today's hours. */
-function NearestMetro({ puja }) {
-  const { data } = useApp();
-  // Beyond 10 km a station is no help (Howrah and the northern suburbs), so say nothing.
-  const stations = nearStations(data, puja, 2).filter((entry) => entry.distance <= 10_000);
-  const phase = phaseFor(data.metro, todayIst());
-  const dayLabel = `Today, ${new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Asia/Kolkata' })}`;
-  if (stations.length === 0) return null;
-  return (
-    <div className="card stack">
-      <h3>Nearest metro</h3>
-      {stations.map(({ station, distance }) => {
-        const lines = stationLines(station);
-        const hours = [...new Set(lines.map((line) => timingText(data.metro, line, phase)).filter(Boolean))];
-        const notes = metroNotes(data.metro, station, phase);
-        let detail = station.lines.join(', ');
-        if (lines.length)
-          detail = hours.length ? `${dayLabel}${phase?.label ? `, ${phase.label}` : ''}: ${hours.join(' / ')}` : 'Check the Metro button on the map for timings.';
-        return (
-          <div key={station.id}>
-            <div className="row">
-              {station.lines.map((line) => (
-                <Dot key={line} tone={line} />
-              ))}
-              <b className="grow">{station.name}</b>
-              <span className="num">{`~${formatDistance(distance)} · ~${walkMinutes(distance)} min walk`}</span>
-            </div>
-            <div className="sub">{detail}</div>
-            {notes.map((note) => (
-              <div key={note} className="sub caution">
-                {note}
-              </div>
-            ))}
-          </div>
-        );
-      })}
-      {stations[0] && stations[0].distance > 1500 && (
-        <div className="sub">No Blue or Green Line station within 1.5 km. Plan on a cab or bike for the last stretch.</div>
-      )}
-      <div className="sub">Distances are straight-line; walking time assumes a 1.3× detour at 75 m a minute.</div>
-    </div>
-  );
-}
+import { heritage } from '../../lib/heritage.js';
+import PujaBento from './PujaBento.jsx';
 
 /**
  * The fields of a puja that exist in the data, and nothing else (PRD open question 11).
@@ -63,6 +17,7 @@ function NearestMetro({ puja }) {
 export function PujaFields({ puja, lead }) {
   const { filters, route } = useApp();
   const trip = tripFor(filters.distances?.get(puja.id), route);
+  const jubilee = heritage(puja.e)?.jubilee ?? null;
   return (
     <div className="stack">
       <div className="detail-head">
@@ -73,23 +28,11 @@ export function PujaFields({ puja, lead }) {
           <div className="row wrap mt8">
             <TypicalCrowd puja={puja} />
             <span className="tag">{puja.ar}</span>
-            {puja.h && <span className="tag accent">{puja.e ? `Since ${puja.e}` : 'Heritage'}</span>}
-            {puja.f && <span className="tag accent">Featured</span>}
+            {jubilee && <span className="tag accent">{jubilee}</span>}
           </div>
         </div>
       </div>
-      <dl className="facts">
-        <dt>Address</dt>
-        <dd>{puja.ad}</dd>
-        <dt>Area</dt>
-        <dd>{puja.ar}</dd>
-        {puja.a.length > 0 && (
-          <>
-            <dt>Also known as</dt>
-            <dd>{puja.a.join(', ')}</dd>
-          </>
-        )}
-      </dl>
+      <PujaBento puja={puja} />
       {puja.ec && <div className="note">{`Sources disagree on the founding year (${puja.e} vs ${puja.ec}).`}</div>}
       {puja.fl.length > 0 && (
         <div className="note">
@@ -98,7 +41,6 @@ export function PujaFields({ puja, lead }) {
             : 'This puja shares a pin with others, so its exact spot is unknown. Check the address before you set out.'}
         </div>
       )}
-      <NearestMetro puja={puja} />
     </div>
   );
 }

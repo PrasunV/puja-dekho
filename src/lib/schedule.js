@@ -62,3 +62,16 @@ export function pujaRows(/** @type {import('./types.js').MetroData} */ metro, /*
       today: current?.id === phase.id,
     }));
 }
+
+/**
+ * "13:00 – 04:00 next morning" reads as "1 PM – 4 AM next morning". Anything that is not a time stays as it was.
+ * @param {string | null} text  Output of tidyHours
+ */
+export const friendlyHours = (text) =>
+  text
+    ? text.replace(/(\d{1,2}):(\d{2})/g, (_, h, m) => {
+        const hour = Number(h);
+        const clock = `${hour % 12 || 12}${m === '00' ? '' : `:${m}`}`;
+        return `${clock} ${hour >= 12 && hour < 24 ? 'PM' : 'AM'}`;
+      })
+    : text;
