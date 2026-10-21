@@ -603,7 +603,9 @@ h3 {
   padding: 2px 9px;
   background: var(--surface-2);
   color: var(--ink);
-  white-space: nowrap;
+  max-width: 100%;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .tag.line {
   background: transparent;
@@ -1122,6 +1124,7 @@ h2 {
 .pname {
   font: 650 16px/1.25 var(--font);
   letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
 }
 .fw4 {
   font-weight: 400;
@@ -2210,9 +2213,6 @@ select {
   overflow: hidden;
 }
 .timings-body {
-  max-height: 40vh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -2868,7 +2868,8 @@ select {
   top: 100%;
   right: 0;
   z-index: 5;
-  min-width: 190px;
+  min-width: min(190px, 100%);
+  max-width: calc(100vw - 32px);
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
@@ -3249,4 +3250,8 @@ select {
 .bento + .note,
 .bento {
   scroll-margin-bottom: 120px;
+}
+
+.bento-form {
+  padding-top: 12px;
 }

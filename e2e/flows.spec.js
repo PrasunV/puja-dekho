@@ -399,7 +399,7 @@ test('estimates in the list are marked with ~', async ({ page }) => {
   await expect(page.locator('.pcard .dist-pill').first()).toContainText('~');
 });
 
-test.describe('metro lines: chips, pinned timings, station fallback', () => {
+test.describe('metro lines: chips, timing tiles, station fallback', () => {
   const blue = (page) => page.getByRole('button', { name: /^Blue line/ });
 
   test('a selected line chip shows a cross; tapping it again removes the line and the cross', async ({ page }) => {
@@ -419,30 +419,29 @@ test.describe('metro lines: chips, pinned timings, station fallback', () => {
     await blue(page).click();
     await page.getByRole('button', { name: /^Green line/ }).click();
     await expect(page.locator('.chip-x')).toHaveCount(2);
-    await expect(page.locator('.timings-row')).toHaveCount(2);
+    await expect(page.getByRole('region', { name: 'Metro timings' }).locator('.bento-card')).toHaveCount(2);
   });
 
-  test('timings stay pinned while the station list scrolls, and expand to weekday, weekend and frequency', async ({ page }) => {
+  test('each line is a timing tile (hours and frequency shut); opening it shows weekday, weekend and frequency; Back stays pinned', async ({ page }) => {
     await openApp(page);
     await blue(page).click();
-    const head = page.locator('.sticky-head');
-    await expect(head).toBeVisible();
-    await expect(head).toContainText(/Today/);
-    await expect(head).toContainText(/every/i);
+    const tile = page.locator('#card-timings-blue');
+    await expect(tile).toContainText(/Blue Line/);
+    await expect(tile.locator('.bento-preview')).toContainText(/every/i);
     await page.locator('.panel-body').evaluate((el) => (el.scrollTop = 600));
     await page.waitForTimeout(250);
-    const box = await head.boundingBox();
+    const head = await page.locator('.sticky-head').boundingBox();
     const panel = await page.locator('.panel').boundingBox();
-    expect(box.y).toBeLessThan(panel.y + 90); // still at the top of the sheet
-    await page.locator('.timings-row').first().click();
-    const detail = page.locator('.timings-detail');
-    await expect(detail).toContainText('Mon to Fri');
-    await expect(detail).toContainText('Saturday');
-    await expect(detail).toContainText('Sunday');
-    await expect(detail).toContainText(/Trains run/);
-    await expect(detail.getByRole('link', { name: /kolkatametro\.org/ })).toHaveAttribute('rel', /noopener/);
-    await page.locator('.timings-row').first().click();
-    await expect(detail).toHaveCount(0);
+    expect(head.y).toBeLessThan(panel.y + 90); // the Back control is still at the top of the sheet
+    await page.locator('.panel-body').evaluate((el) => (el.scrollTop = 0));
+    await tile.getByRole('button', { name: /Blue Line/ }).click();
+    await expect(tile).toContainText('Mon to Fri');
+    await expect(tile).toContainText('Saturday');
+    await expect(tile).toContainText('Sunday');
+    await expect(tile).toContainText(/Trains run/);
+    await expect(tile.getByRole('link', { name: /kolkatametro\.org/ })).toHaveAttribute('rel', /noopener/);
+    await tile.getByRole('button', { name: /Blue Line/ }).click();
+    await expect(tile.locator('.timings-body')).toHaveCount(0);
   });
 
   test('Kavi Subhas is closed: shown as closed, not tappable, never offered', async ({ page }) => {

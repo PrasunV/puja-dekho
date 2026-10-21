@@ -1,13 +1,13 @@
-import { useMemo, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { useMemo } from 'react';
 import { useApp } from '../../context/AppContext.js';
+import { BentoCard, useBento } from '../../components/ui/Bento.jsx';
 import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
 import PujaCard from '../explore/PujaCard.jsx';
 import { CLOSED_STATIONS, HOLIDAY_NOTE, REGULAR_SCHEDULE, SCHEDULE_SOURCE } from '../../data/schedule.js';
 import { formatDistance, haversine, todayIst, walkMinutes } from '../../lib/geo.js';
 import { LINE_NAME, LINE_ORDER, LINE_SUMMARY, lineTimings, phaseFor, stationLines } from '../../lib/metro.js';
-import { isClosed, lineToday, pujaRows } from '../../lib/schedule.js';
+import { friendlyHours, isClosed, lineToday, pujaRows } from '../../lib/schedule.js';
 import { outlookText, stationOutlook } from '../../lib/stations.js';
 
 const NEAREST_COUNT = 5;
@@ -16,7 +16,7 @@ const LINE_ORDER_KEYS = /** @type {const} */ (['blue', 'green']);
 /** Table of operating hours per line and phase. */
 function TimingsTable({ metro }) {
   return (
-    <div className="card scroll-x">
+    <div className="scroll-x">
       <table className="t">
         <thead>
           <tr>
@@ -70,90 +70,76 @@ function useStationOutlooks() {
 }
 
 /**
- * The pinned timings: one line per metro line (today's hours and how often trains run). Tapping a line opens
- * the full table over the list: Puja days, then Mon to Fri, Saturday and Sunday, with where the times come from.
+ * The line timings as bento tiles: one per metro line, two across while shut (a Dot, today's hours and how often
+ * trains run). Tapping a tile opens it full width with Puja days, Mon to Fri, Saturday and Sunday, and where the
+ * times come from.
  * @param {{ lines: ('blue' | 'green')[] }} props
  */
 function TimingsBar({ lines }) {
   const { data } = useApp();
-  const [open, setOpen] = useState(/** @type {string | null} */ (null));
   const now = useMemo(() => new Date(), []);
+  const { open, toggle, stacked } = useBento({});
   return (
-    <div className="timings" role="region" aria-label="Metro timings">
+    <div className="bento" data-stacked={stacked || undefined} role="region" aria-label="Metro timings">
       {lines.map((line) => {
         const today = lineToday(data.metro, line, now);
-        const expanded = open === line;
         const rows = pujaRows(data.metro, line, now);
         const festivalOver = rows.every((row) => !row.hours);
         return (
-          <div key={line} className="timings-line">
-            <button
-              type="button"
-              className="timings-row"
-              aria-expanded={expanded}
-              aria-controls={`timings-${line}`}
-              onClick={() => setOpen(expanded ? null : line)}
-            >
-              <Dot tone={line} />
-              <span className="timings-text">
-                <b>{today.name}</b>
-                <span className="sub">{today.headline}</span>
-                <span className="sub">{today.freq}</span>
-              </span>
-              <motion.span className="timings-chevron" animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-                <Icon name="chevron" size={20} />
-              </motion.span>
-            </button>
-            <AnimatePresence initial={false}>
-              {expanded && (
-                <motion.div
-                  id={`timings-${line}`}
-                  className="timings-detail"
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.22, ease: 'easeOut' }}
-                >
-                  <div className="timings-body">
-                    {!festivalOver && (
-                      <section aria-label="Puja days">
-                        <h4>Puja days</h4>
-                        {rows.map((row) => (
-                          <div key={row.id} className={row.today ? 'trow today' : 'trow'}>
-                            <span>{row.label}</span>
-                            <span className="num">{row.hours}</span>
-                            {row.today && <em>Today</em>}
-                          </div>
-                        ))}
-                      </section>
-                    )}
-                    <section aria-label="Regular days">
-                      <h4>Regular days</h4>
-                      {['weekday', 'saturday', 'sunday'].map((kind) => (
-                        <div key={kind} className={!today.pujaHours && today.kind === kind ? 'trow today' : 'trow'}>
-                          <span>{kind === 'weekday' ? 'Mon to Fri' : kind === 'saturday' ? 'Saturday' : 'Sunday'}</span>
-                          <span className="num">{REGULAR_SCHEDULE[line][kind]}</span>
-                          {!today.pujaHours && today.kind === kind && <em>Today</em>}
-                        </div>
-                      ))}
-                      <div className="trow">
-                        <span>Trains run</span>
-                        <span className="num">{today.freq}</span>
-                      </div>
-                    </section>
-                    <p className="sub">{`${REGULAR_SCHEDULE[line].route}. ${HOLIDAY_NOTE}`}</p>
-                    <p className="sub">
-                      {'Regular times: '}
-                      <a href={SCHEDULE_SOURCE.url} target="_blank" rel="noopener noreferrer">
-                        {SCHEDULE_SOURCE.name}
-                      </a>
-                      {`, checked ${SCHEDULE_SOURCE.checkedOn}. Puja hours come from a third-party list. Confirm with Metro Railway before you travel.`}
-                    </p>
-                  </div>
-                </motion.div>
+          <BentoCard
+            key={line}
+            id={`timings-${line}`}
+            icon="train"
+            title={today.name}
+            open={!!open[line]}
+            onToggle={() => toggle(line)}
+            preview={
+              <>
+                <span className="bp-dots">
+                  <Dot tone={line} />
+                </span>
+                <b className="bp-big num">{friendlyHours(today.pujaHours ?? today.regularHours) ?? 'No service'}</b>
+                <span className="bp-sub">{today.pujaHours ? `${today.pujaLabel} · ${today.freq}` : today.freq}</span>
+              </>
+            }
+          >
+            <div className="timings-body">
+              {!festivalOver && (
+                <section aria-label="Puja days">
+                  <h4>Puja days</h4>
+                  {rows.map((row) => (
+                    <div key={row.id} className={row.today ? 'trow today' : 'trow'}>
+                      <span>{row.label}</span>
+                      <span className="num">{row.hours}</span>
+                      {row.today && <em>Today</em>}
+                    </div>
+                  ))}
+                </section>
               )}
-            </AnimatePresence>
-          </div>
+              <section aria-label="Regular days">
+                <h4>Regular days</h4>
+                {['weekday', 'saturday', 'sunday'].map((kind) => (
+                  <div key={kind} className={!today.pujaHours && today.kind === kind ? 'trow today' : 'trow'}>
+                    <span>{kind === 'weekday' ? 'Mon to Fri' : kind === 'saturday' ? 'Saturday' : 'Sunday'}</span>
+                    <span className="num">{REGULAR_SCHEDULE[line][kind]}</span>
+                    {!today.pujaHours && today.kind === kind && <em>Today</em>}
+                  </div>
+                ))}
+                <div className="trow">
+                  <span>Trains run</span>
+                  <span className="num">{today.freq}</span>
+                </div>
+              </section>
+              <p className="sub">{`${REGULAR_SCHEDULE[line].route}. ${HOLIDAY_NOTE}`}</p>
+              <p className="sub">
+                {'Regular times: '}
+                <a href={SCHEDULE_SOURCE.url} target="_blank" rel="noopener noreferrer">
+                  {SCHEDULE_SOURCE.name}
+                </a>
+                {`, checked ${SCHEDULE_SOURCE.checkedOn}. Puja hours come from a third-party list. Confirm with Metro Railway before you travel.`}
+              </p>
+            </div>
+          </BentoCard>
         );
       })}
     </div>
@@ -212,8 +198,8 @@ export function MetroLines() {
           <Icon name="back" />
           Back
         </button>
-        <TimingsBar lines={lines} />
       </StickyHead>
+      <TimingsBar lines={lines} />
       {lines.map((line) => (
         <div key={line}>
           <div className="row line-head">
@@ -257,8 +243,8 @@ export function StationResults() {
           <Icon name="back" />
           Back to stations
         </button>
-        {lines.length > 0 && <TimingsBar lines={lines} />}
       </StickyHead>
+      {lines.length > 0 && <TimingsBar lines={lines} />}
       <div className="head">
         <div>
           {count > 0 ? (
@@ -320,6 +306,7 @@ export default function Metro() {
   const { data, position, locate, locationStatus, back } = useApp();
   const phase = phaseFor(data.metro, todayIst());
   const outlooks = useStationOutlooks();
+  const { open, toggle } = useBento({ nearest: true, all: false });
 
   const nearest = useMemo(() => {
     if (!position) return [];
@@ -338,7 +325,6 @@ export default function Metro() {
           <Icon name="back" />
           Back
         </button>
-        <TimingsBar lines={LINE_ORDER_KEYS.slice()} />
       </StickyHead>
       <div className="head">
         <div>
@@ -346,23 +332,42 @@ export default function Metro() {
           <div className="sub">{phase ? `Today: ${phase.label}` : 'Puja-special timings start on Panchami, 15 Oct'}</div>
         </div>
       </div>
+      <TimingsBar lines={LINE_ORDER_KEYS.slice()} />
       {position ? (
-        <div className="card">
-          <h3 className="mb8">Closest to you</h3>
-          {nearest.map(({ station, distance }) => (
-            <StationRow
-              key={station.id}
-              station={station}
-              outlook={outlooks.get(station.id)}
-              trailing={
-                <div className="num near-d">
-                  <b>{`~${formatDistance(distance)}`}</b>
-                  <div className="sub">{`~${walkMinutes(distance)} min walk`}</div>
-                </div>
-              }
-            />
-          ))}
-          <div className="sub mt8">Straight-line distance. Stations are highlighted on the map.</div>
+        <div className="bento">
+          <BentoCard
+            id="nearest"
+            icon="pin"
+            title="Closest to you"
+            full
+            open={!!open.nearest}
+            onToggle={() => toggle('nearest')}
+            preview={
+              nearest[0] ? (
+                <>
+                  <b className="bp-big">{nearest[0].station.name}</b>
+                  <span className="bp-sub">{`~${formatDistance(nearest[0].distance)} · ~${walkMinutes(nearest[0].distance)} min walk`}</span>
+                </>
+              ) : null
+            }
+          >
+            <div className="bento-rows">
+              {nearest.map(({ station, distance }) => (
+                <StationRow
+                  key={station.id}
+                  station={station}
+                  outlook={outlooks.get(station.id)}
+                  trailing={
+                    <div className="num near-d">
+                      <b>{`~${formatDistance(distance)}`}</b>
+                      <div className="sub">{`~${walkMinutes(distance)} min walk`}</div>
+                    </div>
+                  }
+                />
+              ))}
+              <div className="sub">Straight-line distance. Stations are highlighted on the map.</div>
+            </div>
+          </BentoCard>
         </div>
       ) : (
         <div className="card stack tight">
@@ -380,7 +385,19 @@ export default function Metro() {
           )}
         </div>
       )}
-      <TimingsTable metro={data.metro} />
+      <div className="bento">
+        <BentoCard
+          id="all"
+          icon="train"
+          title="All timings"
+          full
+          open={!!open.all}
+          onToggle={() => toggle('all')}
+          preview={<span className="bp-sub">Puja days and regular days, for both lines</span>}
+        >
+          <TimingsTable metro={data.metro} />
+        </BentoCard>
+      </div>
       <div className="note">
         {data.metro.note} Purple Line stations are not on this map yet, so Behala pujas show the nearest Blue Line station. Saptami falls on
         17 or 18 Oct; the sources disagree. Times come from a third-party site and a news report, not the Metro Railway. Last trains run

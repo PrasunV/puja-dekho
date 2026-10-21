@@ -106,7 +106,7 @@ for (const [name, width, height] of PHONES) {
 
 for (const [name, width, height] of PHONES) {
   for (const scale of SCALES) {
-    test(`list, filters and metro hold on ${name} at ${scale * 100}% text`, async ({ page }) => {
+    test(`list and filters hold on ${name} at ${scale * 100}% text`, async ({ page }) => {
       await boot(page, width, height, scale);
       const shot = `/tmp/shots/s-${width}-${scale}`;
       expect(await problems(page), 'map and list at rest').toEqual([]);
@@ -119,6 +119,70 @@ for (const [name, width, height] of PHONES) {
       await page.waitForTimeout(700);
       await page.screenshot({ path: `${shot}-filters.png` });
       expect(await problems(page), 'filters').toEqual([]);
+    });
+  }
+}
+
+// The sheets people use most. The list is the busiest, so it is checked at every resting height, scrolled, in light and dark.
+for (const scheme of ['light', 'dark']) {
+  for (const [name, width, height] of PHONES) {
+    for (const scale of SCALES) {
+      test(`puja list sheet holds on ${name} at ${scale * 100}% text, ${scheme}`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await boot(page, width, height, scale);
+        const shot = `/tmp/shots/l-${scheme}-${width}-${scale}`;
+        await page.locator('.grab').click(); // peek to initial
+        await page.waitForTimeout(600);
+        expect(await problems(page), 'list at 35%').toEqual([]);
+        await page.screenshot({ path: `${shot}-a.png` });
+        await page.locator('.grab').click(); // half
+        await page.waitForTimeout(600);
+        await page.locator('.panel-body').evaluate((e) => e.scrollTo(0, 600));
+        await page.waitForTimeout(300);
+        expect(await problems(page), 'list scrolled at 57%').toEqual([]);
+        await page.locator('.grab').click(); // full
+        await page.waitForTimeout(600);
+        await page.locator('.panel-body').evaluate((e) => e.scrollTo(0, 2400));
+        await page.waitForTimeout(300);
+        expect(await problems(page), 'list scrolled at 85%').toEqual([]);
+        await page.screenshot({ path: `${shot}-b.png` });
+      });
+    }
+  }
+}
+
+for (const [name, width, height] of PHONES) {
+  for (const scale of SCALES) {
+    test(`metro sheet holds on ${name} at ${scale * 100}% text`, async ({ page }) => {
+      await boot(page, width, height, scale);
+      const shot = `/tmp/shots/m-${width}-${scale}`;
+      await page.getByRole('button', { name: /Metro stations near you/ }).click();
+      await page.waitForTimeout(700);
+      expect(await problems(page), 'metro').toEqual([]);
+      await page.screenshot({ path: `${shot}-metro.png` });
+      for (const label of [/Blue Line/, /Green Line/, /All timings/]) {
+        await page.getByRole('button', { name: label }).first().click();
+        await page.waitForTimeout(500);
+      }
+      expect(await problems(page), 'metro all open').toEqual([]);
+      await page.screenshot({ path: `${shot}-metro-open.png` });
+    });
+  }
+}
+
+for (const [name, width, height] of PHONES) {
+  for (const scale of SCALES) {
+    test(`metro lines and station sheets hold on ${name} at ${scale * 100}% text`, async ({ page }) => {
+      await boot(page, width, height, scale);
+      await page.getByRole('button', { name: /^Blue line/ }).click();
+      await page.waitForTimeout(700);
+      expect(await problems(page), 'blue line stations').toEqual([]);
+      await page.getByRole('button', { name: /Blue Line/ }).first().click();
+      await page.waitForTimeout(500);
+      expect(await problems(page), 'blue line tile open').toEqual([]);
+      await page.evaluate(() => window.__pd.openStation('kalighat'));
+      await page.waitForTimeout(700);
+      expect(await problems(page), 'station results').toEqual([]);
     });
   }
 }
