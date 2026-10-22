@@ -36,6 +36,14 @@ export const BHASAN = Object.freeze({
     Object.freeze({
       type: 'live',
       live: true,
+      channel: 'News18 Bangla',
+      title: 'Durga Puja 2026 LIVE | বিসর্জনের বোলে মন খারাপ। বাজা কদমতলা ঘাটে প্রতিমা নিরঞ্জন | Bangla News',
+      url: 'https://www.youtube.com/live/cpymtU8B-jw',
+      thumb: 'https://i.ytimg.com/vi/cpymtU8B-jw/hqdefault.jpg',
+    }),
+    Object.freeze({
+      type: 'live',
+      live: true,
       channel: 'Zee 24 Ghanta',
       title: 'Durga Puja 2026 | আজ দশমী, বিদায়ের সুরেই ফেরার আশা...| Zee 24 Ghanta Live',
       url: 'https://www.youtube.com/live/UxHc2lGvfiI',

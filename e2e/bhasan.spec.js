@@ -50,7 +50,7 @@ test.describe('while it is on', () => {
     const ghat = page.getByTestId('ghat-card');
     const live = page.getByTestId('video-0');
     const second = page.getByTestId('video-1');
-    const replay = page.getByTestId('video-2');
+    const replay = page.getByTestId('video-3');
     await expect(ghat).toContainText('Baje Kadomtala Ghat');
     await expect(ghat).toContainText('Strand Rd, B.B.D. Bagh');
     await expect(ghat).toContainText('Bhasan today');
@@ -72,12 +72,13 @@ test.describe('while it is on', () => {
   test('video cards open YouTube in a new tab; LIVE badge only when switched on; replay has its thumbnail', async ({ page }) => {
     const live = page.getByTestId('video-0');
     const second = page.getByTestId('video-1');
-    const replay = page.getByTestId('video-2');
+    const replay = page.getByTestId('video-3');
     await expect(live).toHaveAttribute('href', 'https://www.youtube.com/live/04sRqedFlMk');
-    await expect(second).toHaveAttribute('href', 'https://www.youtube.com/live/UxHc2lGvfiI');
-    await expect(second).toContainText('Zee 24 Ghanta');
+    await expect(second).toHaveAttribute('href', 'https://www.youtube.com/live/cpymtU8B-jw');
+    await expect(second).toContainText('News18 Bangla');
+    await expect(page.getByTestId('video-2')).toHaveAttribute('href', 'https://www.youtube.com/live/UxHc2lGvfiI');
     await expect(replay).toHaveAttribute('href', 'https://www.youtube.com/watch?v=MB1a8UAA4bA');
-    for (const card of [live, second, replay]) {
+    for (const card of [live, second, page.getByTestId('video-2'), replay]) {
       await expect(card).toHaveAttribute('target', '_blank');
       await expect(card).toHaveAttribute('rel', 'noopener noreferrer');
     }
@@ -90,7 +91,7 @@ test.describe('while it is on', () => {
   });
 
   test('titles clamp to two lines', async ({ page }) => {
-    for (const id of ['video-0', 'video-1', 'video-2']) {
+    for (const id of ['video-0', 'video-1', 'video-2', 'video-3']) {
       const title = page.getByTestId(id).locator('.vid-title');
       expect(await title.evaluate((node) => getComputedStyle(node).webkitLineClamp)).toBe('2');
     }

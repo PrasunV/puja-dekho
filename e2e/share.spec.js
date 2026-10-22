@@ -60,7 +60,7 @@ test.describe('share sheet', () => {
 
   test('Copy link copies our app link, tagged cp, and says so for two seconds', async ({ page, context }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
-    await page.getByTestId('video-2').locator('xpath=..').getByTestId('share-btn').click();
+    await page.getByTestId('video-3').locator('xpath=..').getByTestId('share-btn').click();
     await page.getByRole('button', { name: 'Copy link' }).click();
     await expect(page.getByRole('button', { name: 'Link copied' })).toBeVisible();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('https://puja-dekho.vercel.app/api/share?v=MB1a8UAA4bA&s=cp');
@@ -76,7 +76,7 @@ test.describe('share sheet', () => {
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('share-sheet')).toHaveCount(0);
     const [popup] = await Promise.all([page.waitForEvent('popup'), page.getByTestId('video-1').click()]);
-    expect(popup.url()).toContain('UxHc2lGvfiI');
+    expect(popup.url()).toContain('cpymtU8B-jw');
   });
 
   test('scrolling past a card (finger moves) does not open the sheet', async ({ page }) => {
