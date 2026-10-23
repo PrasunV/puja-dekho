@@ -24,9 +24,9 @@ test.describe('status and expiry logic (India time)', () => {
     // 11:30 UTC is 17:00 IST: the answer must not depend on the machine's own zone.
     expect(ghatStatus(Date.UTC(2026, 9, 21, 11, 30), window).key).toBe('on');
   });
-  test('expires after 23 Oct 2026 23:59:59 IST', () => {
-    expect(bhasanActive(IST('2026-10-23T23:59:58'))).toBe(true);
-    expect(bhasanActive(IST('2026-10-24T00:00:01'))).toBe(false);
+  test('expires after 24 Oct 2026 23:59:59 IST', () => {
+    expect(bhasanActive(IST('2026-10-24T23:59:58'))).toBe(true);
+    expect(bhasanActive(IST('2026-10-25T00:00:01'))).toBe(false);
   });
   test('directions use the Place ID and no forced travel mode', () => {
     const url = ghatDirectionsUrl();
@@ -54,6 +54,7 @@ test.describe('while it is on', () => {
     await expect(ghat).toContainText('Baje Kadomtala Ghat');
     await expect(ghat).toContainText('Strand Rd, B.B.D. Bagh');
     await expect(ghat).toContainText('Bhasan today');
+    await expect(ghat.getByTestId('ghat-started')).toHaveText('Bhasan started from 21st Oct');
     await expect(ghat).not.toContainText(/\d{1,2}:\d{2}\s?(AM|PM)/i);
     await expect(ghat).toContainText(/\d+(\.\d)? ?(km|m)\b/); // location is on in this test
     // One synchronous read, so a moving sheet cannot skew the comparison.
@@ -66,7 +67,7 @@ test.describe('while it is on', () => {
     expect(Math.abs(m.l.width - m.r.width)).toBeLessThan(1.5);
     expect(Math.abs(m.l.top - m.r.top)).toBeLessThan(1.5);
     if (m.p) expect(m.p.top).toBeGreaterThanOrEqual(m.l.bottom - 1);
-    expect(m.g.height).toBeLessThan(130);
+    expect(m.g.height).toBeLessThan(160); // three chips plus distance wrap to two rows
   });
 
   test('video cards open YouTube in a new tab; LIVE badge only when switched on; replay has its thumbnail', async ({ page }) => {
@@ -149,14 +150,14 @@ test.describe('while it is on', () => {
 
 test.describe('after the end date', () => {
   test('nothing shows and no marker: the list is where it was', async ({ page }) => {
-    await page.clock.setFixedTime(IST('2026-10-24T00:30:00'));
+    await page.clock.setFixedTime(IST('2026-10-25T00:30:00'));
     await openApp(page);
     await toHalf(page);
     await expect(page.getByTestId('bhasan')).toHaveCount(0);
     await expect(page.locator('.ghat-pin')).toHaveCount(0);
   });
-  test('last evening still shows', async ({ page }) => {
-    await page.clock.setFixedTime(IST('2026-10-23T23:00:00'));
+  test('last evening (24 Oct) still shows', async ({ page }) => {
+    await page.clock.setFixedTime(IST('2026-10-24T23:00:00'));
     await openApp(page);
     await expect(page.getByTestId('bhasan')).toBeAttached();
   });
@@ -182,7 +183,7 @@ test.describe('copy', () => {
     await toHalf(page);
     await expect(page.locator('.head h2')).toHaveText('Bijoya Bhasan happening…');
     await expect(page.locator('.head .sub')).toHaveText('Visit ghats near you');
-    await expect(page.getByTestId('ghat-card')).toContainText('CM S.Adhikari visiting');
+    await expect(page.getByTestId('ghat-card')).toContainText('CM S.Adhikari visited');
     await expect(page.getByRole('heading', { name: 'View live at' })).toBeVisible();
     const same = await page.evaluate(() => {
       const chip = getComputedStyle(document.querySelector('.ghat-vip'));
@@ -192,7 +193,7 @@ test.describe('copy', () => {
     expect(same).toBe(true);
   });
   test('after the end date the normal header returns', async ({ page }) => {
-    await page.clock.setFixedTime(IST('2026-10-24T00:30:00'));
+    await page.clock.setFixedTime(IST('2026-10-25T00:30:00'));
     await openApp(page);
     await expect(page.locator('.head h2')).not.toHaveText('Bijoya Bhasan happening…');
   });

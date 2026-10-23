@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { REPORT_HINT_AFTER_MS, REPORT_HINT_SHOW_MS } from '../../config.js';
 import { storage } from '../../lib/storage.js';
+import { onboardingReplay } from '../../data/bhasan.js';
 import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
 import { CountRoll } from '../../components/ui/CountRoll.jsx';
@@ -36,7 +37,7 @@ export function MapTools({ locationStatus, centred, following, metroOpen, bottom
   const [hint, setHint] = useState(false);
   useEffect(() => {
     const after = (window.__PD_E2E__ && window.__PD_E2E_HINT_MS__) || REPORT_HINT_AFTER_MS;
-    if (storage.get('reportHintSeen', false)) return undefined;
+    if (!onboardingReplay() && storage.get('reportHintSeen', false)) return undefined;
     let hideTimer = 0;
     const showTimer = setTimeout(() => {
       if (document.visibilityState === 'hidden') return;

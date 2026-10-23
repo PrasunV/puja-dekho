@@ -23,7 +23,7 @@ export const GREETINGS = [
     installedToo: true,
   },
   {
-    // Shubho Bijoya (Dashami, 21 Oct 2026): a still picture, on every open, browser and installed app, until it is switched off.
+    // Shubho Bijoya (Dashami, 21 Oct 2026): a still picture, on every open, browser and installed app, through 24 Oct.
     // To switch it off, set `days: []`. Listed after Ashtami so the e2e suite (which overrides the days) keeps testing Ashtami.
     id: 'shubho-bijoya',
     kind: 'image',
@@ -31,7 +31,8 @@ export const GREETINGS = [
     label: 'Shubho Bijoya',
     width: 180,
     height: 60,
-    days: null,
+    // Runs through 24 Oct 2026 (India date), the same day Bhasan ends; then the sheet shows its normal icon.
+    days: ['2026-10-23', '2026-10-24'],
     maxShows: null,
     installedToo: true,
   },

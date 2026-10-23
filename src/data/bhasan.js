@@ -11,7 +11,9 @@
  *  - Switch it all off:  both sections disappear on their own after `expiresAt` (India time).
  */
 export const BHASAN = Object.freeze({
-  expiresAt: '2026-10-23T23:59:59+05:30',
+  expiresAt: '2026-10-24T23:59:59+05:30',
+  /** The grey chip on the ghat card, beside today's status. */
+  startedLabel: 'Bhasan started from 21st Oct',
   ghat: Object.freeze({
     name: 'Baje Kadomtala Ghat',
     area: 'Strand Rd, B.B.D. Bagh',
@@ -108,3 +110,14 @@ export function shareCopy(kind, ghat = BHASAN.ghat) {
   if (kind === 'replay') return { title: 'Bijoya Dashami, watch again', sub: 'Replay · Puja Dekho', message: 'Watch this Dashami moment with me' };
   return { title: `Bhasan today at ${ghat.name}`, sub: `Bhasan today · ${ghat.area}`, message: `Come with me to ${ghat.name} today` };
 }
+
+/**
+ * Until the Bijoya greetings end (same moment as `expiresAt`), everyone sees the whole first-visit flow on every open:
+ * the welcome card, the location sheet, the visitor card and the report tip, even if they have seen them before.
+ * The tests turn this off unless a test sets `__PD_E2E_REPLAY__`.
+ */
+export const onboardingReplay = (now = Date.now(), config = BHASAN) => {
+  const w = /** @type {any} */ (typeof window === 'undefined' ? {} : window);
+  if (w.__PD_E2E__ && !w.__PD_E2E_REPLAY__) return false;
+  return bhasanActive(now, config);
+};

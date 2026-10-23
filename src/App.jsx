@@ -32,7 +32,7 @@ import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
 import NearPuja from './features/puja/NearPuja.jsx';
 import PujaPage, { PujaActions } from './features/puja/PujaPage.jsx';
 import GhatPage, { GhatActions } from './features/bhasan/GhatPage.jsx';
-import { BHASAN } from './data/bhasan.js';
+import { BHASAN, onboardingReplay } from './data/bhasan.js';
 import { useBhasan } from './features/bhasan/useBhasan.js';
 
 // Start fetching the greeting animation straight away, if this open gets one.
@@ -76,8 +76,16 @@ function Loaded({ data }) {
   );
   const visitCount = useVisitCount();
   const liveCount = useLiveCount();
-  const [explainerSeen, setExplainerSeen] = useStoredState('explainerSeen', false);
-  const [outsideSeen, setOutsideSeen] = useStoredState('outsideSeen', false);
+  const [explainerStored, setExplainerStored] = useStoredState('explainerSeen', false);
+  const [outsideStored, setOutsideStored] = useStoredState('outsideSeen', false);
+  // Until Bijoya ends, every open replays the whole first-visit flow, so these count only for this open.
+  const [replay] = useState(() => onboardingReplay());
+  const [explainerOpen, setExplainerOpen] = useState(false);
+  const [outsideOpen, setOutsideOpen] = useState(false);
+  const explainerSeen = replay ? explainerOpen : explainerStored;
+  const outsideSeen = replay ? outsideOpen : outsideStored;
+  const setExplainerSeen = useCallback((/** @type {boolean} */ v) => { setExplainerOpen(v); setExplainerStored(v); }, [setExplainerStored]);
+  const setOutsideSeen = useCallback((/** @type {boolean} */ v) => { setOutsideOpen(v); setOutsideStored(v); }, [setOutsideStored]);
   const [permission, setPermission] = useState(/** @type {string | null} */ (navigator.permissions ? null : 'unknown'));
 
   // Location. A fix far from Kolkata still draws the dot, but is not used for distances or for moving the map.
@@ -154,7 +162,9 @@ function Loaded({ data }) {
       cancelled = true;
     };
   }, []);
-  const showExplainer = !explainerSeen && locationStatus === 'idle' && (permission === 'prompt' || permission === 'unknown');
+  const showExplainer = replay
+    ? !explainerSeen && permission !== null && locationStatus !== 'far'
+    : !explainerSeen && locationStatus === 'idle' && (permission === 'prompt' || permission === 'unknown');
 
   // When the greeting lives at the top of the list sheet, open the sheet to half so it is actually seen.
   useEffect(() => {

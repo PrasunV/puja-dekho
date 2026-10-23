@@ -46,7 +46,8 @@ function GhatCard({ config, status }) {
         <span className="ghat-area">{config.ghat.area}</span>
         <span className="ghat-meta">
           <GhatChip status={status} />
-          <span className="tag ghat-vip">CM S.Adhikari visiting</span>
+          <span className="tag ghat-chip" data-testid="ghat-started">{config.startedLabel}</span>
+          <span className="tag ghat-vip">CM S.Adhikari visited</span>
           {distance && <span className="ghat-dist num">{distance}</span>}
         </span>
       </span>
