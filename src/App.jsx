@@ -162,8 +162,9 @@ function Loaded({ data }) {
       cancelled = true;
     };
   }, []);
+  // On a replay it stays until the person answers it, whatever the location does meanwhile (a fix arriving must not swap it for the visitor card).
   const showExplainer = replay
-    ? !explainerSeen && permission !== null && locationStatus !== 'far'
+    ? !explainerSeen && permission !== null
     : !explainerSeen && locationStatus === 'idle' && (permission === 'prompt' || permission === 'unknown');
 
   // When the greeting lives at the top of the list sheet, open the sheet to half so it is actually seen.

@@ -46,3 +46,18 @@ test('a first visit after the wish ends gets the regular card', async ({ page })
   await expect(page.locator('.explainer h2')).toHaveText('See pujas near you');
   await expect(page.locator('.explainer')).not.toContainText('Bijoya');
 });
+
+test('a returning visitor far away: the welcome card stays put until answered, then the visitor card follows', async ({ page }) => {
+  await page.context().setGeolocation({ latitude: 28.6139, longitude: 77.209 });
+  await page.context().grantPermissions(['geolocation']);
+  await open(page, { at: IST('2026-10-23T21:00:00'), state: 'granted', seen: true });
+  const card = page.locator('.explainer');
+  await expect(card).toBeVisible();
+  await page.waitForTimeout(2500); // long enough for the location fix to land
+  await expect(page.locator('#ex-title')).toBeVisible();
+  await expect(card.locator('h2')).toHaveText('Shubho Bijoya!');
+  await expect(page.locator('.outside')).toHaveCount(0);
+  await card.getByRole('button', { name: 'Not now' }).click();
+  await expect(page.locator('#ex-title')).toHaveCount(0);
+  await expect(page.locator('.outside')).toBeVisible();
+});
