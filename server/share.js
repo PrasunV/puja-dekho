@@ -1,7 +1,8 @@
 import { BHASAN, shareCopy, videoId } from '../src/data/bhasan.js';
 
 const DEFAULT_SITE = 'https://puja-dekho.vercel.app';
-const esc = (text) => String(text).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+const esc = (text) =>
+  String(text).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
 /** What the link preview should show for `?v=`: a video's own picture and title, the ghat, or the plain app. */
 export function shareCard(/** @type {string | null} */ id, site = DEFAULT_SITE) {
@@ -15,9 +16,17 @@ export function shareCard(/** @type {string | null} */ id, site = DEFAULT_SITE) 
     return { title: copy.title, description: `${copy.message}. Find ghats near you on Puja Dekho.`, image: `${site}/og/share.jpg` };
   }
   if (id === 'meetup') {
-    return { title: 'See our Puja Dekho meetup', description: 'Look at the highlights from our Puja Dekho meetup. On Puja Dekho.', image: `${site}/og/share.jpg` };
+    return {
+      title: 'Look whom I met this puja',
+      description: 'A Celebfie with the OG Bengali creators, in Shyambazar. Puja Dekho.',
+      image: `${site}/og/celebfie.jpg`,
+    };
   }
-  return { title: 'Puja Dekho', description: "Shubho Bijoya! Explore Kolkata's Durga Puja pandals on one simple map.", image: `${site}/og/share.jpg` };
+  return {
+    title: 'Puja Dekho',
+    description: "Shubho Bijoya! Explore Kolkata's Durga Puja pandals on one simple map.",
+    image: `${site}/og/share.jpg`,
+  };
 }
 
 /**

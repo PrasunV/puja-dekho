@@ -373,6 +373,14 @@ test.describe('the sheet', () => {
     await expect(page.locator('.share-root')).toContainText('Sharing…');
     const href = await page.locator('.share-root a[href*="wa.me"]').getAttribute('href');
     expect(decodeURIComponent(href)).toContain('/api/share?v=meetup&s=wa');
+    expect(decodeURIComponent(href)).toContain('Look whom I met this puja');
+    // The link preview (what chat apps read) has the new caption and its own picture.
+    const card = await (await page.request.get('/api/share?v=meetup&s=wa')).text();
+    expect(card).toContain('og:title" content="Look whom I met this puja"');
+    expect(card).toContain('og/celebfie.jpg');
+    const image = await page.request.get('/og/celebfie.jpg');
+    expect(image.ok()).toBe(true);
+    expect(image.headers()['content-type']).toContain('image/jpeg');
   });
   test('back closes it, a shared link opens it, and a puja pin replaces it', async ({ page }) => {
     await openApp(page);

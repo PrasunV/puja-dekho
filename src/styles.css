@@ -4550,33 +4550,33 @@ select {
   text-align: center;
   text-wrap: balance;
 }
-.mu-art {
+.mu-celeb {
   align-self: center;
   display: block;
   width: min(240px, 100%);
   height: auto;
 }
-.mu-art-line {
+.mu-celeb-line {
   stroke: var(--ink);
   stroke-width: 2.4;
 }
-.mu-art-ground {
+.mu-celeb-ground {
   fill: var(--accent-soft);
 }
-.mu-art-phone {
+.mu-celeb-phone {
   fill: var(--surface);
 }
-.mu-art-heart,
-.mu-art-love {
+.mu-celeb-heart,
+.mu-celeb-love {
   fill: var(--love);
 }
-.mu-art-heart {
+.mu-celeb-heart {
   stroke: var(--love);
 }
-.mu-art-love path {
+.mu-celeb-love path {
   stroke: none;
 }
-.mu-art-spark {
+.mu-celeb-spark {
   fill: var(--accent);
   stroke: none;
 }

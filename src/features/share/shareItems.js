@@ -24,7 +24,14 @@ export function videoShare(/** @type {(typeof BHASAN.videos)[number]} */ video) 
 /** @returns {ShareItem} */
 export function ghatShare(ghat = BHASAN.ghat) {
   const copy = shareCopy('ghat', ghat);
-  return { id: 'ghat', sheetTitle: 'Sharing…', previewTitle: copy.title, previewSub: copy.sub, image: `${SITE}/og/share.jpg`, message: copy.message };
+  return {
+    id: 'ghat',
+    sheetTitle: 'Sharing…',
+    previewTitle: copy.title,
+    previewSub: copy.sub,
+    image: `${SITE}/og/share.jpg`,
+    message: copy.message,
+  };
 }
 
 /** @returns {ShareItem} */
@@ -32,13 +39,15 @@ export function meetupShare() {
   return {
     id: 'meetup',
     sheetTitle: 'Sharing…',
-    previewTitle: 'See our Puja Dekho meetup',
-    previewSub: 'Photos, people and what happened',
-    image: `${SITE}/og/share.jpg`,
-    message: 'Look at the highlights from our Puja Dekho meetup',
+    previewTitle: 'Look whom I met this puja',
+    previewSub: 'A Celebfie with the OG Bengali creators',
+    image: `${SITE}/og/celebfie.jpg`,
+    message: 'Look whom I met this puja, Puja Dekho',
   };
 }
 
 /** The link that goes out. `via` says how it was sent (`wa` or `cp`), so the hidden share-link count can tell. */
-export const shareLink = (/** @type {ShareItem} */ item, /** @type {'wa' | 'cp'} */ via) => `${SITE}/api/share?v=${encodeURIComponent(item.id)}&s=${via}`;
-export const whatsappLink = (/** @type {ShareItem} */ item) => `https://wa.me/?text=${encodeURIComponent(`${item.message}\n${shareLink(item, 'wa')}`)}`;
+export const shareLink = (/** @type {ShareItem} */ item, /** @type {'wa' | 'cp'} */ via) =>
+  `${SITE}/api/share?v=${encodeURIComponent(item.id)}&s=${via}`;
+export const whatsappLink = (/** @type {ShareItem} */ item) =>
+  `https://wa.me/?text=${encodeURIComponent(`${item.message}\n${shareLink(item, 'wa')}`)}`;

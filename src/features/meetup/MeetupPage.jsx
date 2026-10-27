@@ -174,30 +174,30 @@ function CelebfieArt() {
   );
   return (
     <svg
-      className="mu-art"
+      className="mu-celeb"
       viewBox="0 0 240 132"
       role="img"
       aria-label="A phone taking a selfie, with hearts and sparkles"
-      data-testid="mu-art"
+      data-testid="mu-celeb"
     >
-      <g className="mu-art-line" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <ellipse className="mu-art-ground" cx="120" cy="122" rx="62" ry="5" stroke="none" />
+      <g className="mu-celeb-line" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse className="mu-celeb-ground" cx="120" cy="122" rx="62" ry="5" stroke="none" />
         <g transform="rotate(-7 120 70)">
-          <rect className="mu-art-phone" x="86" y="22" width="68" height="92" rx="12" />
+          <rect className="mu-celeb-phone" x="86" y="22" width="68" height="92" rx="12" />
           <rect x="93" y="30" width="54" height="68" rx="6" />
           <path d="M112 105h16" />
           <circle cx="120" cy="26.5" r="0.6" />
-          <path className="mu-art-heart" d="M120 82s-16-9.5-16-21a8.4 8.4 0 0 1 16-3.6A8.4 8.4 0 0 1 136 61c0 11.5-16 21-16 21Z" />
+          <path className="mu-celeb-heart" d="M120 82s-16-9.5-16-21a8.4 8.4 0 0 1 16-3.6A8.4 8.4 0 0 1 136 61c0 11.5-16 21-16 21Z" />
           <path d="M104 47c3-4 7-6 12-6" opacity="0.5" />
         </g>
       </g>
-      <g className="mu-art-spark">
+      <g className="mu-celeb-spark">
         {spark(48, 38, 9)}
         {spark(196, 30, 11)}
         {spark(176, 64, 6)}
         {spark(70, 66, 5)}
       </g>
-      <g className="mu-art-love">
+      <g className="mu-celeb-love">
         <path d="M206 78s-9-5.2-9-11.5a4.6 4.6 0 0 1 9-2 4.6 4.6 0 0 1 9 2c0 6.3-9 11.5-9 11.5Z" />
         <path d="M30 78s-6-3.5-6-7.7a3.1 3.1 0 0 1 6-1.3 3.1 3.1 0 0 1 6 1.3c0 4.2-6 7.7-6 7.7Z" opacity="0.6" />
       </g>
