@@ -165,6 +165,46 @@ function People({ people }) {
   );
 }
 
+/**
+ * A hand-drawn style illustration for the intro card: a phone with a heart on its screen, with sparkles and hearts floating around it. Drawn with plain strokes and the app's colour tokens so it works in light and dark.
+ */
+function CelebfieArt() {
+  const spark = (/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ r) => (
+    <path d={`M${x} ${y - r}Q${x} ${y} ${x + r} ${y}Q${x} ${y} ${x} ${y + r}Q${x} ${y} ${x - r} ${y}Q${x} ${y} ${x} ${y - r}Z`} />
+  );
+  return (
+    <svg
+      className="mu-art"
+      viewBox="0 0 240 132"
+      role="img"
+      aria-label="A phone taking a selfie, with hearts and sparkles"
+      data-testid="mu-art"
+    >
+      <g className="mu-art-line" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse className="mu-art-ground" cx="120" cy="122" rx="62" ry="5" stroke="none" />
+        <g transform="rotate(-7 120 70)">
+          <rect className="mu-art-phone" x="86" y="22" width="68" height="92" rx="12" />
+          <rect x="93" y="30" width="54" height="68" rx="6" />
+          <path d="M112 105h16" />
+          <circle cx="120" cy="26.5" r="0.6" />
+          <path className="mu-art-heart" d="M120 82s-16-9.5-16-21a8.4 8.4 0 0 1 16-3.6A8.4 8.4 0 0 1 136 61c0 11.5-16 21-16 21Z" />
+          <path d="M104 47c3-4 7-6 12-6" opacity="0.5" />
+        </g>
+      </g>
+      <g className="mu-art-spark">
+        {spark(48, 38, 9)}
+        {spark(196, 30, 11)}
+        {spark(176, 64, 6)}
+        {spark(70, 66, 5)}
+      </g>
+      <g className="mu-art-love">
+        <path d="M206 78s-9-5.2-9-11.5a4.6 4.6 0 0 1 9-2 4.6 4.6 0 0 1 9 2c0 6.3-9 11.5-9 11.5Z" />
+        <path d="M30 78s-6-3.5-6-7.7a3.1 3.1 0 0 1 6-1.3 3.1 3.1 0 0 1 6 1.3c0 4.2-6 7.7-6 7.7Z" opacity="0.6" />
+      </g>
+    </svg>
+  );
+}
+
 /** The one-time "What's new" card, in the style of Instagram's map card: two short rows and one button. */
 function Intro({ onClose }) {
   const button = useRef(/** @type {HTMLButtonElement | null} */ (null));
@@ -189,14 +229,27 @@ function Intro({ onClose }) {
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 60, opacity: 0 }}
       >
-        <h2 id="mu-intro-title">See what happened at our meetups</h2>
+        <CelebfieArt />
+        <h2 id="mu-intro-title">Celebfie is on. Join the challenge.</h2>
+        <div className="mu-intro-row">
+          <span className="mu-intro-ic" aria-hidden="true">
+            <Icon name="heart" size={22} />
+          </span>
+          <div>
+            <b>Take part</b>
+            <p>Tap Join challenge to fill in a short form and you're in.</p>
+          </div>
+        </div>
         <div className="mu-intro-row">
           <span className="mu-intro-ic" aria-hidden="true">
             <Icon name="star" size={22} />
           </span>
           <div>
-            <b>Highlights</b>
-            <p>Photos from the meetup, with the people who were there tagged.</p>
+            <b>How it started</b>
+            <p>
+              It began on a Shashthi night in Shyambazar, when we met the OG Bengali creators: Tapojit da, Bishal da and Rohit da. See the
+              photos.
+            </p>
           </div>
         </div>
         <div className="mu-intro-row">
@@ -204,12 +257,12 @@ function Intro({ onClose }) {
             <Icon name="pin" size={22} />
           </span>
           <div>
-            <b>On the map</b>
-            <p>Look for the special pin, or tap What's new. The next meetup shows up here too.</p>
+            <b>Find the pin</b>
+            <p>Look for the round photo pin on the map, or tap What's new any time.</p>
           </div>
         </div>
         <button ref={button} type="button" className="btn dark block" onClick={onClose}>
-          OK
+          Got it
         </button>
       </motion.div>
     </motion.div>,

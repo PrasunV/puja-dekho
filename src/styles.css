@@ -4550,6 +4550,36 @@ select {
   text-align: center;
   text-wrap: balance;
 }
+.mu-art {
+  align-self: center;
+  display: block;
+  width: min(240px, 100%);
+  height: auto;
+}
+.mu-art-line {
+  stroke: var(--ink);
+  stroke-width: 2.4;
+}
+.mu-art-ground {
+  fill: var(--accent-soft);
+}
+.mu-art-phone {
+  fill: var(--surface);
+}
+.mu-art-heart,
+.mu-art-love {
+  fill: var(--love);
+}
+.mu-art-heart {
+  stroke: var(--love);
+}
+.mu-art-love path {
+  stroke: none;
+}
+.mu-art-spark {
+  fill: var(--accent);
+  stroke: none;
+}
 .mu-intro-row {
   display: flex;
   gap: 12px;

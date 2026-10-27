@@ -13,7 +13,7 @@ const showPin = async (page) => {
   await expect(page.locator('.mu-pin')).toBeVisible();
 };
 const closeIntro = async (page) => {
-  await page.getByTestId('mu-intro').getByRole('button', { name: 'OK' }).click();
+  await page.getByTestId('mu-intro').getByRole('button', { name: 'Got it' }).click();
   await expect(page.getByTestId('mu-intro')).toHaveCount(0);
 };
 

@@ -32,7 +32,7 @@ export const MEETUP = Object.freeze({
   pinLabel: 'Celebfie', // curved along the top of the round pin
   headline: 'Celebfie with OG bengali creators',
   blurb:
-    "Shyambazar, 17th Oct 2026. In the middle of puja season, with the lights up and the crowds out, we stopped for a Celebfie with some of the OG Bengali creators: Tapojit da, Bishal da and Rohit da, the OG singer of 'Dugga ma asche'. Good company, a few easy smiles, and a reminder that the best part of puja is who you run into along the way.",
+    "It was the night of Shashthi, right in the middle of puja season. The lights were up, the crowds were out, and I was just walking through Shyambazar when I suddenly ran into the OGs of Bengali creators: Tapojit da, Bishal da and Rohit da, the OG singer of 'Dugga ma asche'. One hello turned into a Celebfie, a few easy smiles, and a reminder that the best part of puja is who you run into along the way.",
   date: '17th Oct 2026',
   place: Object.freeze({
     name: 'Shyambazar Five Point Crossing',
