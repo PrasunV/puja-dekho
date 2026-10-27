@@ -233,6 +233,7 @@ test('a sideways swipe on the carousel scrolls the carousel and never moves the 
   await openAt(page, 'full');
   const track = page.locator('.popular-track');
   await expect(track).toBeVisible();
+  await track.evaluate((el) => el.scrollIntoView({ block: 'center' })); // the ghat card above can push it below the fold
   const box = await track.boundingBox();
   const y = box.y + box.height / 2;
   const heightBefore = (await panelBox(page)).height;

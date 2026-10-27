@@ -1,3 +1,4 @@
+import { MEETUP } from '../../data/meetup.js';
 import { useApp } from '../../context/AppContext.js';
 import { TypicalCrowd } from '../../components/ui/Crowd.jsx';
 import { tripFor, tripText } from '../../lib/route.js';
@@ -8,6 +9,7 @@ import { linesPeek } from '../metro/Metro.jsx';
 export default function Peek() {
   const { view, nav, data, filters, station, near, route } = useApp();
   const browse = useBrowseHeadline();
+  if (view === 'meetup') return <b>{MEETUP.headline}</b>;
   if (view === 'puja' && nav.pujaId) {
     const puja = data.byId.get(nav.pujaId);
     const trip = puja ? tripFor(filters.distances?.get(puja.id), route) : null;

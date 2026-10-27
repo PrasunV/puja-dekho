@@ -8,6 +8,14 @@ import { routeLabel } from '../../lib/route.js';
 import { cssVar, el, holder, toLngLat } from './dom.js';
 import { makePin } from './pin.js';
 
+// The round meetup pin: its size follows the zoom. Full size (88 px wide, 88/136 of its drawing) from PIN_ZOOM_NEAR up,
+// a small photo from PIN_ZOOM_FAR down, and smoothly in between. The label shows from PIN_LABEL_FROM + 1 (fading in over one zoom level).
+const PIN_ZOOM_FAR = 12;
+const PIN_ZOOM_NEAR = 16;
+const PIN_SCALE_FAR = 0.4;
+const PIN_SCALE_NEAR = 88 / 136;
+const PIN_LABEL_FROM = 14;
+
 /**
  * @typedef {object} MapHandle  Imperative camera controls for the parent
  * @property {(puja: import('../../lib/types.js').Puja) => void} flyToPuja
@@ -32,7 +40,14 @@ import { makePin } from './pin.js';
  * @property {string | null} selectedId
  * @property {{ name: string, lat: number, lng: number } | null} [ghat]   The Bhasan ghat, marked while the special is on
  * @property {boolean} [ghatSelected]   Its details are open: it gets the red pin and name
+ * @property {{ name: string, lat: number, lng: number } | null} [meetup]   Where the meetup pin goes
+ * @property {string} [meetupPhoto]   The photo shown in pin styles A and B
+ * @property {string} [meetupLabel]   The word curved over the round pin
+ * @property {string} [meetupPhotoFocus]   Which part of that photo stays in the round or rounded frame, like '50% 35%'
+ * @property {boolean} [meetupSelected]   The highlights are open
+ * @property {'a' | 'b' | 'c'} [pinStyle]   Which of the three pin looks to draw
  * @property {() => void} [onGhat]
+ * @property {() => void} [onMeetup]
  * @property {import('../../lib/types.js').Position | null} position
  * @property {[number, number][]} tourPoints                       `[lat, lng]` pairs
  * @property {boolean} roadMode
@@ -273,7 +288,14 @@ const MapView = forwardRef(
       selectedId,
       ghat = null,
       ghatSelected = false,
+      meetup = null,
+      meetupPhoto = '',
+      meetupPhotoFocus = '',
+      meetupLabel = 'Meetup',
+      meetupSelected = false,
+      pinStyle = 'a',
       onGhat,
+      onMeetup,
       position,
       tourPoints,
       roadMode,
@@ -314,6 +336,7 @@ const MapView = forwardRef(
       onRoadPick,
       onPuja,
       onGhat,
+      onMeetup,
       onStation,
       onVote,
       onCentredChange,
@@ -331,6 +354,7 @@ const MapView = forwardRef(
         onRoadPick,
         onPuja,
         onGhat,
+        onMeetup,
         onStation,
         onVote,
         onCentredChange,
@@ -391,7 +415,8 @@ const MapView = forwardRef(
         // No puja dot or cluster anywhere on screen: the person has drifted off the map of pujas.
         // Asked once the map has drawn, since a jump has not painted its dots yet when it ends.
         map.once('idle', () => {
-          if (map.getLayer('pujas')) callbacks.current.onEmptyView?.(map.queryRenderedFeatures({ layers: ['clusters', 'pujas'] }).length === 0);
+          if (map.getLayer('pujas'))
+            callbacks.current.onEmptyView?.(map.queryRenderedFeatures({ layers: ['clusters', 'pujas'] }).length === 0);
         });
         if (dragging) {
           dragging = false;
@@ -504,18 +529,105 @@ const MapView = forwardRef(
       if (ghatSelected) inner = makePin(ghat.name);
       else {
         inner = el('button', { class: 'ghat-pin', type: 'button', 'aria-label': `${ghat.name}, bhasan today. Open details` });
-        inner.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
+        inner.innerHTML =
+          '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>';
         inner.addEventListener('click', (event) => {
           event.stopPropagation(); // a tap on the marker must not reach the map
           callbacks.current.onGhat?.();
         });
       }
-      const marker = new maplibregl.Marker({ element: holder(inner), anchor: ghatSelected ? 'bottom' : 'center' }).setLngLat([ghat.lng, ghat.lat]).addTo(map);
+      const marker = new maplibregl.Marker({ element: holder(inner), anchor: ghatSelected ? 'bottom' : 'center' })
+        .setLngLat([ghat.lng, ghat.lat])
+        .addTo(map);
       marker.getElement().classList.add('sel-pin-holder');
       return () => {
         marker.remove();
       };
     }, [ready, ghat, ghatSelected]);
+
+    // The meetup: one special pin, in one of three looks (the preview lets you compare them).
+    useEffect(() => {
+      const map = mapRef.current;
+      if (!ready || !map || !meetup) return undefined;
+      const open = (event) => {
+        event.stopPropagation(); // a tap on the pin must not reach the map
+        callbacks.current.onMeetup?.();
+      };
+      const button = el('button', {
+        class: `mu-pin mu-pin-${pinStyle}${meetupSelected ? ' sel' : ''}`,
+        type: 'button',
+        'aria-label': 'Meetup highlights. Open',
+      });
+      const icon =
+        '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19a6 6 0 0 1 12 0M15 15.2a4.5 4.5 0 0 1 6 3.8"/></svg>';
+      /** @type {() => void} */
+      let stopZoom = () => {};
+      if (pinStyle === 'd') {
+        // A round photo with a small pointer under it and the label on one curved band over the top of the circle.
+        // The circle is centred at (68, 76) in a 136 x 132 box. The label runs along an arc just inside the ring's top edge.
+        const frame = el('span', { class: 'mu-frame', 'aria-hidden': 'true' });
+        if (meetupPhoto) {
+          const photo = el('img', { src: meetupPhoto, alt: '', draggable: 'false' });
+          if (meetupPhotoFocus) photo.style.objectPosition = meetupPhotoFocus;
+          frame.append(photo);
+        }
+        const art = el('span', { class: 'mu-art', 'aria-hidden': 'true' });
+        art.innerHTML =
+          '<svg width="136" height="132" viewBox="0 0 136 132" focusable="false"><defs><path id="mu-arc" d="M29.5 62 A41 41 0 0 1 106.5 62"/></defs>' +
+          '<path class="mu-tip" d="M58 117 L78 117 L68 131 Z"/>' +
+          '<g class="mu-lbl"><path class="mu-band" d="M0 0"/><text><textPath href="#mu-arc" startOffset="50%" text-anchor="middle"></textPath></text></g></svg>';
+        const textPath = art.querySelector('textPath');
+        if (textPath) textPath.textContent = meetupLabel;
+        // One band behind the whole word, as long as the word is (measured once the font is ready).
+        const fitBand = () => {
+          const band = art.querySelector('.mu-band');
+          if (!band || !textPath) return;
+          const length = /** @type {SVGTextContentElement} */ (/** @type {unknown} */ (textPath)).getComputedTextLength?.() ?? 90;
+          const radius = 48;
+          const cap = 12; // half the band's thickness: the round ends reach this far past the path
+          const half = Math.min(1.35, Math.max(0.3, (length / 2 + 8 - cap) / radius)); // radians each side of straight up
+          const point = (/** @type {number} */ angle) =>
+            `${(68 + radius * Math.sin(angle)).toFixed(1)} ${(76 - radius * Math.cos(angle)).toFixed(1)}`;
+          band.setAttribute('d', `M${point(-half)} A${radius} ${radius} 0 0 1 ${point(half)}`);
+        };
+        fitBand();
+        void document.fonts?.ready.then(fitBand);
+        button.append(frame, art);
+        // Size follows the zoom: small and photo-only far out, growing to its full size up close; the label fades in near the end.
+        const fit = () => {
+          const z = map.getZoom();
+          const t = Math.min(1, Math.max(0, (z - PIN_ZOOM_FAR) / (PIN_ZOOM_NEAR - PIN_ZOOM_FAR)));
+          button.style.setProperty('--mu-scale', String(PIN_SCALE_FAR + (PIN_SCALE_NEAR - PIN_SCALE_FAR) * t));
+          button.style.setProperty('--mu-label', String(Math.min(1, Math.max(0, z - PIN_LABEL_FROM))));
+        };
+        fit();
+        map.on('zoom', fit);
+        stopZoom = () => map.off('zoom', fit);
+      } else if (pinStyle === 'c') {
+        const badge = el('span', { class: 'mu-badge', 'aria-hidden': 'true' });
+        badge.innerHTML = icon;
+        button.append(badge, el('span', { class: 'mu-label' }, 'Meetup'));
+      } else {
+        const frame = el('span', { class: 'mu-frame', 'aria-hidden': 'true' });
+        if (meetupPhoto) {
+          const photo = el('img', { src: meetupPhoto, alt: '', draggable: 'false' });
+          if (meetupPhotoFocus) photo.style.objectPosition = meetupPhotoFocus; // set through the style object, not an attribute
+          frame.append(photo);
+        }
+        button.append(frame);
+        if (pinStyle === 'a') button.append(el('span', { class: 'mu-label' }, 'Meetup'));
+        else button.append(el('span', { class: 'mu-new', 'aria-hidden': 'true' }));
+      }
+      button.addEventListener('click', open);
+      const marker = new maplibregl.Marker({ element: holder(button), anchor: pinStyle === 'b' ? 'center' : 'bottom' })
+        .setLngLat([meetup.lng, meetup.lat])
+        .addTo(map);
+      marker.getElement().classList.add('sel-pin-holder', 'mu-holder');
+      return () => {
+        stopZoom();
+        marker.remove();
+      };
+    }, [ready, meetup, meetupPhoto, meetupPhotoFocus, meetupLabel, meetupSelected, pinStyle]);
 
     // Metro lines and stations appear only for the lines switched on (and for stations the Metro list highlights).
     useEffect(() => {

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { useApp } from '../../context/AppContext.js';
 import { Dot } from '../../components/ui/Dot.jsx';
 import { Icon } from '../../components/ui/Icon.jsx';
+import { MEETUP } from '../../data/meetup.js';
 import { RADIUS_STEPS } from '../../config.js';
 // Less crowded chip is switched off for now (see the commented block in FilterBar below).
 // import { CROWD_NOTE } from '../../lib/crowd.js';
@@ -136,6 +137,31 @@ function RadiusChip() {
   );
 }
 
+/** "What's new": opens the meetup highlights. A light travels round the whole outline of the chip. */
+function WhatsNewChip() {
+  const { openMeetup, view } = useApp();
+  const [tap, setTap] = useState(false);
+  return (
+    <button
+      type="button"
+      className={`chip compact whats-new${tap ? ' tap' : ''}`}
+      aria-pressed={view === 'meetup'}
+      aria-label={`${MEETUP.chipLabel}: meetup highlights`}
+      data-testid="whats-new"
+      onClick={() => {
+        setTap(true);
+        openMeetup();
+      }}
+      onAnimationEnd={(e) => e.animationName === 'chip-tap' && setTap(false)}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        <path d="M12 2.5 14 9l6.5 2L14 13l-2 6.5L10 13l-6.5-2L10 9l2-6.5Z" />
+      </svg>
+      {MEETUP.chipLabel}
+    </button>
+  );
+}
+
 /**
  * Top bar (PRD section 3): Filters on the left, then chips that scroll sideways: radius first, then
  * the five area chips (South to Other), Blue line and Green line. Chips are quick filters and their state is always visible.
@@ -152,6 +178,7 @@ export default function FilterBar() {
   return (
     <>
       <div className="bar-chips" role="toolbar" aria-label="Filters and metro lines">
+        <WhatsNewChip />
         <button
           ref={triggerRef}
           type="button"

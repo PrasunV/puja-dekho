@@ -19,7 +19,13 @@ function browser(handler) {
       },
     };
     await handler({ method, headers: { cookie } }, res);
-    if (res.headers['set-cookie']) cookie = res.headers['set-cookie'].split(';')[0];
+    // The handler may set several cookies at once (an array): keep them all, newest value per name, like a browser.
+    const set = [res.headers['set-cookie'] ?? []].flat();
+    if (set.length) {
+      const jar = new Map(cookie.split('; ').filter(Boolean).map((c) => c.split('=')));
+      for (const line of set) jar.set(line.split(';')[0].split('=')[0], line.split(';')[0].split('=')[1]);
+      cookie = [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
+    }
     return res;
   };
 }

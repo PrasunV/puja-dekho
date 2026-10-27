@@ -11,6 +11,7 @@ import { writeRateLimiter } from './http/rateLimit.js';
 import { securityHeaders } from './http/security.js';
 import { createApiRouter } from './routes/api.js';
 import { createLiveHandler } from './live.js';
+import { createLoveHandler } from './loves.js';
 import { createVisitHandler } from './visits.js';
 import { createStatsHandler } from './stats.js';
 import { createShareHandler } from './share.js';
@@ -47,6 +48,7 @@ export function createApp({ env = process.env, now = Date.now, dbPath } = {}) {
   app.disable('x-powered-by');
   app.use(securityHeaders);
   app.use('/api/visits', createVisitHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
+  app.use('/api/loves', createLoveHandler({ env, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
   app.use('/api/stats', createStatsHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
   app.use('/api/share', createShareHandler({ env }));
   app.use('/api/live', createLiveHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));

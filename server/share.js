@@ -14,6 +14,9 @@ export function shareCard(/** @type {string | null} */ id, site = DEFAULT_SITE) 
     const copy = shareCopy('ghat');
     return { title: copy.title, description: `${copy.message}. Find ghats near you on Puja Dekho.`, image: `${site}/og/share.jpg` };
   }
+  if (id === 'meetup') {
+    return { title: 'See our Puja Dekho meetup', description: 'Look at the highlights from our Puja Dekho meetup. On Puja Dekho.', image: `${site}/og/share.jpg` };
+  }
   return { title: 'Puja Dekho', description: "Shubho Bijoya! Explore Kolkata's Durga Puja pandals on one simple map.", image: `${site}/og/share.jpg` };
 }
 
@@ -30,7 +33,7 @@ export function createShareHandler({ env = process.env } = {}) {
     const tag = /^[a-z0-9_-]{1,20}$/i.test(query.get('s') ?? '') ? query.get('s').toLowerCase() : 'link';
     const card = shareCard(id, site);
     const self = `${site}/api/share?v=${encodeURIComponent(id ?? '')}&s=${tag}`;
-    const target = `/?s=${tag}`;
+    const target = id === 'meetup' ? `/?s=${tag}&meetup=1` : `/?s=${tag}`;
     const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />

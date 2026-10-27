@@ -32,6 +32,10 @@ import Metro, { MetroLines, StationResults } from './features/metro/Metro.jsx';
 import NearPuja from './features/puja/NearPuja.jsx';
 import PujaPage, { PujaActions } from './features/puja/PujaPage.jsx';
 import GhatPage, { GhatActions } from './features/bhasan/GhatPage.jsx';
+import MeetupPage, { MeetupActions } from './features/meetup/MeetupPage.jsx';
+import PinLab from './features/meetup/PinLab.jsx';
+import { usePinStyle } from './features/meetup/usePinStyle.js';
+import { MEETUP } from './data/meetup.js';
 import { BHASAN, onboardingReplay } from './data/bhasan.js';
 import { useBhasan } from './features/bhasan/useBhasan.js';
 
@@ -213,6 +217,7 @@ function Loaded({ data }) {
   const filters = usePujaFilters({ data, position, station, curated: far });
   const near = useNearPuja(data.pujas, position);
   const bhasan = useBhasan();
+  const [pinStyle] = usePinStyle();
   // While the Bhasan card is up, the list opens at half so the ghat and the videos are seen without a drag.
   useEffect(() => {
     // Wait until we know where the person is: a visitor far from Kolkata keeps the 35% opening.
@@ -229,7 +234,9 @@ function Loaded({ data }) {
   // The latest of the two quick filters wins the sheet: choosing an area shows its list, choosing a line shows the line.
   const [zoneFocus, setZoneFocus] = useState(false);
   const view = /** @type {import('./context/AppContext.js').AppValue['view']} */ (
-    nav.ghat
+    nav.meetup
+      ? 'meetup'
+      : nav.ghat
       ? 'ghat'
       : nav.pujaId
         ? 'puja'
@@ -262,7 +269,7 @@ function Loaded({ data }) {
 
   // Opening something from the peek brings the sheet up to the middle.
   useEffect(() => {
-    if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro' || view === 'ghat'))
+    if (!desktop && (view === 'puja' || view === 'lines' || view === 'station' || view === 'metro' || view === 'ghat' || view === 'meetup'))
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reacts to a navigation change; there is no event to hang it on
       setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
   }, [view, desktop]);
@@ -335,7 +342,7 @@ function Loaded({ data }) {
   // Navigation.
   const openPuja = useCallback(
     (id) => {
-      go({ pujaId: id, ghat: false });
+      go({ pujaId: id, ghat: false, meetup: false });
       if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
       const puja = data.byId.get(id);
       if (puja) setTimeout(() => mapRef.current?.flyToPuja(puja), 30);
@@ -344,22 +351,27 @@ function Loaded({ data }) {
   );
   const openStation = useCallback(
     (id) => {
-      go({ stationId: id, pujaId: null, metro: false, ghat: false });
+      go({ stationId: id, pujaId: null, metro: false, ghat: false, meetup: false });
       if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
       setTimeout(() => mapRef.current?.flyToStation(id), 30);
     },
     [desktop, go],
   );
   const openGhat = useCallback(() => {
-    go({ ghat: true, pujaId: null, stationId: null, metro: false });
+    go({ ghat: true, meetup: false, pujaId: null, stationId: null, metro: false });
     if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
     setTimeout(() => mapRef.current?.flyToPoint(BHASAN.ghat), 30);
   }, [desktop, go]);
-  const setStation = useCallback((id) => go({ stationId: id, pujaId: null, metro: false, ghat: false }), [go]);
+  const openMeetup = useCallback(() => {
+    go({ meetup: true, ghat: false, pujaId: null, stationId: null, metro: false });
+    if (!desktop) setSheet((s) => (s === 'full' ? s : 'half'));
+    setTimeout(() => mapRef.current?.flyToPoint(MEETUP.place), 30);
+  }, [desktop, go]);
+  const setStation = useCallback((id) => go({ stationId: id, pujaId: null, metro: false, ghat: false, meetup: false }), [go]);
   const setLines = useCallback(
     (lines) => {
       if (lines.length) setZoneFocus(false);
-      go({ lines, stationId: null, pujaId: null, metro: false, ghat: false }, { replace: lines.length > 0 && nav.lines.length > 0 });
+      go({ lines, stationId: null, pujaId: null, metro: false, ghat: false, meetup: false }, { replace: lines.length > 0 && nav.lines.length > 0 });
       // Frame the whole selected line(s): a line like Green can lie entirely outside the current view.
       const byId = new Map(data.stations.map((stop) => [stop.id, stop]));
       const points = lines.flatMap((line) =>
@@ -383,9 +395,9 @@ function Loaded({ data }) {
         setSheet((current) => (current === 'peek' ? 'initial' : current));
       }
       // Whatever was open (a puja, a station, Metro nearby) closes: the sheet now shows the chosen areas.
-      if (nav.pujaId || nav.stationId || nav.metro || nav.ghat) go({ pujaId: null, stationId: null, metro: false, ghat: false }, { replace: true });
+      if (nav.pujaId || nav.stationId || nav.metro || nav.ghat || nav.meetup) go({ pujaId: null, stationId: null, metro: false, ghat: false, meetup: false }, { replace: true });
     },
-    [filters, nav.pujaId, nav.stationId, nav.metro, nav.ghat, go],
+    [filters, nav.pujaId, nav.stationId, nav.metro, nav.ghat, nav.meetup, go],
   );
 
   const highlightedStations = useMemo(() => {
@@ -400,7 +412,7 @@ function Loaded({ data }) {
 
   /** The Metro button: nearest stations with walking distance in the sheet. */
   const openMetro = useCallback(() => {
-    go({ metro: true, pujaId: null, stationId: null, ghat: false });
+    go({ metro: true, pujaId: null, stationId: null, ghat: false, meetup: false });
     if (!desktop) setSheet((s) => (s === 'peek' || s === 'initial' ? 'half' : s));
     const fit = (point) => {
       const nearest = data.stations
@@ -466,8 +478,8 @@ function Loaded({ data }) {
 
   // Test-only hook, enabled by the e2e suite via `window.__PD_E2E__`.
   useEffect(() => {
-    if (window.__PD_E2E__) window.__pd = { data, openPuja, openStation, openMetro, openGhat, near };
-  }, [data, openPuja, openStation, openMetro, openGhat, near]);
+    if (window.__PD_E2E__) window.__pd = { data, openPuja, openStation, openMetro, openGhat, openMeetup, near };
+  }, [data, openPuja, openStation, openMetro, openGhat, openMeetup, near]);
 
   const context = useMemo(
     () => ({
@@ -491,6 +503,7 @@ function Loaded({ data }) {
       openPuja,
       openStation,
       openGhat,
+      openMeetup,
       back,
       openDirections,
       route,
@@ -519,6 +532,7 @@ function Loaded({ data }) {
       openPuja,
       openStation,
       openGhat,
+      openMeetup,
       back,
       openDirections,
       route,
@@ -530,7 +544,10 @@ function Loaded({ data }) {
   let screen = <Explore />;
   /** @type {React.ReactNode} */
   let footer = null;
-  if (view === 'ghat') {
+  if (view === 'meetup') {
+    screen = <MeetupPage />;
+    footer = <MeetupActions />;
+  } else if (view === 'ghat') {
     screen = <GhatPage />;
     footer = <GhatActions />;
   } else if (view === 'puja' && nav.pujaId) {
@@ -578,6 +595,13 @@ function Loaded({ data }) {
                   ghat={bhasan.active ? BHASAN.ghat : null}
                   ghatSelected={view === 'ghat'}
                   onGhat={openGhat}
+                  meetup={MEETUP.place}
+                  meetupPhoto={MEETUP.photos[0]?.src}
+                  meetupPhotoFocus={MEETUP.photos[0]?.focus}
+                  meetupLabel={MEETUP.pinLabel}
+                  meetupSelected={view === 'meetup'}
+                  onMeetup={openMeetup}
+                  pinStyle={pinStyle}
                   position={rawPosition}
                   tourPoints={NONE}
                   roadMode={false}
@@ -603,6 +627,7 @@ function Loaded({ data }) {
             </ErrorBoundary>
             <OfflineBadge online={online} />
             <MotionLab />
+            <PinLab />
             <ViewCount visits={visitCount} live={liveCount} bottom={pillBottom} full={!desktop && sheet === 'full'} />
             <SearchAreaPill visible={areaPill && view === 'browse'} onSearch={searchThisArea} />
             <ShowKolkata visible={far || emptyView} onClick={showKolkata} label={emptyView ? 'Back to Kolkata' : undefined} />

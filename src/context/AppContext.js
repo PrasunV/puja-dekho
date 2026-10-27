@@ -15,7 +15,7 @@ import { createContext, useContext } from 'react';
  * @property {() => void} showKolkata  Frame the whole city on the map (no personal dot)
  * @property {(then?: (p: import('../lib/types.js').Position) => void) => void} locate
  * @property {ReturnType<typeof import('../hooks/usePujaFilters.js').usePujaFilters>} filters
- * @property {'browse' | 'puja' | 'near' | 'lines' | 'station' | 'metro' | 'ghat'} view  Which state the sheet is in
+ * @property {'browse' | 'puja' | 'near' | 'lines' | 'station' | 'metro' | 'ghat' | 'meetup'} view  Which state the sheet is in
  * @property {import('../hooks/useNav.js').Nav} nav
  * @property {string | null} pujaId
  * @property {import('../lib/types.js').Station | null} station  The metro station whose pujas are shown
@@ -25,6 +25,7 @@ import { createContext, useContext } from 'react';
  * @property {(id: string) => void} openPuja
  * @property {(id: string) => void} openStation
  * @property {() => void} openGhat
+ * @property {() => void} openMeetup
  * @property {import('../lib/route.js').Route | null} route  The walking route drawn for the open puja, if any
  * @property {() => void} back  Same as the browser Back button
  * @property {() => void} openDirections  Called when Get directions is tapped

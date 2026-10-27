@@ -8,9 +8,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * @property {boolean} metro   The "Metro nearby" list is open
  * @property {string[]} lines   Metro lines switched on (`blue`, `green`)
  * @property {boolean} ghat   The Bhasan ghat's details are open
+ * @property {boolean} meetup   The meetup highlights are open
  */
 
-export const HOME = Object.freeze({ pujaId: null, stationId: null, metro: false, lines: /** @type {string[]} */ ([]), ghat: false });
+export const HOME = Object.freeze({ pujaId: null, stationId: null, metro: false, lines: /** @type {string[]} */ ([]), ghat: false, meetup: false });
 
 /** The address of a puja's page: `/?puja=S001`. This is what Share copies and what a shared link opens. */
 export const pujaUrl = (/** @type {string} */ id) => `${location.pathname}?puja=${encodeURIComponent(id)}`;
@@ -18,8 +19,11 @@ export const pujaUrl = (/** @type {string} */ id) => `${location.pathname}?puja=
 /** A shared link opens that puja's details directly; anything else starts at the list. */
 function fromUrl() {
   try {
-    const id = new URLSearchParams(location.search).get('puja');
-    return id ? { ...HOME, pujaId: id } : HOME;
+    const query = new URLSearchParams(location.search);
+    const id = query.get('puja');
+    if (id) return { ...HOME, pujaId: id };
+    // A shared meetup link (/?meetup=1) opens the highlights.
+    return query.get('meetup') === '1' ? { ...HOME, meetup: true } : HOME;
   } catch {
     return HOME;
   }
@@ -31,6 +35,8 @@ const addressFor = (/** @type {Nav} */ nav) => {
   const query = new URLSearchParams(location.search);
   if (nav.pujaId) query.set('puja', nav.pujaId);
   else query.delete('puja');
+  if (nav.meetup) query.set('meetup', '1');
+  else query.delete('meetup');
   const text = query.toString();
   return `${location.pathname}${text ? `?${text}` : ''}${location.hash}`;
 };
@@ -67,7 +73,7 @@ export function useNav() {
     if (
       history.state?.pd &&
       history.length > 1 &&
-      (navRef.current.pujaId || navRef.current.stationId || navRef.current.metro || navRef.current.lines.length || navRef.current.ghat)
+      (navRef.current.pujaId || navRef.current.stationId || navRef.current.metro || navRef.current.lines.length || navRef.current.ghat || navRef.current.meetup)
     ) {
       history.back();
     } else go(HOME, { replace: true });
