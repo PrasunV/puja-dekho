@@ -1,6 +1,8 @@
 // Offline shell. App files (hashed by the build), puja and metro data are cached as they are used,
 // so the app opens without signal after the first visit. Map tiles and live data (queues, closures) need a connection.
-const CACHE = 'pujadekho-v3';
+// v4: Jagadhatri Puja pages (/jagadhatri...) have their own worker (jagadhatripuja-sw.js) and are left alone here,
+// so an offline Jagadhatri visitor never sees the Durga page.
+const CACHE = 'pujadekho-v4';
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches
@@ -21,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== location.origin || url.pathname.startsWith('/api/')) return;
+  if (url.origin !== location.origin || url.pathname.startsWith('/api/') || /^\/jagadhatri/i.test(url.pathname)) return;
   e.respondWith(
     fetch(req)
       .then((res) => {

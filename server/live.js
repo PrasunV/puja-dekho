@@ -29,8 +29,9 @@ const NOT_A_PERSON = /bot|crawl|spider|slurp|preview|facebookexternalhit|lightho
  * @param {() => number} [options.now]
  * @param {() => number} [options.random]  Used to tidy old rows now and then
  * @param {string} [options.dbPath]  Local database file, used when TURSO_DATABASE_URL is not set
+ * @param {string} [options.table]   Presence table (Jagadhatri uses jg_live_presence)
  */
-export function createLiveHandler({ env = process.env, now = Date.now, random = Math.random, dbPath } = {}) {
+export function createLiveHandler({ env = process.env, now = Date.now, random = Math.random, dbPath, table = 'live_presence' } = {}) {
   /** @type {Promise<import('@libsql/client').Client> | null} */
   let clientPromise = null;
 
@@ -48,8 +49,8 @@ export function createLiveHandler({ env = process.env, now = Date.now, random = 
     const client = createClient({ url, authToken: env.TURSO_AUTH_TOKEN });
     await client.batch(
       [
-        'CREATE TABLE IF NOT EXISTS live_presence (id TEXT PRIMARY KEY, seen INTEGER NOT NULL)',
-        'CREATE INDEX IF NOT EXISTS live_presence_seen ON live_presence (seen)',
+        `CREATE TABLE IF NOT EXISTS ${table} (id TEXT PRIMARY KEY, seen INTEGER NOT NULL)`,
+        `CREATE INDEX IF NOT EXISTS ${table}_seen ON ${table} (seen)`,
       ],
       'write',
     );
@@ -80,8 +81,8 @@ export function createLiveHandler({ env = process.env, now = Date.now, random = 
       const cutoff = at - LIVE_WINDOW_MS;
       const asked = new URL(req.url || '/', 'http://localhost').searchParams.get('id') || '';
       const self = ID_PATTERN.test(asked) ? asked : '';
-      const count = { sql: 'SELECT COUNT(*) AS n FROM live_presence WHERE seen > ?', args: [cutoff] };
-      const recent = { sql: 'SELECT COUNT(*) AS n FROM live_presence WHERE seen > ? AND id <> ?', args: [at - RECENT_MS, self] };
+      const count = { sql: `SELECT COUNT(*) AS n FROM ${table} WHERE seen > ?`, args: [cutoff] };
+      const recent = { sql: `SELECT COUNT(*) AS n FROM ${table} WHERE seen > ? AND id <> ?`, args: [at - RECENT_MS, self] };
       /** @type {import('@libsql/client').InStatement[]} */
       const statements = [count, recent];
 
@@ -90,11 +91,11 @@ export function createLiveHandler({ env = process.env, now = Date.now, random = 
         if (!ID_PATTERN.test(id)) return send(res, 400, { error: 'bad_id' });
         if (!NOT_A_PERSON.test(String(req.headers['user-agent'] || ''))) {
           statements.unshift({
-            sql: 'INSERT INTO live_presence (id, seen) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET seen = excluded.seen',
+            sql: `INSERT INTO ${table} (id, seen) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET seen = excluded.seen`,
             args: [id, at],
           });
           // About one check-in in twenty also tidies up, so most calls stay a single round trip with two statements.
-          if (random() < 0.05) statements.push({ sql: 'DELETE FROM live_presence WHERE seen < ?', args: [at - KEEP_MS] });
+          if (random() < 0.05) statements.push({ sql: `DELETE FROM ${table} WHERE seen < ?`, args: [at - KEEP_MS] });
         }
       }
 
