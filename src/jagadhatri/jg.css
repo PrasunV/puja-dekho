@@ -1,0 +1,1063 @@
+/*
+ * Jagadhatri Puja Dekho. Loaded after the Durga styles.css, so shared parts (chips, buttons, bottom sheet, bento,
+ * counter pill) keep the Puja Dekho look; this file adds the design-system tokens and the Jagadhatri layout.
+ * Source of truth: App_DESIGN.md v1.0.0. Sizes are in rem so the phone's text size scales them (1rem = 16px).
+ */
+:root {
+  --color-border-control: #949494;
+  --color-free: #0b7a75;
+  --color-crowded: #c2410c;
+  --scrim: rgba(30, 8, 10, 0.32);
+  --scrim-strong: rgba(30, 8, 10, 0.56);
+  --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
+  --jg-top-h: 132px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-border-control: #6b6b6b;
+    --color-free: #35b3aa;
+    --color-crowded: #f0813f;
+    --scrim: rgba(0, 0, 0, 0.5);
+    --scrim-strong: rgba(0, 0, 0, 0.6);
+    --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Type styles (design section 3) ---- */
+.jg-title {
+  margin: 0;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.jg-body {
+  margin: 0 0 12px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  color: var(--ink);
+}
+.jg-meta {
+  margin: 2px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.jg-caption {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-label {
+  margin: 16px 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+.jg a:not(.btn) {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ---- Layout ---- */
+.jg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+.jg-stage {
+  position: absolute;
+  inset: 0;
+}
+.jg-map-wrap,
+.jg-map {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-2);
+}
+.jg-map-loading {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-2);
+}
+.jg-map-fail {
+  position: absolute;
+  inset: var(--jg-top-h) 16px auto;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--float-shadow);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-map-fail p {
+  margin: 0;
+}
+/* The map attribution (required by the map data licence) sits under the chip row. */
+.jg .maplibregl-ctrl-top-right {
+  top: var(--jg-top-h);
+}
+
+/* ---- Top: search bar and chip row (floating, design 7.1 and 7.3) ---- */
+.jg-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1160;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 0 0;
+  pointer-events: none;
+}
+.jg-top > * {
+  pointer-events: auto;
+}
+.jg-search-wrap {
+  padding: 0 12px;
+}
+.jg-search-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.jg-search {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 0 4px 0 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: var(--float-shadow);
+  border: 1px solid transparent;
+}
+.jg-search.open {
+  border-color: var(--color-border-control);
+}
+.jg-fav {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+}
+.jg-fav img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: block;
+}
+.jg .jg-search-input,
+.jg-search-picked {
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+  box-shadow: none;
+  flex: 1;
+  min-width: 0;
+  height: 46px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: 1rem; /* 16px stops iOS zooming into the field */
+  line-height: 1.25rem;
+  color: var(--ink);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jg-search-picked {
+  font-weight: 600;
+}
+.jg-search-input::placeholder {
+  color: var(--muted);
+}
+.jg-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+.jg-search-ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.jg-avatar {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: 2px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--float-shadow);
+}
+.jg-icon-btn {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+}
+.jg-icon-btn:active {
+  background: var(--surface-2);
+}
+
+/* Search panel: a card under the bar, over a light scrim. */
+.jg-search-panel {
+  margin-top: 8px;
+  max-height: calc(100dvh - 96px - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px 12px 12px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+.jg-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+  margin: 0 -12px;
+  padding: 0 12px;
+}
+.jg-tab {
+  flex: 1;
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+.jg-tab[aria-selected='true'] {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--maroon);
+}
+.jg-suggest {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  border-bottom: 1px solid var(--line);
+}
+.jg-suggest:last-child {
+  border-bottom: 0;
+}
+.jg-suggest-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--ink);
+}
+.jg-suggest-ic {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.jg-suggest-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.jg-suggest-title {
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jg-suggest-meta {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-copy {
+  color: var(--muted);
+}
+.jg-chip-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Chip row: More pinned on the left, the rest scroll with snap points and let the last chip clip. */
+.jg-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0 8px 12px; /* room for the What's new glow */
+  transition: opacity 0.2s ease-out;
+}
+.jg-top[data-fade] .jg-chips {
+  opacity: 0;
+  pointer-events: none;
+  transition-duration: 0.1s;
+}
+.jg-chip-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 6px 12px 6px 4px;
+  margin: -6px 0;
+}
+.jg-chip-scroll::-webkit-scrollbar {
+  display: none;
+}
+.jg-chip-scroll > * {
+  scroll-snap-align: start;
+}
+.jg .chip.jg-chip {
+  min-height: 40px;
+  padding: 0 16px;
+  gap: 6px;
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  box-shadow: var(--float-shadow);
+}
+.jg .chip.jg-chip[aria-pressed='true'] {
+  border: 2px solid var(--maroon);
+  background: var(--surface-2);
+  font-weight: 600;
+  padding: 0 15px;
+}
+.jg .chip.jg-chip.whats-new[aria-pressed='true'] {
+  border: 2px solid transparent;
+  padding: 0 16px;
+}
+.jg .chip.jg-more {
+  flex: none;
+}
+.jg-offline {
+  margin: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--toast-bg);
+  color: var(--toast-ink);
+  font-size: 0.8125rem;
+  line-height: 1rem;
+}
+
+/* ---- Scrims and dimming (design 7.4) ---- */
+.jg-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  background: var(--scrim);
+}
+.jg-scrim.light {
+  z-index: 1100;
+}
+.jg-scrim.strong {
+  z-index: 1170;
+  background: var(--scrim-strong);
+}
+
+/* ---- Map floating controls ---- */
+.jg .view-pill {
+  font-size: 0.8125rem;
+  min-height: 32px;
+  box-shadow: var(--float-shadow);
+}
+.jg-tools {
+  top: auto;
+  right: 12px;
+}
+.jg-locate {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--float-shadow);
+}
+.jg-locate[data-state='on'] {
+  color: var(--me);
+}
+.jg-slash {
+  position: absolute;
+  width: 26px;
+  height: 2px;
+  background: currentColor;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 0 1.5px var(--surface);
+}
+.jg-spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  border-top-color: var(--me);
+  animation: jg-spin 0.8s linear infinite;
+}
+@keyframes jg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Station and ghat pins (design 7.11). */
+.jg-station-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.jg-station-ic {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  /* The map stays light in dark mode, so station pins keep their light-theme colours. */
+  background: #4a0e14;
+  color: #ffffff;
+  box-shadow:
+    0 0 0 2px #ffffff,
+    0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.jg-station-pin.ghat .jg-station-ic {
+  border-radius: 50%;
+}
+.jg-station-name {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 700;
+  color: #2b1214;
+  white-space: nowrap;
+  text-shadow:
+    0 0 2px #fff,
+    0 0 2px #fff,
+    0 0 3px #fff;
+}
+
+/* ---- Bottom sheet content ---- */
+.jg .panel {
+  box-shadow: var(--float-shadow);
+}
+.jg .peek-line {
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.jg-list-head,
+.jg-state {
+  padding: 2px 0 8px;
+}
+.jg-within {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 48px;
+}
+.jg-within .jg-title {
+  margin-right: 4px;
+}
+.jg-clear {
+  margin-left: auto;
+}
+.jg .btn.text {
+  min-height: 48px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.jg-radius {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 40px;
+  padding: 0 10px 0 12px;
+  border: 1px solid var(--color-border-control);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+}
+.jg-radius::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+.jg-menu {
+  position: fixed;
+  z-index: 1300;
+  min-width: 188px;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+.jg-menu button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  text-align: left;
+}
+.jg-menu [aria-selected='true'] button {
+  background: var(--surface-2);
+  font-weight: 700;
+}
+.jg-menu-label {
+  min-width: 48px;
+  font-variant-numeric: tabular-nums;
+}
+.jg-menu-count {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.jg-note {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+.jg-note .ic {
+  margin-top: 1px;
+}
+
+.jg-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-row {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.jg-row:active {
+  background: var(--surface-2);
+}
+.jg-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jg-row-title {
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jg-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+  min-width: 0;
+}
+.jg-row-meta > span:last-child {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jg-row-stat {
+  flex: none;
+  font-size: 1.0625rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.jg-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.jg-row-meta .jg-tag {
+  min-height: 20px;
+  padding: 1px 6px;
+  flex: none;
+}
+.jg-tag.must {
+  background: var(--accent-soft);
+  color: var(--accent-text, var(--accent-ink));
+}
+.jg-tag.proc {
+  background: var(--maroon);
+  color: var(--on-maroon);
+}
+.jg-empty {
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.jg-empty p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-more-rows {
+  margin-top: 12px;
+}
+.jg-btn-outline {
+  border-color: var(--color-border-control);
+}
+.jg .btn[disabled] {
+  opacity: 0.4;
+}
+.jg .btn.small {
+  min-height: 40px;
+  font-size: 0.875rem;
+}
+.jg-two {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.jg-two > .btn {
+  flex: 1 1 140px;
+}
+.jg-state-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+}
+
+/* Puja sheet (design 7.6) */
+.jg-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 4px;
+}
+.jg-detail-head .jg-icon-btn {
+  margin: -8px -12px 0 0;
+}
+.jg-detail-titles {
+  min-width: 0;
+}
+.jg-puja-name {
+  overflow-wrap: anywhere;
+}
+.jg-bn {
+  margin: 2px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  color: var(--ink);
+}
+.jg-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0;
+}
+.jg-bento {
+  margin: 0 0 12px;
+}
+.jg .bento-card {
+  background: var(--tile);
+  border-radius: 16px;
+  box-shadow: none;
+}
+.jg .bento-title {
+  font-size: 0.875rem;
+}
+.jg-bento-preview,
+.jg-bento-text {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: var(--tile-body);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.jg-bento-text {
+  display: block;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-bento-preview.muted,
+.jg-bento-text.muted {
+  color: var(--muted);
+}
+.jg-facts {
+  margin: 0 0 12px;
+}
+.jg-facts > div {
+  display: grid;
+  grid-template-columns: minmax(96px, 30%) 1fr;
+  gap: 8px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-facts dt {
+  color: var(--muted);
+}
+.jg-facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.jg-soon {
+  margin: 4px 0 8px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.jg-actions .btn.primary {
+  flex: 1 1 auto;
+  border-color: var(--primary);
+}
+.jg-actions .jg-btn-outline {
+  flex: 0 0 auto;
+}
+@media (max-width: 340px) {
+  .jg-actions {
+    flex-wrap: wrap;
+  }
+  .jg-actions .jg-btn-outline {
+    flex: 1 1 auto;
+  }
+}
+
+/* What's new */
+.jg-news {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--tile);
+}
+.jg-news-title {
+  margin: 8px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+  color: var(--tile-head);
+}
+.jg-news-facts {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-news-facts li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.jg-news-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.jg-photos {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+.jg-photos img {
+  height: 120px;
+  border-radius: 12px;
+}
+.jg-disclaimer {
+  margin-top: 16px;
+}
+
+/* ---- Choosing sheets (design 7.4) ---- */
+.jg-modal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1200;
+  max-height: min(85dvh, calc(100dvh - 120px));
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  border-radius: 24px 24px 0 0;
+  background: var(--surface);
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.16);
+  outline: none;
+}
+.jg-handle {
+  flex: none;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  touch-action: none;
+  cursor: grab;
+}
+.jg-handle span {
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--handle);
+}
+.jg-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 4px 0 16px;
+}
+.jg-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px 16px;
+}
+.jg-modal-foot {
+  flex: none;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.jg-modal-foot .jg-two {
+  justify-content: space-between;
+  align-items: center;
+}
+.jg-modal-foot .jg-two > .btn.text {
+  flex: 0 0 auto;
+}
+.jg-choice {
+  width: 100%;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.jg-choice[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.jg-choice-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.jg-choice-label {
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-choice[aria-pressed='true'] .jg-choice-label {
+  font-weight: 700;
+}
+.jg-choice-count {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-choice-tick {
+  flex: none;
+  width: 24px;
+  color: var(--maroon);
+}
+.jg-group .jg-label:first-child {
+  margin-top: 8px;
+}
+
+/* ---- Toast (design 7.18) ---- */
+.jg-toast-zone {
+  position: absolute;
+  left: 72px;
+  right: 72px;
+  z-index: 1120;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.jg-toast {
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: var(--toast-bg);
+  color: var(--toast-ink);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  box-shadow: var(--float-shadow);
+  text-align: center;
+}
+
+/* ---- Loading and failure ---- */
+.jg-loading {
+  position: fixed;
+  inset: 0;
+  padding: calc(env(safe-area-inset-top, 0px) + 12px) 12px;
+  background: var(--surface-2);
+}
+.jg-skel {
+  background: var(--line);
+  border-radius: 999px;
+}
+.jg-skel.bar {
+  height: 48px;
+}
+.jg-skel.chips {
+  height: 40px;
+  width: 70%;
+  margin-top: 12px;
+}
+.jg-fail {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+/* ---- Wide screens: the sheet and search sit in a left column, like Google Maps on a laptop ---- */
+@media (min-width: 900px) {
+  .jg .panel {
+    left: 16px;
+    right: auto;
+    width: 420px;
+  }
+  .jg-top {
+    right: auto;
+    width: 452px;
+  }
+  .jg-modal {
+    left: 16px;
+    right: auto;
+    width: 440px;
+  }
+  .jg-toast-zone {
+    left: 452px;
+    right: 72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jg-chips,
+  .jg-top[data-fade] .jg-chips {
+    transition: none;
+  }
+  .jg-spinner {
+    animation-duration: 2s;
+  }
+}

@@ -10,6 +10,18 @@
     {
       "source": "/api/(.*)",
       "destination": "/api"
+    },
+    {
+      "source": "/jagadhatripuja",
+      "destination": "/jagadhatripuja/index.html"
+    },
+    {
+      "source": "/Jagadhatripuja",
+      "destination": "/jagadhatripuja/index.html"
+    },
+    {
+      "source": "/JagadhatriPuja",
+      "destination": "/jagadhatripuja/index.html"
     }
   ],
   "headers": [
@@ -33,6 +45,27 @@
           "value": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://tiles.openfreemap.org https://api.openrouteservice.org; base-uri 'self'; form-action 'self'"
         }
       ]
+    },
+    {
+      "source": "/jagadhatripuja-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/jagadhatri",
+      "destination": "/jagadhatripuja",
+      "permanent": true
+    },
+    {
+      "source": "/Jagadhatri",
+      "destination": "/jagadhatripuja",
+      "permanent": true
     }
   ]
 }

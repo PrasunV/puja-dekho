@@ -31,7 +31,7 @@ export default [
   {
     files: ['src/**/*.{js,jsx}'],
     plugins: { react, 'react-hooks': reactHooks, 'jsx-a11y': jsxA11y },
-    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: true } } },
+    languageOptions: { ecmaVersion: 2025, sourceType: 'module', globals: globals.browser, parserOptions: { ecmaFeatures: { jsx: true } } },
     settings: { react: { version: '18' } },
     rules: {
       ...react.configs.recommended.rules,
@@ -46,7 +46,7 @@ export default [
   },
   {
     files: ['server/**/*.js', 'api/**/*.js', 'test/**/*.js', 'e2e/**/*.js', '*.config.js'],
-    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: globals.node },
+    languageOptions: { ecmaVersion: 2025, sourceType: 'module', globals: globals.node },
     rules: shared,
   },
   {
@@ -54,6 +54,6 @@ export default [
     files: ['e2e/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
-  { files: ['public/sw.js'], languageOptions: { globals: globals.serviceworker } },
+  { files: ['public/sw.js', 'public/jagadhatripuja-sw.js'], languageOptions: { globals: globals.serviceworker } },
   prettier,
 ];

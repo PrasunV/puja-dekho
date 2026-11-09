@@ -22,9 +22,10 @@ function deviceId() {
  * in the last 2 hours (`recent`). While the app is visible it checks in every 30 seconds, and straight away when you
  * come back to it. A hidden tab stops checking in and drops off the count after about 90 seconds. With no fresh
  * answer this is null.
+ * @param {{ path?: string }} [options]  Jagadhatri passes /jagadhatri/live.
  * @returns {{ count: number, recent: number } | null}
  */
-export function useLiveCount() {
+export function useLiveCount({ path = '/live' } = {}) {
   const [live, setLive] = useState(/** @type {{ count: number, recent: number } | null} */ (null));
   useEffect(() => {
     const id = deviceId();
@@ -33,7 +34,7 @@ export function useLiveCount() {
     const beat = () => {
       controller.abort();
       controller = new AbortController();
-      api(`/live?id=${id}`, { method: 'POST', signal: controller.signal })
+      api(`${path}?id=${id}`, { method: 'POST', signal: controller.signal })
         .then((result) => {
           if (typeof result?.count !== 'number') return;
           lastOk = Date.now();
@@ -57,6 +58,6 @@ export function useLiveCount() {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [path]);
   return live;
 }
