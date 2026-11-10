@@ -208,6 +208,7 @@ export function RadiusTrigger({ radius, steps, counts, onChange }) {
  * @param {() => void} props.onAbout
  * @param {() => void} props.onProfile
  * @param {() => void} props.onSeePopular
+ * @param {import('react').Ref<HTMLDivElement>} [props.rowRef]  Measured so the full sheet can stop under it
  */
 export function SearchBar({
   popular,
@@ -222,6 +223,7 @@ export function SearchBar({
   onAbout,
   onProfile,
   onSeePopular,
+  rowRef,
 }) {
   const [text, setText] = useState('');
   const [tab, setTab] = useState(/** @type {'pujas' | 'stations'} */ ('pujas'));
@@ -248,7 +250,7 @@ export function SearchBar({
 
   return (
     <div className="jg-search-wrap">
-      <div className="jg-search-row">
+      <div className="jg-search-row" ref={rowRef}>
         <div className={`jg-search${open ? ' open' : ''}`}>
           <button type="button" className="jg-fav" aria-label="About Puja Dekho" onClick={onAbout}>
             <img src="/icon.svg" width="36" height="36" alt="" />

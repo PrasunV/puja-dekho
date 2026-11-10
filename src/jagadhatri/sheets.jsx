@@ -5,16 +5,18 @@ import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
 
 /**
  * One row of the puja list (design: rows 52 tall, the name truncates, distances never do).
- * @param {{ puja: import('./lib.js').JgPuja, d: number | null, onOpen: (id: string) => void }} props
+ * @param {{ puja: import('./lib.js').JgPuja, d: number | null, onOpen: (id: string) => void, showTag?: boolean }} props
  */
-export function PujaRow({ puja, d, onOpen }) {
+export function PujaRow({ puja, d, onOpen, showTag = false }) {
   return (
     <li>
       <button type="button" className="jg-row" onClick={() => onOpen(puja.id)}>
         <span className="jg-row-text">
-          <span className="jg-row-title">{puja.n}</span>
+          <span className="jg-row-head">
+            <span className="jg-row-title">{puja.n}</span>
+            {showTag && puja.pop && <span className="jg-tag must">Must visit</span>}
+          </span>
           <span className="jg-row-meta">
-            {puja.pop && <span className="jg-tag must">Must visit</span>}
             <span>{[puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}</span>
           </span>
         </span>

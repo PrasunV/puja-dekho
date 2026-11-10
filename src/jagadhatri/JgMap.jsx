@@ -1,6 +1,13 @@
 import maplibregl from 'maplibre-gl';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { MAP_BOUNDS, MAP_CENTER, MAP_STYLE_URL, MAP_ZOOM } from './config.js';
+import { MAP_BOUNDS, MAP_CENTER, MAP_STYLE_URL, MAP_STYLE_URL_DARK, MAP_ZOOM } from './config.js';
+
+const darkQuery = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null);
+/** Pin, label and location colours for each phone theme (design tokens --color-primary, surface, text, me). */
+const THEME = {
+  light: { primary: '#B31D24', surface: '#FFFFFF', ink: '#2B1214', me: '#1A73E8' },
+  dark: { primary: '#E0434B', surface: '#1C1C1C', ink: '#F2F2F2', me: '#669DF6' },
+};
 
 /**
  * The Jagadhatri map (MapLibre). Puja pins are one GeoJSON source drawn as circles, with name labels in a symbol layer
@@ -128,7 +135,7 @@ const JgMap = forwardRef(
       if (!box.current) return undefined;
       const map = new maplibregl.Map({
         container: box.current,
-        style: MAP_STYLE_URL,
+        style: darkQuery()?.matches ? MAP_STYLE_URL_DARK : MAP_STYLE_URL,
         center: [MAP_CENTER[1], MAP_CENTER[0]],
         zoom: MAP_ZOOM,
         minZoom: 11,
@@ -144,12 +151,9 @@ const JgMap = forwardRef(
       mapRef.current = map;
       if (/** @type {any} */ (window).__PD_E2E__) /** @type {any} */ (window).__jgMap = map;
 
-      map.on('load', () => {
-        // The map tiles are light in both phone themes, so the pins and labels use the light-theme colours.
-        const primary = '#b31d24';
-        const surface = '#ffffff';
-        const ink = '#2b1214';
-        const me = '#1a73e8';
+      // Puja layers on top of the map style. Run again after a theme switch, because a new style drops them.
+      const addLayers = () => {
+        const { primary, surface, ink, me } = darkQuery()?.matches ? THEME.dark : THEME.light;
         const font = map.getStyle().layers.find((l) => l.type === 'symbol' && l.layout?.['text-font'])?.layout?.['text-font'] || [
           'Noto Sans Regular',
         ];
@@ -237,7 +241,11 @@ const JgMap = forwardRef(
           source: 'jg-me',
           paint: { 'circle-radius': 7, 'circle-color': me, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
         });
+      };
 
+      map.on('load', () => {
+        addLayers();
+        const p = latest.current;
         // Stations and ghats: HTML markers, so the train and boat icons stay crisp and each has a 48 px tap area.
         for (const s of p.stations) {
           const el = document.createElement('button');
@@ -256,6 +264,20 @@ const JgMap = forwardRef(
         syncAll();
         latest.current.onReady?.();
       });
+
+      // The map follows the phone's light or dark setting, like the rest of the app (design 2.3).
+      const mq = darkQuery();
+      const onTheme = () => {
+        if (!ready.current) return;
+        ready.current = false;
+        map.setStyle(mq?.matches ? MAP_STYLE_URL_DARK : MAP_STYLE_URL);
+        map.once('style.load', () => {
+          addLayers();
+          ready.current = true;
+          syncAll();
+        });
+      };
+      mq?.addEventListener?.('change', onTheme);
 
       // No style (offline on a first visit): say so instead of showing an empty map.
       // A failed tile or icon has a source; only a style that never arrived counts as the map failing.
@@ -307,6 +329,7 @@ const JgMap = forwardRef(
         settle = window.setTimeout(() => latest.current.onPan(false), 200);
       });
       return () => {
+        mq?.removeEventListener?.('change', onTheme);
         clearTimeout(settle);
         map.remove();
         mapRef.current = null;

@@ -57,6 +57,8 @@ export const MAP_BOUNDS = /** @type {[[number, number], [number, number]]} */ ([
   [88.47, 22.95],
 ]); // [[west, south], [east, north]]
 export const MAP_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
+/** Used when the phone is in dark mode. */
+export const MAP_STYLE_URL_DARK = 'https://tiles.openfreemap.org/styles/dark';
 
 /** Near me radius steps, in metres. The first is the default. */
 export const RADIUS_STEPS = Object.freeze([500, 1000, 2000, 5000]);

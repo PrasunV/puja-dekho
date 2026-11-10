@@ -97,6 +97,22 @@ function Loaded({ data }) {
 
   const [view, setView] = useState(/** @type {View} */ ({ kind: 'list' }));
   const [sheet, setSheet] = useState(/** @type {'peek' | 'initial' | 'half' | 'full'} */ ('initial'));
+  // The full sheet stops 8 px under the search bar's tap area (4-point grid). Measured, so safe areas and text size count.
+  const searchRowRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const [topInset, setTopInset] = useState(76);
+  useEffect(() => {
+    const el = searchRowRef.current;
+    if (!el) return undefined;
+    const measure = () => setTopInset(Math.round(el.getBoundingClientRect().bottom + 8));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
   const [filters, setFilters] = useState(NO_FILTERS);
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile'} */ (null));
   const [searchOpen, setSearchOpen] = useState(false);
@@ -274,6 +290,25 @@ function Loaded({ data }) {
       ? 'Finding you…'
       : `Near me · ${near.radius < 1000 ? `${near.radius} m` : `${near.radius / 1000} km`}`;
   const nMore = moreCount(filters);
+  // Filters switched on inside More, shown as chips at the start of the row so they stay visible (as in Google Maps).
+  const appliedChips = [
+    ...filters.towns.map((t) => ({
+      key: `t-${t}`,
+      label: t,
+      remove: () => setFilters((f) => ({ ...f, towns: f.towns.filter((x) => x !== t) })),
+    })),
+    ...filters.ages.map((a) => ({
+      key: `a-${a}`,
+      label: AGE_GROUPS.find((g) => g[0] === a)?.[1] ?? a,
+      remove: () => setFilters((f) => ({ ...f, ages: f.ages.filter((x) => x !== a) })),
+    })),
+    ...(filters.procession ? [{ key: 'proc', label: 'Procession', remove: () => setFilters((f) => ({ ...f, procession: false })) }] : []),
+    ...filters.zones.map((z) => ({
+      key: `z-${z}`,
+      label: `Zone ${z}`,
+      remove: () => setFilters((f) => ({ ...f, zones: f.zones.filter((x) => x !== z) })),
+    })),
+  ];
 
   // ---------- Sheet content ----------
   const selectedId = view.kind === 'puja' ? view.id : null;
@@ -328,8 +363,13 @@ function Loaded({ data }) {
 
   return (
     <div className="jg" data-dim={choosing && choosing !== 'locate' && choosing !== 'profile' ? '' : undefined}>
-      <header className="jg-top" data-fade={panning && !searchOpen ? '' : undefined}>
+      <header
+        className="jg-top"
+        data-fade={panning && !searchOpen ? '' : undefined}
+        data-full={sheet === 'full' && !searchOpen ? '' : undefined}
+      >
         <SearchBar
+          rowRef={searchRowRef}
           popular={popular}
           stations={stations}
           pujaIndex={pujaIndex}
@@ -351,19 +391,22 @@ function Loaded({ data }) {
             setSheet('half');
           }}
         />
-        {!searchOpen && (
+        {!searchOpen && sheet !== 'full' && (
           <nav className="jg-chips" aria-label="Filters">
-            <button
-              type="button"
-              className="chip compact jg-chip jg-more"
-              aria-pressed={nMore > 0}
-              aria-haspopup="dialog"
-              onClick={() => setChoosing('more')}
-            >
-              <Icon name="sliders" size={16} />
-              {nMore > 0 ? `More · ${nMore}` : 'More'}
-            </button>
             <div className="jg-chip-scroll">
+              {appliedChips.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  className="chip compact jg-chip jg-applied"
+                  aria-pressed="true"
+                  aria-label={`Remove filter: ${c.label}`}
+                  onClick={c.remove}
+                >
+                  {c.label}
+                  <Icon name="x" size={16} />
+                </button>
+              ))}
               <WhatsNewChip
                 open={view.kind === 'whatsnew'}
                 onOpen={() => {
@@ -406,6 +449,16 @@ function Loaded({ data }) {
               >
                 {filters.type || 'Puja type'}
                 <Icon name="chevron" size={16} />
+              </button>
+              <button
+                type="button"
+                className="chip compact jg-chip"
+                aria-pressed={nMore > 0}
+                aria-haspopup="dialog"
+                onClick={() => setChoosing('more')}
+              >
+                <Icon name="sliders" size={16} />
+                {nMore > 0 ? `More · ${nMore}` : 'More'}
               </button>
             </div>
           </nav>
@@ -471,7 +524,7 @@ function Loaded({ data }) {
           </button>
         </div>
 
-        <BottomSheet sheet={sheet} onSheetChange={setSheet} desktop={false} peek={peek} footer={footer}>
+        <BottomSheet sheet={sheet} onSheetChange={setSheet} desktop={false} peek={peek} footer={footer} topInset={topInset}>
           {body}
         </BottomSheet>
       </main>
@@ -678,7 +731,15 @@ function ListBody({
     setShown(60);
   }
   const filtered = filters.mustVisit || filters.type || moreCount(filters) > 0;
-  const chips = [filters.mustVisit && 'Must visit', filters.type, moreCount(filters) > 0 && `${moreCount(filters)} more`].filter(Boolean);
+  // Name every filter that is on, so the summary reads "Must visit · Jubilee · Bhadreswar", never "1 more".
+  const chips = [
+    filters.mustVisit && 'Must visit',
+    filters.type,
+    ...filters.towns,
+    ...filters.ages.map((a) => AGE_GROUPS.find((g) => g[0] === a)?.[1] ?? a),
+    filters.procession && 'Procession',
+    ...filters.zones.map((z) => `Zone ${z}`),
+  ].filter(Boolean);
 
   // Near me states before there are results.
   if (near.on && !centre) {
@@ -758,7 +819,7 @@ function ListBody({
                 </button>
               )}
             </div>
-            <p className="jg-meta">{filtered ? chips.join(' · ') : 'Chandannagar, Mankundu and Bhadreswar · Must visit first'}</p>
+            {filtered && <p className="jg-meta">{chips.join(' · ')}</p>}
           </>
         )}
       </div>
@@ -776,17 +837,49 @@ function ListBody({
           )}
         </div>
       ) : (
-        <ul className="jg-list">
-          {list.slice(0, shown).map((r) => (
-            <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} />
-          ))}
-        </ul>
+        <ListRows list={list.slice(0, shown)} sectioned={!centre} onOpen={onOpen} total={list} />
       )}
       {list.length > shown && (
         <button type="button" className="btn block jg-btn-outline jg-more-rows" onClick={() => setShown((n) => n + 60)}>
           {`Show ${Math.min(60, list.length - shown)} more`}
         </button>
       )}
+    </>
+  );
+}
+
+/**
+ * The rows. Without a centre: "Must visit" then "Other pujas", each heading with its count and pinned while its rows
+ * scroll. With Near me or a station: one list, nearest first, with the Must visit tag after the name.
+ */
+function ListRows({ list, sectioned, onOpen, total }) {
+  if (!sectioned) {
+    return (
+      <ul className="jg-list">
+        {list.map((r) => (
+          <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} showTag />
+        ))}
+      </ul>
+    );
+  }
+  const groups = [
+    ['Must visit', list.filter((r) => r.puja.pop), total.filter((r) => r.puja.pop).length],
+    ['Other pujas', list.filter((r) => !r.puja.pop), total.filter((r) => !r.puja.pop).length],
+  ].filter(([, rows]) => rows.length > 0);
+  return (
+    <>
+      {groups.map(([title, rows, count]) => (
+        <section key={title} className="jg-section" aria-label={`${title}, ${pujaCount(count)}`}>
+          <h3 className="jg-section-head">
+            {title} <span className="jg-section-count">{count.toLocaleString('en-IN')}</span>
+          </h3>
+          <ul className="jg-list">
+            {rows.map((r) => (
+              <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} />
+            ))}
+          </ul>
+        </section>
+      ))}
     </>
   );
 }

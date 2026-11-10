@@ -27,10 +27,11 @@ const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(pre
  * The four heights for a stage of this height.
  * @param {number} stage
  */
-const snapsFor = (stage, floor = 0) => {
+const snapsFor = (stage, floor = 0, topInset = 0) => {
   // Larger text (Android font size, iOS Dynamic Type) makes the title and the pinned buttons taller. The resting
   // heights never go below `floor` (the buttons plus the title block), so something is always readable above them.
-  const full = stage * SHARE.full;
+  // `topInset`: when set, the full sheet stops that many px below the top of the stage (Jagadhatri: under its search bar).
+  const full = topInset > 0 ? Math.max(stage * SHARE.half + 56, stage - topInset) : stage * SHARE.full;
   const initial = Math.min(Math.max(stage * SHARE.initial, floor), stage * SHARE.half);
   const half = Math.min(Math.max(stage * SHARE.half, initial + 56), full - 56);
   return { peek: stage * SHARE.peek, initial, half: Math.max(half, initial), full };
@@ -53,8 +54,9 @@ const TITLE_MAX_PX = 260;
  * @param {React.ReactNode} props.peek  The one line shown at the peek
  * @param {React.ReactNode} [props.footer]  Buttons pinned at the bottom
  * @param {React.ReactNode} props.children
+ * @param {number} [props.topInset]  Stop the full sheet this many px below the top (default: 93% of the stage)
  */
-export default function BottomSheet({ sheet, onSheetChange, desktop, peek, footer, children }) {
+export default function BottomSheet({ sheet, onSheetChange, desktop, peek, footer, children, topInset = 0 }) {
   if (desktop) {
     return (
       <section className="panel" data-sheet={sheet}>
@@ -67,7 +69,7 @@ export default function BottomSheet({ sheet, onSheetChange, desktop, peek, foote
     );
   }
   return (
-    <PhoneSheet sheet={sheet} onSheetChange={onSheetChange} peek={peek} footer={footer}>
+    <PhoneSheet sheet={sheet} onSheetChange={onSheetChange} peek={peek} footer={footer} topInset={topInset}>
       {children}
     </PhoneSheet>
   );
@@ -90,7 +92,7 @@ export default function BottomSheet({ sheet, onSheetChange, desktop, peek, foote
  * so they follow it without React re-rendering. `data-sheet` on the
  * panel is the committed state and changes the moment a drag is released.
  */
-function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
+function PhoneSheet({ sheet, onSheetChange, peek, footer, children, topInset = 0 }) {
   const panelRef = useRef(/** @type {HTMLElement | null} */ (null));
   const bodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const height = useMotionValue(0);
@@ -103,6 +105,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     onSheetChange,
     stage: 0,
     floor: 0,
+    topInset,
     bottom: 0,
     target: sheet,
     anim: /** @type {ReturnType<typeof animate> | null} */ (null),
@@ -113,6 +116,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
   useEffect(() => {
     live.current.sheet = sheet;
     live.current.onSheetChange = onSheetChange;
+    live.current.topInset = topInset;
   });
 
   useLayoutEffect(() => {
@@ -121,7 +125,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children }) {
     if (!panel || !stage) return undefined;
     const L = live.current;
 
-    const snaps = () => snapsFor(L.stage, L.floor);
+    const snaps = () => snapsFor(L.stage, L.floor, L.topInset || 0);
     /** The pinned buttons' height, plus the title block. Read here, never per frame. */
     const readFloor = () => {
       const foot = /** @type {HTMLElement | null} */ (panel.querySelector('.panel-foot'));
