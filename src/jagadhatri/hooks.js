@@ -154,13 +154,21 @@ export function useBackClose(open, onClose) {
 
 /** Polite screen-reader and on-screen toast: past tense, 1 to 5 words (design 7.18). */
 export function useToast() {
-  const [toast, setToast] = useState(/** @type {{ text: string, id: number } | null} */ (null));
+  const [toast, setToast] = useState(
+    /** @type {{ text: string, id: number, action?: { label: string, run: () => void } } | null} */ (null),
+  );
   const timer = useRef(0);
-  const show = useCallback((/** @type {string} */ text, ms = 3200) => {
+  /** An action (Undo) keeps the toast at least 5 seconds (design 7.18). */
+  /** @type {(text: string, ms?: number, action?: { label: string, run: () => void }) => void} */
+  const show = useCallback((text, ms = 3200, action = undefined) => {
     clearTimeout(timer.current);
-    setToast({ text, id: Date.now() });
-    timer.current = window.setTimeout(() => setToast(null), ms);
+    setToast({ text, id: Date.now(), action });
+    timer.current = window.setTimeout(() => setToast(null), action ? Math.max(ms, 5000) : ms);
+  }, []);
+  const hide = useCallback(() => {
+    clearTimeout(timer.current);
+    setToast(null);
   }, []);
   useEffect(() => () => clearTimeout(timer.current), []);
-  return { toast, show };
+  return { toast, show, hide };
 }

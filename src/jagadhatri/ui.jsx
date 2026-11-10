@@ -4,14 +4,39 @@ import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 import { formatRadius, pujas as pujaCount, search } from './lib.js';
 
+/**
+ * The person's Google photo, or their initials when there is none or it fails to load.
+ * @param {{ user: { name: string, picture: string | null }, size?: number }} props
+ */
+export function Avatar({ user, size = 40 }) {
+  const [broken, setBroken] = useState(false);
+  const initials =
+    user.name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0])
+      .join('')
+      .toUpperCase() || '?';
+  return (
+    <span className="jg-face" style={{ width: size, height: size, fontSize: Math.round(size * 0.4) }} aria-hidden="true">
+      {user.picture && !broken ? (
+        <img src={user.picture} alt="" width={size} height={size} referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+      ) : (
+        initials
+      )}
+    </span>
+  );
+}
+
 const SHEET_EASE = /** @type {const} */ ([0.25, 1, 0.5, 1]);
 
 /**
  * A choosing sheet (Puja type, Stations & ghats, More, the location question): a bottom sheet over a dimmed screen,
  * one level deep. Drag down, the handle, the close button, Escape or a tap on the dim closes it.
- * @param {{ open: boolean, title: string, onClose: () => void, footer?: import('react').ReactNode, children: import('react').ReactNode, strong?: boolean, label?: string }} props
+ * @param {{ open: boolean, title: string, onClose: () => void, footer?: import('react').ReactNode, children: import('react').ReactNode, strong?: boolean, label?: string, className?: string, onBodyScroll?: (e: import('react').UIEvent<HTMLDivElement>) => void }} props
  */
-export function ModalSheet({ open, title, onClose, footer, children, strong = false, label }) {
+export function ModalSheet({ open, title, onClose, footer, children, strong = false, label, className = '', onBodyScroll }) {
   const reduce = useReducedMotion();
   const controls = useDragControls();
   const titleId = useId();
@@ -44,7 +69,7 @@ export function ModalSheet({ open, title, onClose, footer, children, strong = fa
           <motion.div
             key="sheet"
             ref={ref}
-            className="jg-modal"
+            className={`jg-modal ${className}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
@@ -72,7 +97,9 @@ export function ModalSheet({ open, title, onClose, footer, children, strong = fa
                 <Icon name="x" />
               </button>
             </div>
-            <div className="jg-modal-body">{children}</div>
+            <div className="jg-modal-body" onScroll={onBodyScroll}>
+              {children}
+            </div>
             {footer && <div className="jg-modal-foot">{footer}</div>}
           </motion.div>
         </>
@@ -208,6 +235,7 @@ export function RadiusTrigger({ radius, steps, counts, onChange }) {
  * @param {() => void} props.onAbout
  * @param {() => void} props.onProfile
  * @param {() => void} props.onSeePopular
+ * @param {{ name: string, picture: string | null } | null} [props.user]  Signed-in person, shown as their photo
  * @param {import('react').Ref<HTMLDivElement>} [props.rowRef]  Measured so the full sheet can stop under it
  */
 export function SearchBar({
@@ -223,6 +251,7 @@ export function SearchBar({
   onAbout,
   onProfile,
   onSeePopular,
+  user = null,
   rowRef,
 }) {
   const [text, setText] = useState('');
@@ -305,8 +334,8 @@ export function SearchBar({
             </span>
           )}
         </div>
-        <button type="button" className="jg-avatar" aria-label="Your profile" onClick={onProfile}>
-          <Icon name="user" />
+        <button type="button" className="jg-avatar" aria-label={user ? 'Your profile' : 'Sign in'} onClick={onProfile}>
+          {user ? <Avatar user={user} size={40} /> : <Icon name="user" />}
         </button>
       </div>
 

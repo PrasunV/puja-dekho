@@ -5,12 +5,14 @@
 
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self' 'wasm-unsafe-eval'",
-  "style-src 'self' 'unsafe-inline'",
+  // accounts.google.com: the Sign in with Google button (Jagadhatri), which loads a script, a style and a frame.
+  "script-src 'self' 'wasm-unsafe-eval' https://accounts.google.com/gsi/client",
+  "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style",
   "worker-src 'self' blob:",
   "font-src 'self' data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://tiles.openfreemap.org https://api.openrouteservice.org",
+  "connect-src 'self' https://tiles.openfreemap.org https://api.openrouteservice.org https://accounts.google.com/gsi/",
+  'frame-src https://accounts.google.com/gsi/',
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');

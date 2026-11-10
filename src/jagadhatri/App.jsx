@@ -18,6 +18,7 @@ import {
   TOWNS,
   ZONES,
 } from './config.js';
+import { useAccount } from './account.js';
 import { IN_APP_BROWSER, useBackClose, useGeo, useJgData, useToast } from './hooks.js';
 import {
   ageGroup,
@@ -31,6 +32,7 @@ import {
   pujas as pujaCount,
   visibleList,
 } from './lib.js';
+import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar } from './ui.jsx';
 
@@ -38,6 +40,15 @@ const JgMap = React.lazy(() => import('./JgMap.jsx'));
 
 /** Near me re-centres only after the person has walked this far, so the list never jumps under a finger. */
 const RECENTRE_M = 40;
+/** The sign-in sheet opens once a session, after this much time on screen (design 7.14). */
+const NUDGE_AFTER_S = 300;
+/** Past tense, 1 to 5 words (design 7.18). */
+const TOAST_TEXT = {
+  'wish:true': 'Added to wish list',
+  'wish:false': 'Removed from wish list',
+  'visited:true': 'Marked as visited',
+  'visited:false': 'Unmarked as visited',
+};
 
 /**
  * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'about' } | { kind: 'popular' }} View
@@ -92,7 +103,8 @@ function Loaded({ data }) {
   const visits = useVisitCount({ path: '/jagadhatri/visits', key: 'jg_visitCount' });
   const live = useLiveCount({ path: '/jagadhatri/live' });
   const geo = useGeo();
-  const { toast, show } = useToast();
+  const { toast, show, hide } = useToast();
+  const account = useAccount();
   const mapRef = useRef(/** @type {import('./JgMap.jsx').MapHandle | null} */ (null));
 
   const [view, setView] = useState(/** @type {View} */ ({ kind: 'list' }));
@@ -113,7 +125,28 @@ function Loaded({ data }) {
       window.removeEventListener('resize', measure);
     };
   }, []);
-  const [filters, setFilters] = useState(NO_FILTERS);
+  const [filtersRaw, setFilters] = useState(NO_FILTERS);
+  // The two "Your pujas" filters read the wish list and visited pujas; signed out, they are off.
+  const mine = useMemo(
+    () => ({ wish: new Set(account.wish.map((w) => w.puja)), visited: new Set(account.visited.map((v) => v.puja)) }),
+    [account.wish, account.visited],
+  );
+  const filters = useMemo(
+    () =>
+      account.signedIn
+        ? { ...filtersRaw, mine }
+        : filtersRaw.wish || filtersRaw.notVisited
+          ? { ...filtersRaw, wish: false, notVisited: false }
+          : filtersRaw,
+    [filtersRaw, mine, account.signedIn],
+  );
+  /** Why the sign-in sheet is open, and the change to make once signed in. */
+  const [signIn, setSignIn] = useState(
+    /** @type {{ reason: 'start' | 'wish' | 'visited', change?: import('./account.js').Change } | null} */ (null),
+  );
+  const [signInBusy, setSignInBusy] = useState(false);
+  const [signInErr, setSignInErr] = useState(/** @type {string | null} */ (null));
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile'} */ (null));
   const [searchOpen, setSearchOpen] = useState(false);
   const [picked, setPicked] = useState(/** @type {{ kind: 'puja' | 'station', id: string, name: string } | null} */ (null));
@@ -283,6 +316,90 @@ function Loaded({ data }) {
   useBackClose(choosing != null, () => setChoosing(null));
   useBackClose(view.kind !== 'list', () => (view.kind === 'puja' ? closePuja() : toList()));
 
+  // ---------- Account: wish list, visited, sign-in ----------
+  const { change: accountChange } = account;
+  const applyChange = useCallback(
+    function apply(/** @type {import('./account.js').Change} */ c, undoable = true) {
+      accountChange(c).then(
+        (how) => {
+          const text = how === 'queued' ? 'Saved. Sends when you are online' : TOAST_TEXT[`${c.action}:${c.on}`];
+          show(text, 3200, undoable ? { label: 'Undo', run: () => apply({ ...c, on: !c.on }, false) } : undefined);
+        },
+        (e) => {
+          if (/** @type {any} */ (e)?.status === 401) {
+            show('Signed out. Sign in again');
+            setSignIn({ reason: c.action === 'wish' ? 'wish' : 'visited', change: c });
+          } else show("Couldn't save. Try again");
+        },
+      );
+    },
+    [accountChange, show],
+  );
+  /** Signed in: make the change. Signed out: sign in first, then make it. */
+  const ask = (/** @type {import('./account.js').Change} */ c) => {
+    if (account.signedIn) return applyChange(c);
+    setSignInErr(null);
+    setSignIn({ reason: c.action === 'wish' ? 'wish' : 'visited', change: c });
+  };
+  const closeSignIn = useCallback(() => {
+    setSignIn(null);
+    setSignInErr(null);
+  }, []);
+  const onCredential = async (/** @type {string} */ credential) => {
+    const then = signIn;
+    setSignInBusy(true);
+    setSignInErr(null);
+    try {
+      const s = await account.signIn(credential);
+      setSignIn(null);
+      if (then?.change) {
+        const already =
+          then.change.action === 'wish'
+            ? s.wish.some((w) => w.puja === then.change?.puja) === then.change.on
+            : s.visited.some((v) => v.puja === then.change?.puja) === then.change.on;
+        if (already) show(TOAST_TEXT[`${then.change.action}:${then.change.on}`]);
+        else applyChange(then.change, false);
+      } else {
+        show(`Signed in as ${s.user?.name.split(' ')[0] ?? 'you'}`);
+        setChoosing('profile');
+      }
+    } catch (e) {
+      setSignInErr(signInError(e));
+    } finally {
+      setSignInBusy(false);
+    }
+  };
+  const openProfile = () => {
+    if (account.signedIn) return setChoosing('profile');
+    setSignInErr(null);
+    setSignIn({ reason: 'start' });
+  };
+
+  // Once a session, after 5 minutes on screen, signed-out people are asked to start their tour, but never over
+  // another sheet, the search panel or a puja.
+  const nudgeBlocked = useRef(true);
+  const blocked = account.signedIn || choosing != null || searchOpen || view.kind !== 'list' || signIn != null;
+  useEffect(() => {
+    nudgeBlocked.current = blocked;
+  }, [blocked]);
+  useEffect(() => {
+    let seen = 0;
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      seen += 5;
+      if (seen < NUDGE_AFTER_S || nudgeBlocked.current) return;
+      window.clearInterval(id);
+      try {
+        if (sessionStorage.getItem('pd_jg_nudged')) return;
+        sessionStorage.setItem('pd_jg_nudged', '1');
+      } catch {
+        /* storage blocked: still ask only once, this page load */
+      }
+      setSignIn({ reason: 'start' });
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, []);
+
   // ---------- Chips ----------
   const nearLabel = !near.on
     ? 'Near me'
@@ -308,6 +425,10 @@ function Loaded({ data }) {
       label: `Zone ${z}`,
       remove: () => setFilters((f) => ({ ...f, zones: f.zones.filter((x) => x !== z) })),
     })),
+    ...(filters.wish ? [{ key: 'wish', label: 'Wish list', remove: () => setFilters((f) => ({ ...f, wish: false })) }] : []),
+    ...(filters.notVisited
+      ? [{ key: 'notv', label: 'Not visited yet', remove: () => setFilters((f) => ({ ...f, notVisited: false })) }]
+      : []),
   ];
 
   // ---------- Sheet content ----------
@@ -317,8 +438,16 @@ function Loaded({ data }) {
   let peek;
   if (view.kind === 'puja') {
     const p = /** @type {import('./lib.js').JgPuja} */ (byId.get(view.id));
-    body = <PujaDetail puja={p} station={stById.get(p.st[0])} onClose={closePuja} />;
-    footer = <PujaActions puja={p} />;
+    body = (
+      <PujaDetail
+        puja={p}
+        station={stById.get(p.st[0])}
+        onClose={closePuja}
+        visit={account.visited.find((v) => v.puja === p.id)}
+        onVisited={(on) => ask({ action: 'visited', puja: p.id, on })}
+      />
+    );
+    footer = <PujaActions puja={p} wished={mine.wish.has(p.id)} onWish={(on) => ask({ action: 'wish', puja: p.id, on })} />;
     peek = p.n;
   } else if (view.kind === 'whatsnew') {
     body = <WhatsNew byId={byId} onClose={toList} onOpenPuja={(id) => openPuja(id)} />;
@@ -384,7 +513,8 @@ function Loaded({ data }) {
             setView({ kind: 'about' });
             setSheet('half');
           }}
-          onProfile={() => setChoosing('profile')}
+          onProfile={openProfile}
+          user={account.user}
           onSeePopular={() => {
             setSearchOpen(false);
             setView({ kind: 'popular' });
@@ -582,6 +712,12 @@ function Loaded({ data }) {
         pujas={pujas}
         filters={filters}
         centre={centre}
+        mine={account.signedIn ? mine : null}
+        onSignIn={() => {
+          setChoosing(null);
+          setSignInErr(null);
+          setSignIn({ reason: 'wish' });
+        }}
         onApply={(f) => {
           setFilters(f);
           setChoosing(null);
@@ -655,25 +791,47 @@ function Loaded({ data }) {
         )}
       </ModalSheet>
 
-      <ModalSheet
+      <ProfileSheet
         open={choosing === 'profile'}
-        title="Sign in is coming soon"
+        account={account}
+        byId={byId}
         onClose={() => setChoosing(null)}
-        footer={
-          <button type="button" className="btn dark block" onClick={() => setChoosing(null)}>
-            Back to the map
-          </button>
-        }
-      >
-        <p className="jg-body">
-          From Panchami, 14 Nov, sign in with Google to keep your visited pujas and wish list, and report crowds on Puja Dekho.
-        </p>
-      </ModalSheet>
+        onOpenPuja={(id) => {
+          setChoosing(null);
+          openPuja(id);
+        }}
+        onRemoveWish={(id) => applyChange({ action: 'wish', puja: id, on: false })}
+        onSettings={() => setSettingsOpen(true)}
+      />
+      <SettingsSheet
+        open={settingsOpen}
+        pending={account.pending}
+        onClose={() => setSettingsOpen(false)}
+        onSignOut={async () => {
+          setSettingsOpen(false);
+          setChoosing(null);
+          await account.signOut();
+          show('Signed out');
+        }}
+      />
+      <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={{ bottom: toolsBottom }}>
         {toast && (
-          <div key={toast.id} className="jg-toast">
-            {toast.text}
+          <div key={toast.id} className="jg-toast" data-action={toast.action ? '' : undefined}>
+            <span>{toast.text}</span>
+            {toast.action && (
+              <button
+                type="button"
+                className="jg-toast-action"
+                onClick={() => {
+                  hide();
+                  toast.action?.run();
+                }}
+              >
+                {toast.action.label}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -739,6 +897,8 @@ function ListBody({
     ...filters.ages.map((a) => AGE_GROUPS.find((g) => g[0] === a)?.[1] ?? a),
     filters.procession && 'Procession',
     ...filters.zones.map((z) => `Zone ${z}`),
+    filters.wish && 'Wish list',
+    filters.notVisited && 'Not visited yet',
   ].filter(Boolean);
 
   // Near me states before there are results.
@@ -904,9 +1064,10 @@ function EmptyRadius({ centre, counts, onRadius }) {
  * More (design 7.4): crowd and your-pujas groups (coming with sign-in), town, age, procession and zone.
  * Choices are a draft until "Show N pujas", which updates live.
  */
-function MoreSheet({ open, pujas, filters, centre, onApply, onClose }) {
+function MoreSheet({ open, pujas, filters, centre, mine, onSignIn, onApply, onClose }) {
   // Each time the sheet opens, the draft starts from the filters that are on.
-  const [draft, setDraft] = useState(filters);
+  const [draftRaw, setDraft] = useState(filters);
+  const draft = useMemo(() => (mine ? { ...draftRaw, mine } : draftRaw), [draftRaw, mine]);
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
@@ -930,7 +1091,7 @@ function MoreSheet({ open, pujas, filters, centre, onApply, onClose }) {
           >
             Clear all
           </button>
-          <button type="button" className="btn dark" disabled={count === 0} onClick={() => onApply(draft)}>
+          <button type="button" className="btn dark" disabled={count === 0} onClick={() => onApply(draftRaw)}>
             {count === 0 ? 'No pujas match' : `Show ${pujaCount(count)}`}
           </button>
         </div>
@@ -943,8 +1104,27 @@ function MoreSheet({ open, pujas, filters, centre, onApply, onClose }) {
       </section>
       <section className="jg-group">
         <p className="jg-label">Your pujas</p>
-        <ChoiceRow label="Wish list" note="Coming soon, needs sign-in" selected={false} disabled onClick={() => {}} />
-        <ChoiceRow label="Not visited yet" note="Coming soon, needs sign-in" selected={false} disabled onClick={() => {}} />
+        {mine ? (
+          <>
+            <ChoiceRow
+              label="Wish list"
+              count={pujaCount(pujas.filter((p) => mine.wish.has(p.id)).length)}
+              selected={draft.wish}
+              onClick={() => setDraft((d) => ({ ...d, wish: !d.wish }))}
+            />
+            <ChoiceRow
+              label="Not visited yet"
+              count={pujaCount(pujas.filter((p) => !mine.visited.has(p.id)).length)}
+              selected={draft.notVisited}
+              onClick={() => setDraft((d) => ({ ...d, notVisited: !d.notVisited }))}
+            />
+          </>
+        ) : (
+          <>
+            <ChoiceRow label="Wish list" note="Sign in to use" selected={false} onClick={onSignIn} />
+            <ChoiceRow label="Not visited yet" note="Sign in to use" selected={false} onClick={onSignIn} />
+          </>
+        )}
       </section>
       <section className="jg-group">
         <p className="jg-label">Town</p>

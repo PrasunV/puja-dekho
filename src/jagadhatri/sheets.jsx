@@ -53,9 +53,9 @@ function ThemeArtist({ puja }) {
 /**
  * The puja sheet (design 7.6): name, Bengali name, meta line, tags, theme and artist, details. The buttons are in
  * `PujaActions`, pinned at the bottom of the sheet.
- * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void }} props
+ * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void, visit?: { mode: string } | undefined, onVisited: (on: boolean) => void }} props
  */
-export function PujaDetail({ puja, station, onClose }) {
+export function PujaDetail({ puja, station, onClose, visit, onVisited }) {
   const meta = [puja.t, puja.y ? `Estd ${puja.y}` : null, station ? `${station.name} ${formatDistance(puja.st[1])}` : null].filter(Boolean);
   const facts = [
     ['Address', puja.ad],
@@ -95,26 +95,42 @@ export function PujaDetail({ puja, station, onClose }) {
           ))}
         </dl>
       )}
-      <p className="jg-soon">Wish list and Mark as visited come with Google sign-in, before Panchami on 14 Nov.</p>
+      {visit?.mode === 'person' ? (
+        <p className="jg-visited-person">
+          <Icon name="check" size={20} />
+          Visited in person
+        </p>
+      ) : (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={!!visit}
+          className="jg-choice jg-switch-row jg-visit"
+          onClick={() => onVisited(!visit)}
+        >
+          <span className="jg-choice-text">
+            <span className="jg-choice-label">Mark as visited</span>
+            <span className="jg-choice-count">Not counted for badges</span>
+          </span>
+          <span className="jg-switch" aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
 
-/** Get directions (the one main action) and the Wish list placeholder until sign-in ships. */
-export function PujaActions({ puja }) {
+/** Get directions (the one main action) and the wish list heart. */
+export function PujaActions({ puja, wished, onWish }) {
   return (
     <div className="jg-actions">
       <a className="btn primary block" href={directionsUrl(puja.la, puja.lo)} target="_blank" rel="noopener noreferrer">
         <Icon name="nav" size={20} />
         Get directions
       </a>
-      <button type="button" className="btn jg-btn-outline" disabled aria-describedby="jg-wish-soon">
-        <Icon name="heart" size={20} />
+      <button type="button" className="btn jg-btn-outline jg-wish-btn" aria-pressed={wished} onClick={() => onWish(!wished)}>
+        <Icon name="heart" size={20} fill={wished} />
         Wish list
       </button>
-      <span id="jg-wish-soon" className="sr-only">
-        Coming with sign-in before 14 Nov
-      </span>
     </div>
   );
 }

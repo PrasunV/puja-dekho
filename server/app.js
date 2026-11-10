@@ -13,6 +13,7 @@ import { createApiRouter } from './routes/api.js';
 import { createLiveHandler } from './live.js';
 import { createLoveHandler } from './loves.js';
 import { createVisitHandler, JAGADHATRI_VISITS } from './visits.js';
+import { createAccountHandler } from './jagadhatri/account.js';
 import { createStatsHandler } from './stats.js';
 import { createShareHandler } from './share.js';
 import { createAggregates } from './services/aggregates.js';
@@ -62,6 +63,7 @@ export function createApp({ env = process.env, now = Date.now, dbPath } = {}) {
     createLiveHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db'), table: 'jg_live_presence' }),
   );
   app.use('/api', (req, res, next) => ready.then(() => next(), next));
+  app.use('/api/jagadhatri/account', createAccountHandler({ env, now, dbPath: path.join(config.dataDir, 'pujadekho.db') }));
   app.use('/api', express.json({ limit: '20kb' }));
   app.use('/api', writeRateLimiter({ now, clientKey: cookies.hashIp }));
   app.use('/api', createApiRouter({ reports, aggregates, now }));

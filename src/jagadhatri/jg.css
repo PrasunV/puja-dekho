@@ -1107,3 +1107,464 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---- v0.2: sign-in, profile, wish list, Mark as visited ---- */
+.jg-face {
+  display: grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--maroon);
+  color: var(--on-maroon);
+  font-weight: 700;
+  line-height: 1;
+}
+.jg-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.jg-avatar .jg-face {
+  pointer-events: none;
+}
+.jg-toast[data-action] {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 16px;
+  text-align: left;
+  pointer-events: auto;
+}
+.jg-toast-action {
+  min-height: 40px;
+  min-width: 48px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.jg-toast-zone {
+  left: 16px;
+  right: 16px;
+}
+
+/* Sign-in sheet */
+.jg-signin .jg-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 8px;
+}
+.jg-signin .jg-body {
+  margin: 0;
+}
+.jg-gsi {
+  position: relative;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+}
+.jg-gsi-slot {
+  width: 100%;
+  max-width: 400px;
+  min-height: 44px;
+  display: flex;
+  justify-content: center;
+  color-scheme: light;
+}
+.jg-gsi-slot[data-busy] {
+  opacity: 0.4;
+  pointer-events: none;
+}
+.jg-gsi .jg-spinner {
+  position: absolute;
+}
+.jg-signin-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.jg-signin-error p {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-signin-terms {
+  margin: 0;
+  text-align: center;
+}
+.jg-signin-terms a,
+.jg-settings a {
+  color: inherit;
+}
+.jg-signin .jg-modal-foot {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* Cards */
+.jg-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+}
+button.jg-card {
+  min-height: 48px;
+  cursor: pointer;
+}
+button.jg-card:active {
+  background: var(--surface-2);
+}
+
+/* Profile sheet: opens at about 62% of the screen, grows to full once the list scrolls */
+.jg-profile {
+  height: min(62dvh, calc(100dvh - 120px));
+  transition: height 0.24s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.jg-profile.tall {
+  height: calc(100dvh - 24px);
+  max-height: calc(100dvh - 24px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-profile {
+    transition: none;
+  }
+}
+.jg-profile .jg-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 24px;
+}
+.jg-me {
+  border-color: var(--color-border-control);
+}
+.jg-me-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.jg-me-name {
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jg-me .jg-meta {
+  margin: 0;
+}
+.jg-me-gear {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  margin: -12px -8px -12px 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.jg-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.jg-stat {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.jg-stat-n {
+  font-size: 1.75rem;
+  line-height: 2rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.jg-stat-l {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: var(--muted);
+}
+.jg-rank-card {
+  align-items: flex-start;
+}
+.jg-rank-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jg-rank-text p {
+  margin: 0;
+}
+.jg-rank-text .jg-label {
+  margin: 0;
+}
+.jg-rank-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+}
+.jg-tag.tonal {
+  min-height: 24px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-text, var(--accent-ink));
+}
+.jg-upcoming {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.jg-upcoming-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-see {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-weight: 700;
+  color: var(--accent-text, var(--accent-ink));
+}
+.jg-upcoming .jg-meta {
+  margin: 0;
+}
+.jg-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.jg-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.jg-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--maroon);
+}
+.jg-bar-label {
+  flex: none;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Badge art */
+.jg-badge-art {
+  position: relative;
+  flex: none;
+  display: inline-block;
+}
+.jg-badge-art svg {
+  display: block;
+}
+.jg-badge-lock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+/* Tabs: only these pin while the profile scrolls (Material 3 primary tabs) */
+.jg-ptabs {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  margin: 4px -16px 0;
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  scroll-margin-top: 0;
+}
+.jg-ptab {
+  flex: 1;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.jg-ptab[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--maroon);
+}
+.jg-ptab-n {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+.jg-ppanel {
+  min-height: 40dvh;
+}
+.jg-pempty {
+  margin: 8px 0;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+.jg-wish-row {
+  display: flex;
+  align-items: center;
+}
+.jg-wish-row .jg-row {
+  flex: 1;
+  min-width: 0;
+}
+.jg-heart {
+  color: var(--maroon);
+}
+.jg-ladder {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-ladder-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  border-bottom: 1px solid var(--line);
+}
+.jg-ladder-row:not([data-got]) .jg-row-title {
+  color: var(--muted);
+}
+
+/* Switch rows (Mark as visited, Celebration sound) */
+.jg-switch-row {
+  min-height: 56px;
+}
+.jg-switch {
+  flex: none;
+  position: relative;
+  width: 52px;
+  height: 32px;
+  border-radius: 16px;
+  border: 2px solid var(--color-border-control);
+  background: var(--surface-2);
+  transition: background 0.16s;
+}
+.jg-switch::after {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-border-control);
+  transition:
+    transform 0.16s,
+    width 0.16s,
+    height 0.16s,
+    top 0.16s;
+}
+[aria-checked='true'] > .jg-switch {
+  border-color: var(--maroon);
+  background: var(--maroon);
+}
+[aria-checked='true'] > .jg-switch::after {
+  top: 2px;
+  width: 24px;
+  height: 24px;
+  transform: translateX(20px);
+  background: var(--on-maroon);
+}
+.jg-visit {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.jg-visited-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  margin: 8px 0 0;
+  border-top: 1px solid var(--line);
+  font-weight: 700;
+  color: var(--color-free);
+}
+.jg-wish-btn[aria-pressed='true'] {
+  border-color: var(--maroon);
+  color: var(--maroon);
+}
+.jg-settings .jg-modal-body {
+  padding-bottom: 24px;
+}
+.jg-settings a.jg-choice {
+  text-decoration: none;
+}
+.jg-signout {
+  color: var(--ink);
+}
+.jg-later {
+  text-decoration: none;
+}
+.jg-ptab {
+  white-space: nowrap;
+  padding: 0 4px;
+}
+@media (max-width: 359px) {
+  .jg-ptab {
+    font-size: 0.875rem;
+    gap: 4px;
+  }
+  .jg-ptab-n {
+    padding: 0 5px;
+  }
+}

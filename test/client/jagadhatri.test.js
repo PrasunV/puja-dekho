@@ -51,3 +51,25 @@ test('jagadhatri distance format', () => {
   assert.equal(formatDistance(1410), '1.4 km');
   assert.equal(formatDistance(998), '1.0 km');
 });
+
+// ---- v0.2 badges ----
+import { istDay, progressTo, rankOf, statsOf, unlocked, unlockLine } from '../../src/jagadhatri/ranks.js';
+
+test('only in-person visits count, by IST day', () => {
+  const now = Date.UTC(2026, 10, 16, 20, 0); // 17 Nov 01:30 IST
+  const v = (puja, mode, day) => ({ puja, mode, at: 0, day });
+  const s = statsOf(
+    [v('a', 'person', istDay(now)), v('b', 'person', istDay(now)), v('c', 'manual', istDay(now)), v('d', 'person', '2026-11-15')],
+    now,
+  );
+  assert.deepEqual(s, { today: 2, total: 3, best: 2 });
+});
+
+test('E-Rank comes with D-Rank; next rank and its line', () => {
+  assert.equal(unlocked({ best: 5, total: 5 }, 0), true);
+  assert.equal(unlocked({ best: 2, total: 10 }, 0), true);
+  assert.equal(unlocked({ best: 4, total: 9 }, 0), false);
+  assert.deepEqual(rankOf({ best: 2, total: 12, today: 0 }), { cur: 1, next: 2 });
+  assert.equal(unlockLine(progressTo({ best: 2, total: 22, today: 0 }, 2)), 'Complete 3 more pujas to unlock it');
+  assert.equal(unlockLine(progressTo({ best: 4, total: 4, today: 4 }, 0)), 'Complete 1 more puja today to unlock it');
+});

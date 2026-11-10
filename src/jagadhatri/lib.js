@@ -31,12 +31,22 @@ import { AGE_GROUPS, PUJA_YEAR } from './config.js';
  * @property {number} la
  * @property {number} lo
  *
- * @typedef {{ type: string | null, mustVisit: boolean, towns: string[], ages: string[], procession: boolean, zones: string[] }} JgFilters
+ * @typedef {{ type: string | null, mustVisit: boolean, towns: string[], ages: string[], procession: boolean, zones: string[], wish: boolean, notVisited: boolean, mine?: { wish: Set<string>, visited: Set<string> } }} JgFilters
+ *   `mine` is the signed-in person's wish list and visited pujas, added by the app for the two "Your pujas" filters.
  * @typedef {{ kind: 'me' | 'station', lat: number, lng: number, radius: number, stationId?: string }} JgCentre
  */
 
 export const NO_FILTERS = Object.freeze(
-  /** @type {JgFilters} */ ({ type: null, mustVisit: false, towns: [], ages: [], procession: false, zones: [] }),
+  /** @type {JgFilters} */ ({
+    type: null,
+    mustVisit: false,
+    towns: [],
+    ages: [],
+    procession: false,
+    zones: [],
+    wish: false,
+    notVisited: false,
+  }),
 );
 
 /** Straight-line distance in metres. */
@@ -76,7 +86,7 @@ export function ageGroup(/** @type {JgPuja} */ p) {
 
 /** How many filters inside More are on (for "More · 2"). */
 export function moreCount(/** @type {JgFilters} */ f) {
-  return f.towns.length + f.ages.length + (f.procession ? 1 : 0) + f.zones.length;
+  return f.towns.length + f.ages.length + (f.procession ? 1 : 0) + f.zones.length + (f.wish ? 1 : 0) + (f.notVisited ? 1 : 0);
 }
 
 /** Does a puja pass the chips and the More sheet? (The centre and radius are applied separately.) */
@@ -87,6 +97,8 @@ export function passes(/** @type {JgPuja} */ p, /** @type {JgFilters} */ f) {
   if (f.ages.length && !f.ages.includes(ageGroup(p))) return false;
   if (f.procession && !p.pr) return false;
   if (f.zones.length && !(p.pr && f.zones.includes(p.pr.z))) return false;
+  if (f.wish && !f.mine?.wish.has(p.id)) return false;
+  if (f.notVisited && f.mine?.visited.has(p.id)) return false;
   return true;
 }
 
