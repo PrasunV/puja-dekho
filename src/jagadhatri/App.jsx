@@ -36,6 +36,7 @@ import {
 import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
 import { rankOf, statsOf } from './ranks.js';
+import { TrafficDetail } from './traffic.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
 import { VisitBar } from './VisitBar.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
@@ -56,7 +57,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'about' } | { kind: 'popular' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'traffic' } | { kind: 'about' } | { kind: 'popular' }} View
  */
 
 export default function App() {
@@ -599,8 +600,11 @@ function Loaded({ data }) {
     footer = <PujaActions puja={p} wished={mine.wish.has(p.id)} onWish={(on) => ask({ action: 'wish', puja: p.id, on })} />;
     peek = p.n;
   } else if (view.kind === 'whatsnew') {
-    body = <WhatsNew byId={byId} onClose={toList} onOpenPuja={(id) => openPuja(id)} />;
+    body = <WhatsNew byId={byId} onClose={toList} onOpenPuja={(id) => openPuja(id)} onTraffic={() => setView({ kind: 'traffic' })} />;
     peek = "What's new";
+  } else if (view.kind === 'traffic') {
+    body = <TrafficDetail onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} />;
+    peek = 'Traffic and road closures';
   } else if (view.kind === 'about') {
     body = <About onClose={toList} />;
     peek = 'About Puja Dekho';
@@ -690,7 +694,7 @@ function Loaded({ data }) {
                 </button>
               ))}
               <WhatsNewChip
-                open={view.kind === 'whatsnew'}
+                open={view.kind === 'whatsnew' || view.kind === 'traffic'}
                 onOpen={() => {
                   setView({ kind: 'whatsnew' });
                   setSheet('half');

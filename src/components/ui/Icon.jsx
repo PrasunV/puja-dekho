@@ -124,6 +124,12 @@ const PATHS = {
   arrowNE: <path d="M7 17 17 7M9 7h8v8" />,
   check: <path d="m5 12 5 5 9-10" />,
   next: <path d="m9 6 6 6-6 6" />,
+  barrier: (
+    <>
+      <rect x="3" y="7" width="18" height="6" rx="1.5" />
+      <path d="M7 7l-3 6M13 7l-3 6M19 7l-3 6M6 13v7M18 13v7M4 20h4M16 20h4" />
+    </>
+  ),
   sound: <path d="M4 9v6h4l5 4V5L8 9H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />,
   mute: <path d="M4 9v6h4l5 4V5L8 9H4zM16 10l5 5M21 10l-5 5" />,
   gear: (

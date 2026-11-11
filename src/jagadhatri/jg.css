@@ -2234,3 +2234,140 @@ button.jg-ladder-row {
 .jg-map-fail:empty {
   display: none;
 }
+
+/* ---- Traffic and road closures (What's new) ---- */
+.jg-traffic-card {
+  align-items: flex-start;
+  margin-bottom: 16px;
+  border-color: var(--color-border-control);
+}
+.jg-traffic-card > .ic:last-child {
+  align-self: center;
+  color: var(--muted);
+}
+.jg-traffic-ic {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-crowded) 14%, transparent);
+  color: var(--color-crowded);
+}
+.jg-traffic-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.jg-traffic-title {
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+}
+.jg-traffic-text .jg-meta {
+  margin: 0;
+}
+.jg-traffic-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.jg-traffic-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.jg-traffic-status[data-state='on'] .jg-traffic-dot {
+  background: var(--color-crowded);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-crowded) 22%, transparent);
+}
+.jg-traffic-status[data-state='off'] .jg-traffic-dot {
+  background: var(--color-free);
+}
+.jg-traffic .jg-detail-head {
+  gap: 4px;
+}
+.jg-traffic .jg-detail-head .jg-title {
+  flex: 1;
+  min-width: 0;
+}
+.jg-traffic-now {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.jg-traffic-now .jg-meta {
+  margin: 0;
+}
+.jg-traffic-days,
+.jg-traffic-points {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-traffic-days li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-traffic-days li[data-now] {
+  font-weight: 700;
+}
+.jg-traffic-day {
+  font-variant-numeric: tabular-nums;
+}
+.jg-traffic-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.jg-traffic-points li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.jg-traffic .jg-group {
+  margin-top: 16px;
+}
+.jg-traffic .jg-caption {
+  margin: 6px 0 0;
+}
+.jg-traffic-source {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 8px;
+}
+.jg-traffic-points .jg-row-title,
+.jg-traffic-points .jg-row-meta,
+.jg-traffic-points .jg-row-meta span {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.jg-traffic-status {
+  align-items: flex-start;
+}
+.jg-traffic-dot {
+  margin-top: 5px;
+}

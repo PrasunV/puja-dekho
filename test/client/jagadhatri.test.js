@@ -109,3 +109,16 @@ test('share lines say what earned the badge', () => {
   assert.equal(rareLine(2, 31), '31 pujas visited');
   assert.equal(rareLine(1, 4), '10 pujas visited');
 });
+
+// ---- Traffic notice status ----
+import { trafficStatus } from '../../src/jagadhatri/traffic.js';
+
+test('traffic status follows the police hours (India time)', () => {
+  const ist = (d, h, m = 0) => Date.UTC(2026, 10, d, h, m) - 330 * 60_000;
+  assert.equal(trafficStatus(ist(11, 16)).line, 'Starts Fri 13 Nov, 12:00 PM');
+  assert.equal(trafficStatus(ist(13, 12, 30)).line, 'Vehicles stopped now · until 6:00 AM tomorrow');
+  assert.equal(trafficStatus(ist(14, 3)).line, 'Vehicles stopped now · until 6:00 AM');
+  assert.equal(trafficStatus(ist(14, 10)).line, 'Roads open now · closes at 2:00 PM');
+  assert.equal(trafficStatus(ist(19, 8)).line, 'Vehicles stopped now · until immersion ends');
+  assert.equal(trafficStatus(ist(21, 1)).state, 'ended');
+});

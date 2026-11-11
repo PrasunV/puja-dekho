@@ -2,6 +2,7 @@ import { BentoCard, useBento } from '../components/ui/Bento.jsx';
 import { Icon } from '../components/ui/Icon.jsx';
 import { ABOUT, WHATS_NEW } from './config.js';
 import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
+import { TrafficCard } from './traffic.jsx';
 import { agoText } from './visit.js';
 
 const CROWD_WORD = { free: 'Free', crowded: 'Crowded' };
@@ -147,7 +148,7 @@ export function PujaActions({ puja, wished, onWish }) {
 }
 
 /** What's new (design 7.3, PRD chip row): the latest happenings, or an empty state. */
-export function WhatsNew({ byId, onClose, onOpenPuja }) {
+export function WhatsNew({ byId, onClose, onOpenPuja, onTraffic }) {
   return (
     <div className="jg-detail">
       <div className="jg-detail-head" data-sheet-head>
@@ -156,6 +157,7 @@ export function WhatsNew({ byId, onClose, onOpenPuja }) {
           <Icon name="x" />
         </button>
       </div>
+      <TrafficCard onOpen={onTraffic} />
       {WHATS_NEW.length === 0 && (
         <div className="jg-empty">
           <p>No updates yet. News from the pujas shows here during the festival.</p>
