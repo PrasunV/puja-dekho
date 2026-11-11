@@ -5,8 +5,8 @@ import { MAP_BOUNDS, MAP_CENTER, MAP_STYLE_URL, MAP_STYLE_URL_DARK, MAP_ZOOM } f
 const darkQuery = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null);
 /** Pin, label and location colours for each phone theme (design tokens --color-primary, surface, text, me). */
 const THEME = {
-  light: { primary: '#B31D24', surface: '#FFFFFF', ink: '#2B1214', me: '#1A73E8' },
-  dark: { primary: '#E0434B', surface: '#1C1C1C', ink: '#F2F2F2', me: '#669DF6' },
+  light: { primary: '#B31D24', surface: '#FFFFFF', ink: '#2B1214', me: '#1A73E8', free: '#0B7A75', crowded: '#C2410C' },
+  dark: { primary: '#E0434B', surface: '#1C1C1C', ink: '#F2F2F2', me: '#669DF6', free: '#35B3AA', crowded: '#F0813F' },
 };
 
 /**
@@ -26,6 +26,7 @@ const THEME = {
  * @property {Set<string> | null} lit       Ids shown at full strength; the rest fade to 35%. Null means all.
  * @property {Set<string>} priority          Ids whose labels win when labels compete (Must visit, active filter)
  * @property {string | null} selectedId
+ * @property {Record<string, { level: string }>} [crowd]  Live crowd status: a teal (free) or orange (crowded) dot
  * @property {import('./lib.js').JgCentre | null} centre
  * @property {{ lat: number, lng: number, accuracy: number } | null} me
  * @property {(id: string) => void} onPuja
@@ -68,7 +69,7 @@ function circle(lat, lng, radius, steps = 72) {
 }
 const EMPTY = { type: 'FeatureCollection', features: [] };
 
-function pujaFeatures(pujas, lit, priority, selectedId) {
+function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}) {
   return {
     type: 'FeatureCollection',
     features: pujas.map((p) => {
@@ -77,7 +78,14 @@ function pujaFeatures(pujas, lit, priority, selectedId) {
       return {
         type: 'Feature',
         id: p.id,
-        properties: { id: p.id, name: p.n, on, sel, rank: sel ? 0 : p.pop ? 1 : priority.has(p.id) ? 2 : 3 },
+        properties: {
+          id: p.id,
+          name: p.n,
+          on,
+          sel,
+          rank: sel ? 0 : p.pop ? 1 : priority.has(p.id) ? 2 : 3,
+          crowd: crowd[p.id]?.level || '',
+        },
         geometry: { type: 'Point', coordinates: [p.lo, p.la] },
       };
     }),
@@ -153,7 +161,7 @@ const JgMap = forwardRef(
 
       // Puja layers on top of the map style. Run again after a theme switch, because a new style drops them.
       const addLayers = () => {
-        const { primary, surface, ink, me } = darkQuery()?.matches ? THEME.dark : THEME.light;
+        const { primary, surface, ink, me, free, crowded } = darkQuery()?.matches ? THEME.dark : THEME.light;
         const font = map.getStyle().layers.find((l) => l.type === 'symbol' && l.layout?.['text-font'])?.layout?.['text-font'] || [
           'Noto Sans Regular',
         ];
@@ -169,7 +177,7 @@ const JgMap = forwardRef(
           paint: { 'line-color': me, 'line-width': 1.5, 'line-opacity': 0.7 },
         });
 
-        map.addSource('jg-pujas', { type: 'geojson', data: pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId) });
+        map.addSource('jg-pujas', { type: 'geojson', data: pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd) });
         map.addLayer({
           id: 'jg-pins',
           type: 'circle',
@@ -194,6 +202,23 @@ const JgMap = forwardRef(
             'circle-radius': pinRadius(0.36),
             'circle-color': ['case', ['get', 'sel'], surface, primary],
             'circle-opacity': ['case', ['get', 'on'], 1, 0.35],
+          },
+        });
+        // Crowd dot at the pin's top-right edge, from street level up.
+        map.addLayer({
+          id: 'jg-crowd',
+          type: 'circle',
+          source: 'jg-pujas',
+          minzoom: 13,
+          filter: ['!=', ['get', 'crowd'], ''],
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3.5, 16, 5.5],
+            'circle-translate': ['interpolate', ['linear'], ['zoom'], 13, ['literal', [5, -5]], 16, ['literal', [10, -10]]],
+            'circle-color': ['match', ['get', 'crowd'], 'free', free, crowded],
+            'circle-stroke-color': surface,
+            'circle-stroke-width': 1.5,
+            'circle-opacity': ['case', ['get', 'on'], 1, 0.35],
+            'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.35],
           },
         });
         map.addLayer({
@@ -342,7 +367,7 @@ const JgMap = forwardRef(
       if (!map || !ready.current) return;
       const p = latest.current;
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-pujas')).setData(
-        /** @type {any} */ (pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId)),
+        /** @type {any} */ (pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd)),
       );
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-radius')).setData(
         /** @type {any} */ (p.centre ? circle(p.centre.lat, p.centre.lng, p.centre.radius) : EMPTY),
@@ -357,8 +382,8 @@ const JgMap = forwardRef(
       );
     }
 
-    const { pujas, lit, priority, selectedId, centre, me } = props;
-    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me]);
+    const { pujas, lit, priority, selectedId, centre, me, crowd } = props;
+    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

@@ -18,7 +18,8 @@ import {
   TOWNS,
   ZONES,
 } from './config.js';
-import { useAccount } from './account.js';
+import { storage } from '../lib/storage.js';
+import { useAccount, useCrowd } from './account.js';
 import { IN_APP_BROWSER, useBackClose, useGeo, useJgData, useToast } from './hooks.js';
 import {
   ageGroup,
@@ -33,6 +34,8 @@ import {
   visibleList,
 } from './lib.js';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
+import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
+import { VisitBar } from './VisitBar.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar } from './ui.jsx';
 
@@ -105,6 +108,14 @@ function Loaded({ data }) {
   const geo = useGeo();
   const { toast, show, hide } = useToast();
   const account = useAccount();
+  const crowd = useCrowd();
+  // Counting visits with location: asked once after sign-in (null = not asked yet). Location stays on the phone.
+  const [track, setTrackState] = useState(() => /** @type {boolean | null} */ (storage.get('jg_track', null)));
+  const setTrack = (/** @type {boolean} */ v) => {
+    setTrackState(v);
+    storage.set('jg_track', v);
+  };
+  const tracking = account.signedIn && track === true;
   const mapRef = useRef(/** @type {import('./JgMap.jsx').MapHandle | null} */ (null));
 
   const [view, setView] = useState(/** @type {View} */ ({ kind: 'list' }));
@@ -134,20 +145,18 @@ function Loaded({ data }) {
   const filters = useMemo(
     () =>
       account.signedIn
-        ? { ...filtersRaw, mine }
-        : filtersRaw.wish || filtersRaw.notVisited
-          ? { ...filtersRaw, wish: false, notVisited: false }
-          : filtersRaw,
-    [filtersRaw, mine, account.signedIn],
+        ? { ...filtersRaw, mine, crowd: crowd.crowd }
+        : { ...filtersRaw, wish: false, notVisited: false, crowd: crowd.crowd },
+    [filtersRaw, mine, account.signedIn, crowd.crowd],
   );
   /** Why the sign-in sheet is open, and the change to make once signed in. */
   const [signIn, setSignIn] = useState(
-    /** @type {{ reason: 'start' | 'wish' | 'visited', change?: import('./account.js').Change } | null} */ (null),
+    /** @type {{ reason: 'start' | 'wish' | 'visited' | 'here', change?: import('./account.js').Change } | null} */ (null),
   );
   const [signInBusy, setSignInBusy] = useState(false);
   const [signInErr, setSignInErr] = useState(/** @type {string | null} */ (null));
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile'} */ (null));
+  const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile' | 'track'} */ (null));
   const [searchOpen, setSearchOpen] = useState(false);
   const [picked, setPicked] = useState(/** @type {{ kind: 'puja' | 'station', id: string, name: string } | null} */ (null));
   const [stationCentre, setStationCentre] = useState(/** @type {{ id: string, radius: number } | null} */ (null));
@@ -227,8 +236,13 @@ function Loaded({ data }) {
   const turnNearOff = useCallback(() => {
     setNear((n) => ({ ...n, on: false }));
     setMeCentre(null);
-    geo.stop();
-  }, [geo]);
+    // While visits are being counted, location keeps running for the "Are you visiting?" bar.
+    if (!tracking) geo.stop();
+  }, [geo, tracking]);
+  const { start: geoStart, stop: geoStop } = geo;
+  useEffect(() => {
+    if (tracking && geo.permission === 'granted') geoStart();
+  }, [tracking, geo.permission, geoStart]);
   const clearStation = useCallback(() => {
     setStationCentre(null);
     setPicked((p) => (p?.kind === 'station' ? null : p));
@@ -352,7 +366,17 @@ function Loaded({ data }) {
     try {
       const s = await account.signIn(credential);
       setSignIn(null);
-      if (then?.change) {
+      // The first time, ask to count visits with location (or switch it on quietly if location is already allowed).
+      let asking = false;
+      if (track == null) {
+        // Location already running counts as allowed (some browsers report "prompt" while it is in use).
+        if (geo.permission === 'granted' || geo.status === 'on') setTrack(true);
+        else if (geo.permission !== 'denied') asking = true;
+      }
+      if (then?.change?.action === 'here') {
+        const p = byId.get(then.change.puja);
+        if (p) countHere(p);
+      } else if (then?.change) {
         const already =
           then.change.action === 'wish'
             ? s.wish.some((w) => w.puja === then.change?.puja) === then.change.on
@@ -361,8 +385,9 @@ function Loaded({ data }) {
         else applyChange(then.change, false);
       } else {
         show(`Signed in as ${s.user?.name.split(' ')[0] ?? 'you'}`);
-        setChoosing('profile');
       }
+      if (asking) setChoosing('track');
+      else if (!then?.change) setChoosing('profile');
     } catch (e) {
       setSignInErr(signInError(e));
     } finally {
@@ -400,6 +425,89 @@ function Loaded({ data }) {
     return () => window.clearInterval(id);
   }, []);
 
+  // ---------- "Are you visiting?" (2 minutes within 100 m), then the crowd ----------
+  const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
+  const [visitBusy, setVisitBusy] = useState(false);
+  const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
+  const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
+  const visitCtx = useRef({ pos, blocked: true, inPerson: /** @type {Set<string>} */ (new Set()) });
+  const inPerson = useMemo(() => new Set(account.visited.filter((v) => v.mode === 'person').map((v) => v.puja)), [account.visited]);
+  const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen;
+  useEffect(() => {
+    visitCtx.current = { pos, blocked: visitBlocked, inPerson };
+  }, [pos, visitBlocked, inPerson]);
+  useEffect(() => {
+    const check = () => {
+      const { pos: at, blocked: busy, inPerson: done } = visitCtx.current;
+      const t = Date.now();
+      stay.current = nextStay(stay.current, at, pujas, t);
+      const id = stay.current.id;
+      if (!id || busy || !stayedLongEnough(stay.current, t)) return;
+      if (done.has(id) || askedThisSession.current.has(id) || saidNoToday(id, t)) return;
+      const p = byId.get(id);
+      if (!p) return;
+      askedThisSession.current.add(id);
+      setVisitStep({ kind: 'ask', puja: p });
+    };
+    check();
+    const timer = window.setInterval(check, 10_000);
+    return () => window.clearInterval(timer);
+  }, [pos, pujas, byId]);
+
+  /** Yes, signed in: count it in person, then ask about the crowd. */
+  const countHere = (/** @type {import('./lib.js').JgPuja} */ p) => {
+    setVisitBusy(true);
+    accountChange({ action: 'here', puja: p.id, on: true })
+      .then(
+        (how) => {
+          if (how === 'queued') {
+            show('Saved. Counts when you are online');
+            setVisitStep(null);
+          } else {
+            show('Puja counted');
+            setVisitStep({ kind: 'crowd', puja: p });
+          }
+        },
+        (e) => {
+          const code = /** @type {any} */ (e)?.message;
+          if (code === 'too_soon') {
+            show('Counted pujas need 2 minutes apart');
+            setVisitStep({ kind: 'crowd', puja: p });
+          } else {
+            show(code === 'daily_limit' ? 'Daily limit reached' : "Couldn't count it. Try again");
+            setVisitStep(null);
+          }
+        },
+      )
+      .finally(() => setVisitBusy(false));
+  };
+  const onVisitYes = () => {
+    const p = visitStep?.puja;
+    if (!p) return;
+    if (account.signedIn) return countHere(p);
+    setVisitStep(null);
+    setSignInErr(null);
+    setSignIn({ reason: 'here', change: { action: 'here', puja: p.id, on: true } });
+  };
+  const onCrowd = (/** @type {'free' | 'crowded'} */ level) => {
+    const p = visitStep?.puja;
+    if (!p) return;
+    setVisitBusy(true);
+    account
+      .report(p.id, level)
+      .then(
+        () => {
+          show('Crowd report sent');
+          crowd.refresh();
+        },
+        (e) => show(/** @type {any} */ (e)?.status ? "Couldn't send. Try again later" : 'No network. Report not sent'),
+      )
+      .finally(() => {
+        setVisitBusy(false);
+        setVisitStep(null);
+      });
+  };
+
   // ---------- Chips ----------
   const nearLabel = !near.on
     ? 'Near me'
@@ -429,6 +537,10 @@ function Loaded({ data }) {
     ...(filters.notVisited
       ? [{ key: 'notv', label: 'Not visited yet', remove: () => setFilters((f) => ({ ...f, notVisited: false })) }]
       : []),
+    ...(filters.freeNow ? [{ key: 'free', label: 'Free now', remove: () => setFilters((f) => ({ ...f, freeNow: false })) }] : []),
+    ...(filters.hideCrowded
+      ? [{ key: 'hidec', label: 'Hide crowded', remove: () => setFilters((f) => ({ ...f, hideCrowded: false })) }]
+      : []),
   ];
 
   // ---------- Sheet content ----------
@@ -444,6 +556,8 @@ function Loaded({ data }) {
         station={stById.get(p.st[0])}
         onClose={closePuja}
         visit={account.visited.find((v) => v.puja === p.id)}
+        crowd={crowd.crowd[p.id]}
+        crowdAt={crowd.at}
         onVisited={(on) => ask({ action: 'visited', puja: p.id, on })}
       />
     );
@@ -470,6 +584,7 @@ function Loaded({ data }) {
         station={stationCentre ? stById.get(stationCentre.id) : undefined}
         radiusCounts={radiusCounts}
         filters={filters}
+        crowd={crowd.crowd}
         onRadius={setRadius}
         onClear={() => (near.on ? turnNearOff() : clearPick())}
         onOpen={(id) => openPuja(id)}
@@ -593,6 +708,19 @@ function Loaded({ data }) {
             </div>
           </nav>
         )}
+        {!searchOpen && (
+          <VisitBar
+            step={visitStep}
+            busy={visitBusy}
+            onYes={onVisitYes}
+            onNo={() => {
+              if (visitStep) sayNo(visitStep.puja.id, Date.now());
+              setVisitStep(null);
+            }}
+            onCrowd={onCrowd}
+            onSkip={() => setVisitStep(null)}
+          />
+        )}
         {!online && (
           <p className="jg-offline" role="status">
             <Icon name="offline" size={16} />
@@ -620,6 +748,7 @@ function Loaded({ data }) {
                   lit={lit}
                   priority={priority}
                   selectedId={selectedId}
+                  crowd={crowd.crowd}
                   centre={centre}
                   me={pos && farM == null ? pos : null}
                   onPuja={(id) => openPuja(id, false)}
@@ -713,6 +842,7 @@ function Loaded({ data }) {
         filters={filters}
         centre={centre}
         mine={account.signedIn ? mine : null}
+        crowd={crowd.crowd}
         onSignIn={() => {
           setChoosing(null);
           setSignInErr(null);
@@ -806,14 +936,64 @@ function Loaded({ data }) {
       <SettingsSheet
         open={settingsOpen}
         pending={account.pending}
+        track={track === true}
+        onTrack={(on) => {
+          setTrack(on);
+          if (on) geoStart();
+          else if (!near.on) geoStop();
+        }}
         onClose={() => setSettingsOpen(false)}
         onSignOut={async () => {
           setSettingsOpen(false);
           setChoosing(null);
           await account.signOut();
+          if (!near.on) geoStop();
+          setVisitStep(null);
           show('Signed out');
         }}
       />
+      <ModalSheet
+        open={choosing === 'track'}
+        strong
+        title="Count the pujas you visit"
+        onClose={() => {
+          setTrack(false);
+          setChoosing(null);
+        }}
+        footer={
+          <div className="jg-two">
+            <button
+              type="button"
+              className="btn jg-btn-outline"
+              onClick={() => {
+                setTrack(false);
+                setChoosing(null);
+              }}
+            >
+              Not now
+            </button>
+            <button
+              type="button"
+              className="btn dark"
+              onClick={() => {
+                setTrack(true);
+                setChoosing(null);
+                geoStart();
+              }}
+            >
+              Turn on location
+            </button>
+          </div>
+        }
+      >
+        <p className="jg-body">Turn on location so Puja Dekho can ask when you are at a puja. Your location stays on your phone.</p>
+        {IN_APP_BROWSER && (
+          <p className="jg-note">
+            <Icon name="info" size={16} />
+            This app is open inside a social app, which may block location. If it does not work, open the link in Chrome or Safari.
+          </p>
+        )}
+      </ModalSheet>
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={{ bottom: toolsBottom }}>
@@ -874,6 +1054,7 @@ function ListBody({
   station,
   radiusCounts,
   filters,
+  crowd,
   onRadius,
   onClear,
   onOpen,
@@ -899,6 +1080,8 @@ function ListBody({
     ...filters.zones.map((z) => `Zone ${z}`),
     filters.wish && 'Wish list',
     filters.notVisited && 'Not visited yet',
+    filters.freeNow && 'Free now',
+    filters.hideCrowded && 'Hide crowded',
   ].filter(Boolean);
 
   // Near me states before there are results.
@@ -997,7 +1180,7 @@ function ListBody({
           )}
         </div>
       ) : (
-        <ListRows list={list.slice(0, shown)} sectioned={!centre} onOpen={onOpen} total={list} />
+        <ListRows list={list.slice(0, shown)} sectioned={!centre} onOpen={onOpen} total={list} crowd={crowd} />
       )}
       {list.length > shown && (
         <button type="button" className="btn block jg-btn-outline jg-more-rows" onClick={() => setShown((n) => n + 60)}>
@@ -1012,12 +1195,12 @@ function ListBody({
  * The rows. Without a centre: "Must visit" then "Other pujas", each heading with its count and pinned while its rows
  * scroll. With Near me or a station: one list, nearest first, with the Must visit tag after the name.
  */
-function ListRows({ list, sectioned, onOpen, total }) {
+function ListRows({ list, sectioned, onOpen, total, crowd }) {
   if (!sectioned) {
     return (
       <ul className="jg-list">
         {list.map((r) => (
-          <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} showTag />
+          <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} showTag crowd={crowd[r.puja.id]?.level} />
         ))}
       </ul>
     );
@@ -1035,7 +1218,7 @@ function ListRows({ list, sectioned, onOpen, total }) {
           </h3>
           <ul className="jg-list">
             {rows.map((r) => (
-              <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} />
+              <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} crowd={crowd[r.puja.id]?.level} />
             ))}
           </ul>
         </section>
@@ -1064,10 +1247,10 @@ function EmptyRadius({ centre, counts, onRadius }) {
  * More (design 7.4): crowd and your-pujas groups (coming with sign-in), town, age, procession and zone.
  * Choices are a draft until "Show N pujas", which updates live.
  */
-function MoreSheet({ open, pujas, filters, centre, mine, onSignIn, onApply, onClose }) {
+function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onApply, onClose }) {
   // Each time the sheet opens, the draft starts from the filters that are on.
   const [draftRaw, setDraft] = useState(filters);
-  const draft = useMemo(() => (mine ? { ...draftRaw, mine } : draftRaw), [draftRaw, mine]);
+  const draft = useMemo(() => ({ ...draftRaw, crowd, ...(mine ? { mine } : {}) }), [draftRaw, mine, crowd]);
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
@@ -1099,8 +1282,18 @@ function MoreSheet({ open, pujas, filters, centre, mine, onSignIn, onApply, onCl
     >
       <section className="jg-group">
         <p className="jg-label">Crowd</p>
-        <ChoiceRow label="Free now" note="Coming with crowd reports" selected={false} disabled onClick={() => {}} />
-        <ChoiceRow label="Hide crowded" note="Coming with crowd reports" selected={false} disabled onClick={() => {}} />
+        <ChoiceRow
+          label="Free now"
+          count={n((p) => crowd[p.id]?.level === 'free')}
+          selected={draft.freeNow}
+          onClick={() => setDraft((d) => ({ ...d, freeNow: !d.freeNow }))}
+        />
+        <ChoiceRow
+          label="Hide crowded"
+          count={`${n((p) => crowd[p.id]?.level === 'crowded')} crowded now`}
+          selected={draft.hideCrowded}
+          onClick={() => setDraft((d) => ({ ...d, hideCrowded: !d.hideCrowded }))}
+        />
       </section>
       <section className="jg-group">
         <p className="jg-label">Your pujas</p>

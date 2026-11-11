@@ -2,12 +2,15 @@ import { BentoCard, useBento } from '../components/ui/Bento.jsx';
 import { Icon } from '../components/ui/Icon.jsx';
 import { ABOUT, WHATS_NEW } from './config.js';
 import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
+import { agoText } from './visit.js';
+
+const CROWD_WORD = { free: 'Free', crowded: 'Crowded' };
 
 /**
  * One row of the puja list (design: rows 52 tall, the name truncates, distances never do).
- * @param {{ puja: import('./lib.js').JgPuja, d: number | null, onOpen: (id: string) => void, showTag?: boolean }} props
+ * @param {{ puja: import('./lib.js').JgPuja, d: number | null, onOpen: (id: string) => void, showTag?: boolean, crowd?: string }} props
  */
-export function PujaRow({ puja, d, onOpen, showTag = false }) {
+export function PujaRow({ puja, d, onOpen, showTag = false, crowd }) {
   return (
     <li>
       <button type="button" className="jg-row" onClick={() => onOpen(puja.id)}>
@@ -15,6 +18,7 @@ export function PujaRow({ puja, d, onOpen, showTag = false }) {
           <span className="jg-row-head">
             <span className="jg-row-title">{puja.n}</span>
             {showTag && puja.pop && <span className="jg-tag must">Must visit</span>}
+            {crowd && <span className={`jg-tag ${crowd}`}>{CROWD_WORD[crowd]}</span>}
           </span>
           <span className="jg-row-meta">
             <span>{[puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}</span>
@@ -53,9 +57,9 @@ function ThemeArtist({ puja }) {
 /**
  * The puja sheet (design 7.6): name, Bengali name, meta line, tags, theme and artist, details. The buttons are in
  * `PujaActions`, pinned at the bottom of the sheet.
- * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void, visit?: { mode: string } | undefined, onVisited: (on: boolean) => void }} props
+ * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void, visit?: { mode: string } | undefined, onVisited: (on: boolean) => void, crowd?: { level: string, n: number, at: number }, crowdAt?: number }} props
  */
-export function PujaDetail({ puja, station, onClose, visit, onVisited }) {
+export function PujaDetail({ puja, station, onClose, visit, onVisited, crowd, crowdAt = 0 }) {
   const meta = [puja.t, puja.y ? `Estd ${puja.y}` : null, station ? `${station.name} ${formatDistance(puja.st[1])}` : null].filter(Boolean);
   const facts = [
     ['Address', puja.ad],
@@ -73,6 +77,13 @@ export function PujaDetail({ puja, station, onClose, visit, onVisited }) {
             </p>
           )}
           <p className="jg-meta">{meta.join(' · ')}</p>
+          {crowd && (
+            <p className="jg-crowd-line" data-level={crowd.level}>
+              <span className="jg-crowd-dot" aria-hidden="true" />
+              <strong>{CROWD_WORD[crowd.level]}</strong>
+              {` · ${crowd.n} reports · ${agoText(crowd.at, crowdAt)}`}
+            </p>
+          )}
         </div>
         <button type="button" className="jg-icon-btn" aria-label="Close puja details" onClick={onClose}>
           <Icon name="x" />

@@ -73,3 +73,30 @@ test('E-Rank comes with D-Rank; next rank and its line', () => {
   assert.equal(unlockLine(progressTo({ best: 2, total: 22, today: 0 }, 2)), 'Complete 3 more pujas to unlock it');
   assert.equal(unlockLine(progressTo({ best: 4, total: 4, today: 4 }, 0)), 'Complete 1 more puja today to unlock it');
 });
+
+// ---- v0.2 "Are you visiting?" ----
+import { agoText, NO_STAY, nextStay, stayedLongEnough } from '../../src/jagadhatri/visit.js';
+
+test('asks only after 2 minutes within 100 m of the same puja', () => {
+  const p = data.pujas[0];
+  const at = (dLat, acc = 10) => ({ lat: p.la + dLat, lng: p.lo, accuracy: acc });
+  let s = nextStay(NO_STAY, at(0.0003), data.pujas, 0); // ~33 m away
+  assert.equal(s.id, p.id);
+  s = nextStay(s, at(0.0004), data.pujas, 60_000);
+  assert.equal(stayedLongEnough(s, 60_000), false);
+  assert.equal(stayedLongEnough(nextStay(s, at(0.0002), data.pujas, 120_000), 120_000), true);
+  // An imprecise fix changes nothing; walking away ends the stay.
+  assert.equal(nextStay(s, at(0.01, 300), data.pujas, 90_000), s);
+  assert.equal(nextStay(s, { lat: 22.0, lng: 88.0, accuracy: 10 }, data.pujas, 90_000).id, null);
+});
+
+test('crowd filters and time text', () => {
+  const [a, b] = data.pujas;
+  const crowd = { [a.id]: { level: 'free' }, [b.id]: { level: 'crowded' } };
+  assert.equal(passes(a, { ...NO_FILTERS, freeNow: true, crowd }), true);
+  assert.equal(passes(b, { ...NO_FILTERS, freeNow: true, crowd }), false);
+  assert.equal(passes(b, { ...NO_FILTERS, hideCrowded: true, crowd }), false);
+  assert.equal(passes(data.pujas[3], { ...NO_FILTERS, hideCrowded: true, crowd }), true);
+  assert.equal(agoText(0, 12 * 60_000), '12 min ago');
+  assert.equal(agoText(0, 20_000), 'just now');
+});

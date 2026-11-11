@@ -1568,3 +1568,88 @@ button.jg-card:active {
     padding: 0 5px;
   }
 }
+
+/* ---- v0.2 drop 2: "Are you visiting?" bar and crowd ---- */
+.jg-visit-bar {
+  margin-top: 8px;
+  padding: 12px 12px 12px 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--float-shadow);
+  border: 1px solid var(--line);
+  pointer-events: auto;
+}
+.jg-visit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin: -8px -8px 0 0;
+}
+.jg-visit-q {
+  margin: 0 0 10px;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  overflow-wrap: anywhere;
+}
+.jg-visit-head .jg-visit-q {
+  margin: 0;
+}
+.jg-visit-btns {
+  display: flex;
+  gap: 8px;
+}
+.jg-visit-btns > .btn {
+  flex: 1 1 0;
+  min-height: 48px;
+}
+.jg-visit-head + .jg-visit-btns {
+  margin-top: 6px;
+}
+.jg-crowd-btn.free {
+  border-color: var(--color-free);
+  color: var(--color-free);
+  background: transparent;
+}
+.jg-crowd-btn.crowded {
+  border-color: var(--color-crowded);
+  color: var(--color-crowded);
+  background: transparent;
+}
+.jg-tag.free {
+  background: color-mix(in srgb, var(--color-free) 16%, transparent);
+  color: var(--color-free);
+}
+.jg-tag.crowded {
+  background: color-mix(in srgb, var(--color-crowded) 16%, transparent);
+  color: var(--color-crowded);
+}
+.jg-row-head .jg-tag {
+  flex: none;
+}
+.jg-crowd-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+.jg-crowd-line strong {
+  color: var(--color-free);
+}
+.jg-crowd-line[data-level='crowded'] strong {
+  color: var(--color-crowded);
+}
+.jg-crowd-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-free);
+}
+.jg-crowd-line[data-level='crowded'] .jg-crowd-dot {
+  background: var(--color-crowded);
+}

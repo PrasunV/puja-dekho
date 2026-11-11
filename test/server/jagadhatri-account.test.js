@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { createAccountHandler } from '../../server/jagadhatri/account.js';
+import { createAccountHandler, crowdSummary } from '../../server/jagadhatri/account.js';
 
 const CLIENT = 'test-client.apps.googleusercontent.com';
 const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -28,9 +28,10 @@ function token(claims, key = privateKey, kid = 'k1') {
   return `${head}.${body}.${sig}`;
 }
 
-function setup() {
+function setup(now = Date.now) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pd-jg-account-'));
   const handler = createAccountHandler({
+    now,
     env: { SECRET: 'test-secret' },
     dbPath: path.join(dir, 'a.db'),
     fetchImpl: /** @type {any} */ (fakeFetch),
@@ -49,7 +50,8 @@ function setup() {
           resolve({ status: res.statusCode, body: JSON.parse(text), headers });
         },
       };
-      const req = { method, headers: { cookie, host: 'puja-dekho.vercel.app', ...extraHeaders }, body };
+      const url = method === 'GET' && body === 'crowd' ? '/api/jagadhatri/account?crowd=1' : '/api/jagadhatri/account';
+      const req = { method, url, headers: { cookie, host: 'puja-dekho.vercel.app', ...extraHeaders }, body };
       handler(req, res);
     });
   return { call, getCookie: () => cookie, setCookie: (c) => (cookie = c) };
@@ -109,4 +111,53 @@ test('account: no SECRET means the service says so instead of signing weak cooki
     handler({ method: 'GET', headers: {} }, r);
   });
   assert.equal(res.status, 503);
+});
+
+test('account: in person upgrades a hand tick, 2 minutes apart, never downgraded', async () => {
+  let t = Date.UTC(2026, 10, 15, 14, 0);
+  const { call } = setup(() => t);
+  await call('POST', { action: 'signin', credential: token({ exp: Math.floor(t / 1000) + 600 }) });
+  await call('POST', { action: 'visited', puja: 'adi-haldarpara-burima', on: true });
+  let r = await call('POST', { action: 'here', puja: 'adi-haldarpara-burima' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.visited[0].mode, 'person');
+  t += 30_000;
+  const other = (await import('../../public/jagadhatripuja/data/pujas.json', { with: { type: 'json' } })).default.pujas[5].id;
+  r = await call('POST', { action: 'here', puja: other });
+  assert.equal(r.status, 429);
+  t += 120_000;
+  r = await call('POST', { action: 'here', puja: other });
+  assert.equal(r.status, 200);
+  // Unticking by hand leaves an in-person visit alone.
+  r = await call('POST', { action: 'visited', puja: 'adi-haldarpara-burima', on: false });
+  assert.equal(r.body.visited.filter((v) => v.mode === 'person').length, 2);
+});
+
+test('account: crowd needs sign-in, shows with 2+ reports in the last hour', async () => {
+  let t = Date.UTC(2026, 10, 15, 14, 0);
+  const { call, setCookie } = setup(() => t);
+  const puja = 'adi-haldarpara-burima';
+  assert.equal((await call('POST', { action: 'crowd', puja, level: 'free' })).status, 401);
+  await call('POST', { action: 'signin', credential: token({ sub: '111', exp: Math.floor(t / 1000) + 9000 }) });
+  assert.equal((await call('POST', { action: 'crowd', puja, level: 'crowded' })).status, 200);
+  assert.equal((await call('POST', { action: 'crowd', puja, level: 'free' })).status, 429);
+  let c = await call('GET', 'crowd');
+  assert.deepEqual(c.body.crowd, {});
+  assert.match(String(c.headers['cache-control']), /s-maxage/);
+  setCookie('');
+  await call('POST', { action: 'signin', credential: token({ sub: '222', exp: Math.floor(t / 1000) + 9000 }) });
+  t += 5000;
+  await call('POST', { action: 'crowd', puja, level: 'free' });
+  c = await call('GET', 'crowd');
+  assert.equal(c.body.crowd[puja].n, 2);
+  assert.equal(c.body.crowd[puja].level, 'free'); // tie: latest wins
+  t += 61 * 60_000;
+  assert.deepEqual((await call('GET', 'crowd')).body.crowd, {});
+  assert.equal((await call('POST', { action: 'crowd', puja, level: 'loud' })).status, 400);
+});
+
+test('crowdSummary: majority wins', () => {
+  const r = (level, at) => ({ puja: 'x', level, at });
+  assert.equal(crowdSummary([r('free', 1), r('crowded', 2), r('crowded', 3), r('free', 4)]).x.level, 'free');
+  assert.equal(crowdSummary([r('free', 1), r('crowded', 2), r('crowded', 3)]).x.level, 'crowded');
 });

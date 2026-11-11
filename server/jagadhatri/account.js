@@ -7,6 +7,13 @@
  *   POST { action: 'signout' }
  *   POST { action: 'wish', puja, on }          add (on: true) or remove a puja from the wish list
  *   POST { action: 'visited', puja, on }       mark a puja visited by hand, or unmark it
+ *   POST { action: 'here', puja }              completed in person: the phone saw 2 minutes within 100 m and the person
+ *                                              said Yes (counts for badges; upgrades a hand tick)
+ *   POST { action: 'crowd', puja, level }      'free' or 'crowded', from someone at the puja
+ *   GET  ?crowd=1 → { crowd: { [puja]: { level, n, at } } }   public, last 60 minutes, only pujas with 2+ reports
+ *
+ * The phone checks the distance itself, so the location never leaves it (privacy notice). The server limits how fast
+ * in-person visits and crowd reports can come in.
  *
  * What is stored (see /privacy.html): Google account ID, name and profile photo, and the pujas. Never the email.
  * The session is an HttpOnly cookie signed with SECRET; no password, no token in the browser's storage.
@@ -28,6 +35,38 @@ const SESSION_DAYS = 60;
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 const MAX_ROWS = 400; // per user per list; there are 207 pujas
 const PUJA_IDS = new Set(JG_DATA.pujas.map((p) => p.id));
+const HERE_GAP_MS = 2 * 60_000; // two in-person visits at least 2 minutes apart (each needs 2 minutes at the puja)
+const HERE_PER_DAY = 60;
+const CROWD_WINDOW_MS = 60 * 60_000;
+const CROWD_MIN_REPORTS = 2;
+const CROWD_GAP_MS = 60_000; // one report per puja per person per minute
+
+/**
+ * Crowd status per puja from the reports of the last hour: the majority wins, a tie goes to the latest report, and a
+ * puja needs 2 or more reports to show anything.
+ * @param {{ puja: string, level: string, at: number }[]} rows
+ */
+export function crowdSummary(rows) {
+  /** @type {Record<string, { free: number, crowded: number, at: number, last: string }>} */
+  const by = {};
+  for (const r of rows) {
+    const b = (by[r.puja] ??= { free: 0, crowded: 0, at: 0, last: 'free' });
+    b[r.level === 'crowded' ? 'crowded' : 'free'] += 1;
+    if (r.at >= b.at) {
+      b.at = r.at;
+      b.last = r.level;
+    }
+  }
+  /** @type {Record<string, { level: string, n: number, at: number }>} */
+  const out = {};
+  for (const [puja, b] of Object.entries(by)) {
+    const n = b.free + b.crowded;
+    if (n < CROWD_MIN_REPORTS) continue;
+    const level = b.free === b.crowded ? b.last : b.free > b.crowded ? 'free' : 'crowded';
+    out[puja] = { level, n, at: b.at };
+  }
+  return out;
+}
 
 const istDay = (ms) => new Date(ms + IST_OFFSET_MS).toISOString().slice(0, 10);
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
@@ -51,6 +90,8 @@ export async function openAccountDb(env = process.env, dbPath) {
       'CREATE TABLE IF NOT EXISTS jg_users (id TEXT PRIMARY KEY, name TEXT NOT NULL, picture TEXT, created INTEGER NOT NULL, seen INTEGER NOT NULL)',
       'CREATE TABLE IF NOT EXISTS jg_visited (user TEXT NOT NULL, puja TEXT NOT NULL, mode TEXT NOT NULL, at INTEGER NOT NULL, day TEXT NOT NULL, PRIMARY KEY (user, puja))',
       'CREATE TABLE IF NOT EXISTS jg_wish (user TEXT NOT NULL, puja TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (user, puja))',
+      'CREATE TABLE IF NOT EXISTS jg_crowd (user TEXT NOT NULL, puja TEXT NOT NULL, level TEXT NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (user, puja))',
+      'CREATE INDEX IF NOT EXISTS jg_crowd_at ON jg_crowd (at)',
     ],
     'write',
   );
@@ -191,6 +232,15 @@ export function createAccountHandler({ env = process.env, now = Date.now, dbPath
       const t = now();
       const userId = session.read(cookieOf(req.headers.cookie, COOKIE), t);
 
+      if ((req.method === 'GET' || req.method === 'HEAD') && /[?&]crowd=1/.test(req.url || '')) {
+        const rows = (
+          await client.execute({ sql: 'SELECT puja, level, at FROM jg_crowd WHERE at >= ?', args: [t - CROWD_WINDOW_MS] })
+        ).rows.map((r) => ({ puja: String(r.puja), level: String(r.level), at: Number(r.at) }));
+        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=30, stale-while-revalidate=30');
+        res.statusCode = 200;
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        return res.end(JSON.stringify({ crowd: crowdSummary(rows), at: t }));
+      }
       if (req.method === 'GET' || req.method === 'HEAD') {
         if (!userId) return send(res, 200, { user: null, visited: [], wish: [] });
         return send(res, 200, await snapshot(client, userId));
@@ -257,6 +307,37 @@ export function createAccountHandler({ env = process.env, now = Date.now, dbPath
         } else {
           await client.execute({ sql: "DELETE FROM jg_visited WHERE user = ? AND puja = ? AND mode = 'manual'", args: [userId, puja] });
         }
+        return send(res, 200, await snapshot(client, userId));
+      }
+      if (action === 'here') {
+        const had = (await client.execute({ sql: 'SELECT mode FROM jg_visited WHERE user = ? AND puja = ?', args: [userId, puja] }))
+          .rows[0];
+        if (had?.mode === 'person') return send(res, 200, await snapshot(client, userId));
+        const recent = (
+          await client.execute({
+            sql: "SELECT MAX(at) AS last, SUM(CASE WHEN day = ? THEN 1 ELSE 0 END) AS today FROM jg_visited WHERE user = ? AND mode = 'person'",
+            args: [istDay(t), userId],
+          })
+        ).rows[0];
+        if (recent?.last != null && t - Number(recent.last) < HERE_GAP_MS) return send(res, 429, { error: 'too_soon' });
+        if (Number(recent?.today || 0) >= HERE_PER_DAY) return send(res, 429, { error: 'daily_limit' });
+        await client.execute({
+          sql: "INSERT INTO jg_visited (user, puja, mode, at, day) VALUES (?, ?, 'person', ?, ?) ON CONFLICT(user, puja) DO UPDATE SET mode = 'person', at = excluded.at, day = excluded.day",
+          args: [userId, puja, t, istDay(t)],
+        });
+        return send(res, 200, await snapshot(client, userId));
+      }
+      if (action === 'crowd') {
+        const level = body.level === 'crowded' ? 'crowded' : body.level === 'free' ? 'free' : null;
+        if (!level) return send(res, 400, { error: 'bad_level' });
+        const prev = (await client.execute({ sql: 'SELECT at FROM jg_crowd WHERE user = ? AND puja = ?', args: [userId, puja] })).rows[0];
+        if (prev && t - Number(prev.at) < CROWD_GAP_MS) return send(res, 429, { error: 'too_soon' });
+        await client.execute({
+          sql: 'INSERT INTO jg_crowd (user, puja, level, at) VALUES (?, ?, ?, ?) ON CONFLICT(user, puja) DO UPDATE SET level = excluded.level, at = excluded.at',
+          args: [userId, puja, level, t],
+        });
+        // Old reports are never shown; tidy them now and then.
+        if (Math.random() < 0.05) await client.execute({ sql: 'DELETE FROM jg_crowd WHERE at < ?', args: [t - 24 * 3_600_000] });
         return send(res, 200, await snapshot(client, userId));
       }
       return send(res, 400, { error: 'unknown_action' });

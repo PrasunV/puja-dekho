@@ -13,7 +13,7 @@ const QUEUE_KEY = 'jg_queue';
 
 /** @typedef {{ name: string, picture: string | null }} JgUser */
 /** @typedef {{ user: JgUser | null, visited: import('./ranks.js').Visit[], wish: { puja: string, at: number }[] }} Snapshot */
-/** @typedef {{ action: 'wish' | 'visited', puja: string, on: boolean }} Change */
+/** @typedef {{ action: 'wish' | 'visited' | 'here', puja: string, on: boolean }} Change  'here' = completed in person */
 
 const EMPTY = /** @type {Snapshot} */ ({ user: null, visited: [], wish: [] });
 
@@ -43,6 +43,11 @@ function applyLocal(/** @type {Snapshot} */ s, /** @type {Change} */ c, now = Da
     return { ...s, wish: c.on ? [{ puja: c.puja, at: now }, ...wish] : wish };
   }
   const had = s.visited.find((v) => v.puja === c.puja);
+  if (c.action === 'here') {
+    const day = new Date(now + 5.5 * 3600_000).toISOString().slice(0, 10);
+    const rest = s.visited.filter((v) => v.puja !== c.puja);
+    return had?.mode === 'person' ? s : { ...s, visited: [{ puja: c.puja, mode: 'person', at: now, day }, ...rest] };
+  }
   if (c.on) {
     if (had) return s;
     const day = new Date(now + 5.5 * 3600_000).toISOString().slice(0, 10);
@@ -135,6 +140,7 @@ export function useAccount() {
   const change = useCallback(
     async (/** @type {Change} */ c) => {
       // Read the latest copy (not the one from an older render), so an Undo pressed later never rolls back other changes.
+      const was = latest.current.visited.find((v) => v.puja === c.puja);
       keep(applyLocal(latest.current, c));
       try {
         keep(await post(c));
@@ -142,7 +148,10 @@ export function useAccount() {
       } catch (e) {
         if (e instanceof HttpError) {
           if (e.status === 401) keep(EMPTY);
-          else keep(applyLocal(latest.current, { ...c, on: !c.on }));
+          else if (c.action === 'here') {
+            const rest = latest.current.visited.filter((v) => v.puja !== c.puja);
+            keep({ ...latest.current, visited: was ? [was, ...rest] : rest });
+          } else keep(applyLocal(latest.current, { ...c, on: !c.on }));
           throw e;
         }
         setQueue([.../** @type {Change[]} */ (storage.get(QUEUE_KEY, [])), c]);
@@ -152,7 +161,15 @@ export function useAccount() {
     [keep],
   );
 
-  return { ...snap, signedIn: !!snap.user, pending, signIn, signOut, change };
+  /** A crowd report, from someone at the puja. Not queued: an old report would mislead. */
+  const report = useCallback(
+    async (/** @type {string} */ puja, /** @type {'free' | 'crowded'} */ level) => {
+      keep(await post({ action: 'crowd', puja, level }));
+    },
+    [keep],
+  );
+
+  return { ...snap, signedIn: !!snap.user, pending, signIn, signOut, change, report };
 }
 
 // ---- Sign in with Google (Google Identity Services) ----
@@ -207,4 +224,32 @@ export async function renderGoogleButton(el, handler) {
     logo_alignment: 'center',
     width: Math.max(200, Math.min(400, Math.floor(el.clientWidth || 320))),
   });
+}
+
+/**
+ * Live crowd status for every puja (last 60 minutes, 2+ reports), refreshed every 2 minutes while the app is on
+ * screen. Kept in memory only: an hour-old status shown offline would mislead.
+ * @returns {{ crowd: Record<string, { level: 'free' | 'crowded', n: number, at: number }>, at: number, refresh: () => void }}
+ */
+export function useCrowd() {
+  const [state, setState] = useState({ crowd: {}, at: 0 });
+  const load = useCallback(() => {
+    fetch(`${URL}?crowd=1`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => j && setState({ crowd: j.crowd || {}, at: Number(j.at) || 0 }))
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    load();
+    const id = window.setInterval(() => document.visibilityState === 'visible' && load(), 120_000);
+    const onShow = () => document.visibilityState === 'visible' && load();
+    document.addEventListener('visibilitychange', onShow);
+    window.addEventListener('online', load);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', onShow);
+      window.removeEventListener('online', load);
+    };
+  }, [load]);
+  return { ...state, refresh: load };
 }

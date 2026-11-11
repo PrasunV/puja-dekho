@@ -11,6 +11,7 @@ const SIGN_IN_COPY = {
   start: ['Start your puja tour', 'Sign in to count every puja you visit and unlock badges as you go.'],
   wish: ['Save pujas for later', 'Sign in to keep your wish list on any phone.'],
   visited: ['Keep track of your pujas', 'Sign in to mark pujas visited and see them on your profile.'],
+  here: ['Count this puja', 'Sign in to count the pujas you visit and unlock badges as you go.'],
 };
 
 /** Why sign-in failed, in words the person can act on. */
@@ -24,7 +25,7 @@ export function signInError(/** @type {unknown} */ e) {
 
 /**
  * The sign-in sheet: one title, one line, Google's button, Later.
- * @param {{ reason: 'start' | 'wish' | 'visited' | null, busy: boolean, error: string | null, onCredential: (c: string) => void, onClose: () => void }} props
+ * @param {{ reason: 'start' | 'wish' | 'visited' | 'here' | null, busy: boolean, error: string | null, onCredential: (c: string) => void, onClose: () => void }} props
  */
 export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   const open = reason != null;
@@ -358,7 +359,7 @@ function RankCardEarned({ stats, cur }) {
 }
 
 /** Settings, opened from the profile card: celebration sound, privacy notice, sign out. */
-export function SettingsSheet({ open, pending, onClose, onSignOut }) {
+export function SettingsSheet({ open, pending, track, onTrack, onClose, onSignOut }) {
   const [sound, setSound] = useState(() => storage.get('jg_sound', true));
   useBackClose(open, onClose);
   return (
@@ -376,6 +377,13 @@ export function SettingsSheet({ open, pending, onClose, onSignOut }) {
         <span className="jg-choice-text">
           <span className="jg-choice-label">Celebration sound</span>
           <span className="jg-choice-count">Plays when you unlock a badge</span>
+        </span>
+        <span className="jg-switch" aria-hidden="true" />
+      </button>
+      <button type="button" role="switch" aria-checked={track} className="jg-choice jg-switch-row" onClick={() => onTrack(!track)}>
+        <span className="jg-choice-text">
+          <span className="jg-choice-label">Count visits with location</span>
+          <span className="jg-choice-count">Asks when you spend 2 minutes at a puja</span>
         </span>
         <span className="jg-switch" aria-hidden="true" />
       </button>
