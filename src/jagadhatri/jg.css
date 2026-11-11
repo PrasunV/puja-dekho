@@ -1155,15 +1155,64 @@
   right: 16px;
 }
 
-/* Sign-in sheet */
+/* Sign-in sheet: header with divider and round close, one line, 3 benefits, Google, Not now, then terms */
+.jg-signin .jg-modal-head {
+  padding: 4px 12px 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.jg-signin .jg-modal-head .jg-icon-btn {
+  position: relative;
+  isolation: isolate;
+}
+.jg-signin .jg-modal-head .jg-icon-btn::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  z-index: -1;
+  border-radius: 50%;
+  background: var(--jg-tonal);
+}
 .jg-signin .jg-modal-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-bottom: 8px;
+  padding: 16px 20px 16px;
 }
 .jg-signin .jg-body {
   margin: 0;
+  color: var(--muted);
+}
+.jg-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+}
+.jg-benefit-ic {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--maroon);
+}
+.jg-signin-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: 24px;
 }
 .jg-gsi {
   position: relative;
@@ -1186,11 +1235,26 @@
 .jg-gsi .jg-spinner {
   position: absolute;
 }
+.jg-notnow {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.jg-notnow:active {
+  background: var(--surface-2);
+}
 .jg-signin-error {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+  margin-top: 12px;
   padding: 12px;
   border-radius: 12px;
   background: var(--surface-2);
@@ -1200,17 +1264,16 @@
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
+.jg-signin .jg-note {
+  margin-top: 12px;
+}
 .jg-signin-terms {
-  margin: 0;
+  margin: 12px 0 0;
   text-align: center;
 }
 .jg-signin-terms a,
 .jg-settings a {
   color: inherit;
-}
-.jg-signin .jg-modal-foot {
-  border-top: 0;
-  padding-top: 0;
 }
 
 /* Cards */
@@ -1551,9 +1614,6 @@ button.jg-card:active {
 }
 .jg-signout {
   color: var(--ink);
-}
-.jg-later {
-  text-decoration: none;
 }
 .jg-ptab {
   white-space: nowrap;

@@ -8,11 +8,18 @@ import { Avatar, ModalSheet } from './ui.jsx';
 
 /** One message per reason the sign-in sheet opens (copy approved in the prototype). */
 const SIGN_IN_COPY = {
-  start: ['Start your puja tour', 'Sign in to count every puja you visit and unlock badges as you go.'],
+  start: ['Start your puja tour', 'One tap with your Google account, and Puja Dekho keeps track for you.'],
   wish: ['Save pujas for later', 'Sign in to keep your wish list on any phone.'],
   visited: ['Keep track of your pujas', 'Sign in to mark pujas visited and see them on your profile.'],
   here: ['Count this puja', 'Sign in to count the pujas you visit and unlock badges as you go.'],
 };
+
+/** What signing in gives, shown on every sign-in sheet. */
+const BENEFITS = [
+  { icon: 'award', text: 'Earn badges as you visit pujas' },
+  { icon: 'heart', text: 'Keep your wish list on any phone' },
+  { icon: 'share', text: 'Share your badges with friends' },
+];
 
 /** Why sign-in failed, in words the person can act on. */
 export function signInError(/** @type {unknown} */ e) {
@@ -56,22 +63,26 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
 
   const message = error || loadError;
   return (
-    <ModalSheet
-      open={open}
-      strong
-      title={title}
-      onClose={onClose}
-      className="jg-signin"
-      footer={
-        <button type="button" className="btn jg-btn-outline block jg-later" onClick={onClose}>
-          Later
-        </button>
-      }
-    >
+    <ModalSheet open={open} strong title={title} onClose={onClose} className="jg-signin">
       <p className="jg-body">{text}</p>
-      <div className="jg-gsi" aria-busy={busy || undefined}>
-        <div ref={slot} className="jg-gsi-slot" data-busy={busy || undefined} />
-        {busy && <span className="jg-spinner" aria-label="Signing you in" />}
+      <ul className="jg-benefits">
+        {BENEFITS.map((b) => (
+          <li key={b.icon}>
+            <span className="jg-benefit-ic" aria-hidden="true">
+              <Icon name={b.icon} size={20} />
+            </span>
+            {b.text}
+          </li>
+        ))}
+      </ul>
+      <div className="jg-signin-actions">
+        <div className="jg-gsi" aria-busy={busy || undefined}>
+          <div ref={slot} className="jg-gsi-slot" data-busy={busy || undefined} />
+          {busy && <span className="jg-spinner" aria-label="Signing you in" />}
+        </div>
+        <button type="button" className="jg-notnow" onClick={onClose}>
+          Not now
+        </button>
       </div>
       {message && (
         <div className="jg-signin-error" role="alert">

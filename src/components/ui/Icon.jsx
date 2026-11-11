@@ -124,6 +124,13 @@ const PATHS = {
   arrowNE: <path d="M7 17 17 7M9 7h8v8" />,
   check: <path d="m5 12 5 5 9-10" />,
   next: <path d="m9 6 6 6-6 6" />,
+  share: <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />,
+  award: (
+    <>
+      <circle cx="12" cy="9" r="6" />
+      <path d="M8.5 14 7 22l5-3 5 3-1.5-8" />
+    </>
+  ),
   barrier: (
     <>
       <rect x="3" y="7" width="18" height="6" rx="1.5" />

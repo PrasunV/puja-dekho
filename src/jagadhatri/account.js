@@ -217,10 +217,10 @@ export async function renderGoogleButton(el, handler) {
   el.replaceChildren();
   google.accounts.id.renderButton(el, {
     type: 'standard',
-    theme: 'filled_black',
+    theme: 'outline',
     size: 'large',
     text: 'continue_with',
-    shape: 'pill',
+    shape: 'rectangular',
     logo_alignment: 'center',
     width: Math.max(200, Math.min(400, Math.floor(el.clientWidth || 320))),
   });
