@@ -2223,3 +2223,14 @@ button.jg-ladder-row {
 .jg-scard-bot span:last-child {
   white-space: nowrap;
 }
+.jg-pempty p {
+  margin: 0;
+}
+.jg-pempty .jg-pempty-title {
+  margin-bottom: 2px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.jg-map-fail:empty {
+  display: none;
+}

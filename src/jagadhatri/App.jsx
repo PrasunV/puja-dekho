@@ -338,12 +338,12 @@ function Loaded({ data }) {
     function apply(/** @type {import('./account.js').Change} */ c, undoable = true) {
       accountChange(c).then(
         (how) => {
-          const text = how === 'queued' ? 'Saved. Sends when you are online' : TOAST_TEXT[`${c.action}:${c.on}`];
+          const text = how === 'queued' ? 'Saved. Sends when online' : TOAST_TEXT[`${c.action}:${c.on}`];
           show(text, 3200, undoable ? { label: 'Undo', run: () => apply({ ...c, on: !c.on }, false) } : undefined);
         },
         (e) => {
           if (/** @type {any} */ (e)?.status === 401) {
-            show('Signed out. Sign in again');
+            show('Session ended. Sign in again');
             setSignIn({ reason: c.action === 'wish' ? 'wish' : 'visited', change: c });
           } else show("Couldn't save. Try again");
         },
@@ -494,7 +494,7 @@ function Loaded({ data }) {
       .then(
         (how) => {
           if (how === 'queued') {
-            show('Saved. Counts when you are online');
+            show('Saved. Counts when online');
             setBar(null);
           } else {
             show('Puja counted');
@@ -504,10 +504,10 @@ function Loaded({ data }) {
         (e) => {
           const code = /** @type {any} */ (e)?.message;
           if (code === 'too_soon') {
-            show('Counted pujas need 2 minutes apart');
+            show('Not counted. Try again in 2 minutes');
             setBar({ kind: 'crowd', puja: p });
           } else {
-            show(code === 'daily_limit' ? 'Daily limit reached' : "Couldn't count it. Try again");
+            show(code === 'daily_limit' ? 'Today’s limit reached' : "Couldn't count it. Try again");
             setBar(null);
           }
         },
@@ -535,7 +535,7 @@ function Loaded({ data }) {
           show('Crowd report sent');
           crowd.refresh();
         },
-        (e) => show(/** @type {any} */ (e)?.status ? "Couldn't send. Try again later" : 'No network. Report not sent'),
+        (e) => show(/** @type {any} */ (e)?.status ? "Couldn't send. Try again later" : 'Offline. Report not sent'),
       )
       .finally(() => {
         setVisitBusy(false);
@@ -748,7 +748,9 @@ function Loaded({ data }) {
         {!online && (
           <p className="jg-offline" role="status">
             <Icon name="offline" size={16} />
-            No network. Pujas, search and details still work.
+            <span>
+              <strong>You&apos;re offline.</strong> List, search and puja details still work.
+            </span>
           </p>
         )}
       </header>
@@ -758,9 +760,14 @@ function Loaded({ data }) {
       <main className="stage jg-stage">
         <div className="jg-map-wrap">
           {mapFailed ? (
+            // Offline, the banner under the search bar already says this: one message, not two.
             <div className="jg-map-fail">
-              <Icon name="offline" />
-              <p>The map needs a network. Your list, search and puja details still work.</p>
+              {online && (
+                <>
+                  <Icon name="offline" />
+                  <p>The map needs a network. List, search and puja details still work.</p>
+                </>
+              )}
             </div>
           ) : (
             <MapBoundary onFail={() => setMapFailed(true)}>
@@ -1233,7 +1240,11 @@ function ListBody({
             <EmptyRadius centre={centre} counts={radiusCounts} onRadius={onRadius} />
           ) : (
             <>
-              <p>No pujas match these filters.</p>
+              <p>
+                {filters.freeNow && !Object.values(crowd).some((c) => c.level === 'free')
+                  ? 'No crowd reports in the last hour'
+                  : 'No pujas match these filters.'}
+              </p>
               <button type="button" className="btn dark small" onClick={onClearFilters}>
                 Clear filters
               </button>

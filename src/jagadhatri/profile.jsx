@@ -249,7 +249,10 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
           <div role="tabpanel" className="jg-ppanel">
             {tab === 'visited' &&
               (visited.length === 0 ? (
-                <p className="jg-pempty">Pujas you visit show here. Open a puja and tap Mark as visited.</p>
+                <div className="jg-pempty">
+                  <p className="jg-pempty-title">No pujas visited yet</p>
+                  <p>Visit a puja and tap Yes when asked, or tap Mark as visited.</p>
+                </div>
               ) : (
                 <ul className="jg-list">
                   {visited.map((v) => {
@@ -274,7 +277,10 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
               ))}
             {tab === 'wish' &&
               (wish.length === 0 ? (
-                <p className="jg-pempty">Tap the heart on a puja to save it here.</p>
+                <div className="jg-pempty">
+                  <p className="jg-pempty-title">No pujas saved yet</p>
+                  <p>Tap Wish list on any puja to save it here.</p>
+                </div>
               ) : (
                 <ul className="jg-list">
                   {wish.map((w) => {
@@ -426,7 +432,7 @@ export function SettingsSheet({ open, pending, track, onTrack, onClose, onSignOu
       {pending > 0 && (
         <p className="jg-note">
           <Icon name="info" size={16} />
-          {`${pending} ${pending === 1 ? 'change is' : 'changes are'} waiting for a network. Sign out now and ${pending === 1 ? 'it is' : 'they are'} lost.`}
+          {`${pending} ${pending === 1 ? "change hasn't" : "changes haven't"} been sent yet. Signing out deletes ${pending === 1 ? 'it' : 'them'}.`}
         </p>
       )}
       <button type="button" className="jg-choice jg-signout" onClick={onSignOut}>
