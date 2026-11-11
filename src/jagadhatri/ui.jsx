@@ -13,9 +13,10 @@ export function Avatar({ user, size = 40 }) {
   const initials =
     user.name
       .split(/\s+/)
+      // First letter of the first two words that start with a letter, so "Prasun (demo)" or "Ria 🌸" stay clean.
+      .map((w) => w.match(/\p{L}/u)?.[0])
       .filter(Boolean)
       .slice(0, 2)
-      .map((w) => w[0])
       .join('')
       .toUpperCase() || '?';
   return (

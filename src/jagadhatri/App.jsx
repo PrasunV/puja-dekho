@@ -428,6 +428,21 @@ function Loaded({ data }) {
   // ---------- "Are you visiting?" (2 minutes within 100 m), then the crowd ----------
   const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
   const [visitBusy, setVisitBusy] = useState(false);
+  // While the bar shows, the sheet drops to its resting third so the map stays visible, then goes back (design 7.9).
+  const sheetBeforeBar = useRef(/** @type {null | 'peek' | 'initial' | 'half' | 'full'} */ (null));
+  const setBar = useCallback((/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ next) => {
+    setVisitStep(next);
+    if (next && sheetBeforeBar.current == null) {
+      setSheet((cur) => {
+        sheetBeforeBar.current = cur;
+        return cur === 'half' || cur === 'full' ? 'initial' : cur;
+      });
+    } else if (!next && sheetBeforeBar.current != null) {
+      const back = sheetBeforeBar.current;
+      sheetBeforeBar.current = null;
+      setSheet((cur) => (cur === 'initial' ? back : cur));
+    }
+  }, []);
   const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
   const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
   const visitCtx = useRef({ pos, blocked: true, inPerson: /** @type {Set<string>} */ (new Set()) });
@@ -447,12 +462,12 @@ function Loaded({ data }) {
       const p = byId.get(id);
       if (!p) return;
       askedThisSession.current.add(id);
-      setVisitStep({ kind: 'ask', puja: p });
+      setBar({ kind: 'ask', puja: p });
     };
     check();
     const timer = window.setInterval(check, 10_000);
     return () => window.clearInterval(timer);
-  }, [pos, pujas, byId]);
+  }, [pos, pujas, byId, setBar]);
 
   /** Yes, signed in: count it in person, then ask about the crowd. */
   const countHere = (/** @type {import('./lib.js').JgPuja} */ p) => {
@@ -462,20 +477,20 @@ function Loaded({ data }) {
         (how) => {
           if (how === 'queued') {
             show('Saved. Counts when you are online');
-            setVisitStep(null);
+            setBar(null);
           } else {
             show('Puja counted');
-            setVisitStep({ kind: 'crowd', puja: p });
+            setBar({ kind: 'crowd', puja: p });
           }
         },
         (e) => {
           const code = /** @type {any} */ (e)?.message;
           if (code === 'too_soon') {
             show('Counted pujas need 2 minutes apart');
-            setVisitStep({ kind: 'crowd', puja: p });
+            setBar({ kind: 'crowd', puja: p });
           } else {
             show(code === 'daily_limit' ? 'Daily limit reached' : "Couldn't count it. Try again");
-            setVisitStep(null);
+            setBar(null);
           }
         },
       )
@@ -485,7 +500,7 @@ function Loaded({ data }) {
     const p = visitStep?.puja;
     if (!p) return;
     if (account.signedIn) return countHere(p);
-    setVisitStep(null);
+    setBar(null);
     setSignInErr(null);
     setSignIn({ reason: 'here', change: { action: 'here', puja: p.id, on: true } });
   };
@@ -504,7 +519,7 @@ function Loaded({ data }) {
       )
       .finally(() => {
         setVisitBusy(false);
-        setVisitStep(null);
+        setBar(null);
       });
   };
 
@@ -603,6 +618,8 @@ function Loaded({ data }) {
   }
 
   const toolsBottom = 'calc(var(--sheet-h, 35%) + 16px)';
+  // The bar takes the space above the sheet: chips, the counter pill and the location button step aside meanwhile.
+  const barShown = visitStep != null && !searchOpen && sheet !== 'full';
   const pillBottom = 'min(calc(var(--sheet-h, 35%) + 16px), calc(100% - 38px))';
 
   return (
@@ -636,7 +653,7 @@ function Loaded({ data }) {
             setSheet('half');
           }}
         />
-        {!searchOpen && sheet !== 'full' && (
+        {!searchOpen && sheet !== 'full' && !barShown && (
           <nav className="jg-chips" aria-label="Filters">
             <div className="jg-chip-scroll">
               {appliedChips.map((c) => (
@@ -708,19 +725,6 @@ function Loaded({ data }) {
             </div>
           </nav>
         )}
-        {!searchOpen && (
-          <VisitBar
-            step={visitStep}
-            busy={visitBusy}
-            onYes={onVisitYes}
-            onNo={() => {
-              if (visitStep) sayNo(visitStep.puja.id, Date.now());
-              setVisitStep(null);
-            }}
-            onCrowd={onCrowd}
-            onSkip={() => setVisitStep(null)}
-          />
-        )}
         {!online && (
           <p className="jg-offline" role="status">
             <Icon name="offline" size={16} />
@@ -764,8 +768,20 @@ function Loaded({ data }) {
           )}
         </div>
 
-        <ViewCount visits={visits} live={live} bottom={pillBottom} full={sheet === 'full'} />
-        <div className="map-tools jg-tools" style={{ bottom: toolsBottom }}>
+        {!barShown && <ViewCount visits={visits} live={live} bottom={pillBottom} full={sheet === 'full'} />}
+        <VisitBar
+          step={barShown ? visitStep : null}
+          busy={visitBusy}
+          bottom="calc(var(--sheet-h, 35%) + 12px)"
+          onYes={onVisitYes}
+          onNo={() => {
+            if (visitStep) sayNo(visitStep.puja.id, Date.now());
+            setBar(null);
+          }}
+          onCrowd={onCrowd}
+          onSkip={() => setBar(null)}
+        />
+        <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={barShown}>
           <button
             type="button"
             className="jg-locate"
@@ -948,7 +964,7 @@ function Loaded({ data }) {
           setChoosing(null);
           await account.signOut();
           if (!near.on) geoStop();
-          setVisitStep(null);
+          setBar(null);
           show('Signed out');
         }}
       />
@@ -996,7 +1012,7 @@ function Loaded({ data }) {
       </ModalSheet>
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
-      <div className="jg-toast-zone" aria-live="polite" style={{ bottom: toolsBottom }}>
+      <div className="jg-toast-zone" aria-live="polite" style={barShown ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>
         {toast && (
           <div key={toast.id} className="jg-toast" data-action={toast.action ? '' : undefined}>
             <span>{toast.text}</span>

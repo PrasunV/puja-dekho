@@ -114,14 +114,46 @@ export function useGeo() {
 // ---- Android back button: closes the top sheet instead of leaving the app ----
 /** @type {{ close: () => void }[]} */
 const layers = [];
+/** How many of our history entries are in the browser's history right now. */
+let pushed = 0;
+/** Back steps we started ourselves, whose popstate must be ignored. */
 let skipPop = 0;
+let backTimer = 0;
+
+/**
+ * Brings the history in line with the open layers, once per tick. A sheet that closes as another opens (sign-in, then
+ * the location question) nets out to no change, so a late history.back() can never land behind the page.
+ */
+function reconcile() {
+  backTimer = 0;
+  if (skipPop > 0) return; // a back step is still on its way; popstate runs this again
+  const want = layers.length;
+  while (pushed < want) {
+    pushed += 1;
+    history.pushState({ jg: pushed }, '');
+  }
+  if (pushed > want) {
+    const n = pushed - want;
+    pushed = want;
+    skipPop += 1;
+    history.go(-n);
+  }
+}
+const schedule = () => {
+  if (!backTimer) backTimer = window.setTimeout(reconcile, 0);
+};
+
 if (typeof window !== 'undefined') {
   window.addEventListener('popstate', () => {
     if (skipPop > 0) {
       skipPop -= 1;
+      schedule();
       return;
     }
+    // The person pressed back: close the top layer.
+    if (pushed > 0) pushed -= 1;
     layers.pop()?.close();
+    schedule();
   });
 }
 
@@ -139,14 +171,13 @@ export function useBackClose(open, onClose) {
     if (!open) return undefined;
     const entry = { close: () => closeRef.current() };
     layers.push(entry);
-    history.pushState({ jg: layers.length }, '');
+    schedule();
     return () => {
       const i = layers.indexOf(entry);
       if (i >= 0) {
-        // Closed from the screen, not the back button: drop our history entry quietly.
+        // Closed from the screen, not the back button.
         layers.splice(i, 1);
-        skipPop += 1;
-        history.back();
+        schedule();
       }
     };
   }, [open]);

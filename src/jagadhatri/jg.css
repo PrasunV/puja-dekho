@@ -1569,53 +1569,132 @@ button.jg-card:active {
   }
 }
 
-/* ---- v0.2 drop 2: "Are you visiting?" bar and crowd ---- */
+/* ---- v0.2 drop 2: "Are you visiting?" bar (design 7.9) and crowd ---- */
+:root {
+  /* Grey fill for buttons inside the grey bar: one step darker than the card. */
+  --jg-tonal: #e9e9e9;
+  --jg-tonal-pressed: #dcdcdc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --jg-tonal: #363636;
+    --jg-tonal-pressed: #444444;
+  }
+}
+:root[data-theme='dark'] {
+  --jg-tonal: #363636;
+  --jg-tonal-pressed: #444444;
+}
 .jg-visit-bar {
-  margin-top: 8px;
-  padding: 12px 12px 12px 16px;
-  border-radius: 20px;
-  background: var(--surface);
+  position: absolute;
+  left: max(16px, env(safe-area-inset-left, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  z-index: 1110;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--surface-2);
   color: var(--ink);
   box-shadow: var(--float-shadow);
-  border: 1px solid var(--line);
-  pointer-events: auto;
 }
 .jg-visit-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 4px;
-  margin: -8px -8px 0 0;
+  gap: 8px;
+  margin: -4px -8px 0 0;
 }
 .jg-visit-q {
-  margin: 0 0 10px;
-  font-size: 0.9375rem;
+  margin: 0 0 12px;
+  font-size: 1.0625rem;
   line-height: 1.375rem;
+  font-weight: 500;
   overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+.jg-visit-q strong {
+  font-weight: 700;
 }
 .jg-visit-head .jg-visit-q {
   margin: 0;
 }
-.jg-visit-btns {
-  display: flex;
-  gap: 8px;
+.jg-visit-x {
+  position: relative;
+  isolation: isolate;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
 }
-.jg-visit-btns > .btn {
-  flex: 1 1 0;
-  min-height: 48px;
+.jg-visit-x::before {
+  content: '';
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--jg-tonal);
+  z-index: -1;
 }
 .jg-visit-head + .jg-visit-btns {
-  margin-top: 6px;
+  margin-top: 8px;
 }
-.jg-crowd-btn.free {
-  border-color: var(--color-free);
-  color: var(--color-free);
-  background: transparent;
+.jg-visit-btns {
+  display: flex;
+  gap: 12px;
 }
-.jg-crowd-btn.crowded {
-  border-color: var(--color-crowded);
-  color: var(--color-crowded);
-  background: transparent;
+.jg-visit-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--jg-tonal);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.jg-visit-btn:active,
+.jg-visit-x:active::before {
+  background: var(--jg-tonal-pressed);
+}
+.jg-visit-btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+.jg-visit-btn:focus-visible,
+.jg-visit-x:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: 2px;
+}
+.jg-visit-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.jg-visit-dot.free {
+  background: var(--color-free);
+}
+.jg-visit-dot.crowded {
+  background: var(--color-crowded);
+}
+.jg-tools[hidden] {
+  display: none;
 }
 .jg-tag.free {
   background: color-mix(in srgb, var(--color-free) 16%, transparent);
