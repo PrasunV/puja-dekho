@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { createClient } from '@libsql/client';
 import { createAccountHandler, crowdSummary } from '../../server/jagadhatri/account.js';
 
 const CLIENT = 'test-client.apps.googleusercontent.com';
@@ -54,7 +55,7 @@ function setup(now = Date.now) {
       const req = { method, url, headers: { cookie, host: 'puja-dekho.vercel.app', ...extraHeaders }, body };
       handler(req, res);
     });
-  return { call, getCookie: () => cookie, setCookie: (c) => (cookie = c) };
+  return { call, getCookie: () => cookie, setCookie: (c) => (cookie = c), dbFile: path.join(dir, 'a.db') };
 }
 
 test('account: signed out by default', async () => {
@@ -160,4 +161,22 @@ test('crowdSummary: majority wins', () => {
   const r = (level, at) => ({ puja: 'x', level, at });
   assert.equal(crowdSummary([r('free', 1), r('crowded', 2), r('crowded', 3), r('free', 4)]).x.level, 'free');
   assert.equal(crowdSummary([r('free', 1), r('crowded', 2), r('crowded', 3)]).x.level, 'crowded');
+});
+
+test('account: crowd reports are deleted after a day (privacy notice)', async () => {
+  let t = Date.UTC(2026, 10, 15, 14, 0);
+  const { call, setCookie, dbFile } = setup(() => t);
+  await call('POST', { action: 'signin', credential: token({ sub: '333', exp: Math.floor(t / 1000) + 200000 }) });
+  await call('POST', { action: 'crowd', puja: 'adi-haldarpara-burima', level: 'free' });
+  t += 25 * 3_600_000;
+  setCookie('');
+  await call('POST', { action: 'signin', credential: token({ sub: '444', exp: Math.floor(t / 1000) + 600 }) });
+  await call('POST', { action: 'crowd', puja: 'boro-taldanga', level: 'crowded' });
+  const db = createClient({ url: `file:${dbFile}` });
+  const rows = (await db.execute('SELECT user, puja FROM jg_crowd')).rows;
+  db.close();
+  assert.deepEqual(
+    rows.map((r) => String(r.user)),
+    ['444'],
+  );
 });

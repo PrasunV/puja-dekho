@@ -336,8 +336,8 @@ export function createAccountHandler({ env = process.env, now = Date.now, dbPath
           sql: 'INSERT INTO jg_crowd (user, puja, level, at) VALUES (?, ?, ?, ?) ON CONFLICT(user, puja) DO UPDATE SET level = excluded.level, at = excluded.at',
           args: [userId, puja, level, t],
         });
-        // Old reports are never shown; tidy them now and then.
-        if (Math.random() < 0.05) await client.execute({ sql: 'DELETE FROM jg_crowd WHERE at < ?', args: [t - 24 * 3_600_000] });
+        // Reports older than a day are deleted (privacy notice). Indexed on `at`, so this stays cheap.
+        await client.execute({ sql: 'DELETE FROM jg_crowd WHERE at < ?', args: [t - 24 * 3_600_000] });
         return send(res, 200, await snapshot(client, userId));
       }
       return send(res, 400, { error: 'unknown_action' });
