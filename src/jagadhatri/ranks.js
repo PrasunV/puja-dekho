@@ -61,13 +61,13 @@ export function unlockLine(/** @type {{ left: number, today: boolean }} */ p) {
   return `Complete ${p.left} more ${p.left === 1 ? 'puja' : 'pujas'}${p.today ? ' today' : ''} to unlock it`;
 }
 
-/** The SVG art for a badge (placeholder until the final art arrives): rays path and colours. */
+/** The art for a badge (placeholder until the final art arrives): rays path and colours. */
 export function badgeArt(/** @type {number} */ i, /** @type {boolean} */ locked) {
   const r = RANKS[i];
   const parts = [];
   for (let k = 0; k < r.rays; k++) {
     const a = (k / r.rays) * Math.PI * 2 - Math.PI / 2;
-    const p = (rad) => `${(60 + rad * Math.cos(a)).toFixed(1)} ${(58 + rad * Math.sin(a)).toFixed(1)}`;
+    const p = (/** @type {number} */ rad) => `${(60 + rad * Math.cos(a)).toFixed(1)} ${(58 + rad * Math.sin(a)).toFixed(1)}`;
     parts.push(`M${p(47)}L${p(56)}`);
   }
   return {
@@ -77,4 +77,32 @@ export function badgeArt(/** @type {number} */ i, /** @type {boolean} */ locked)
     flame: locked ? '#C8C8C8' : '#FC8105',
     label: `${r.id}-RANK`,
   };
+}
+
+/**
+ * The badge as SVG markup (the prototype's lantern in a ring of rays). One source for the profile, the celebration
+ * and the share image, which draws it on a canvas. `label` adds the "E-RANK" plate text (for large sizes).
+ * @param {number} i
+ * @param {{ locked?: boolean, label?: boolean, size?: number }} [o]
+ */
+export function badgeSvg(i, { locked = false, label = false, size = 120 } = {}) {
+  const a = badgeArt(i, locked);
+  const plate = label
+    ? `<text x="60" y="100" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="1" font-family="Plus Jakarta Sans Variable, Plus Jakarta Sans, sans-serif">${a.label}</text>`
+    : '';
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true">` +
+    `<path d="${a.rays}" stroke="${a.c1}" stroke-width="4" stroke-linecap="round" fill="none"/>` +
+    `<circle cx="60" cy="58" r="42" fill="${a.c2}" stroke="${a.c1}" stroke-width="4"/>` +
+    `<path d="M60 26v8" stroke="${a.c1}" stroke-width="4" stroke-linecap="round"/>` +
+    `<path d="M50 36h20l7 10v20l-7 10H50l-7-10V46z" fill="${a.c1}"/>` +
+    `<rect x="51" y="44" width="18" height="26" rx="5" fill="${a.c2}"/>` +
+    `<path d="M60 48c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z" fill="${a.flame}"/>` +
+    `<rect x="28" y="86" width="64" height="20" rx="5" fill="${a.c1}"/>${plate}</svg>`
+  );
+}
+
+/** What earned the badge, for the celebration, the share card and its text. */
+export function rareLine(/** @type {number} */ i, /** @type {number} */ total) {
+  return i === 0 ? '5 pujas in one day' : `${Math.max(total, RANKS[i].need).toLocaleString('en-IN')} pujas visited`;
 }

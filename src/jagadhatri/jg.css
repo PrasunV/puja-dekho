@@ -1732,3 +1732,494 @@ button.jg-card:active {
 .jg-crowd-line[data-level='crowded'] .jg-crowd-dot {
   background: var(--color-crowded);
 }
+
+/* ---- v0.2 drop 3: celebration and share (the profile prototype) ----
+   Always the light cream ground, in dark mode too, so the badge colours read true. */
+.jg-toast-zone {
+  z-index: 1500;
+}
+.jg-cel {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden auto;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  background: radial-gradient(circle at 50% 36%, #ffffff 0%, #fff6ea 55%, #fdebdd 100%);
+  color: #2b1214;
+  text-align: center;
+  color-scheme: light;
+  animation: jg-fadein 0.2s ease-out both;
+}
+.jg-cel-top {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  right: max(8px, env(safe-area-inset-right, 0px));
+  z-index: 3;
+}
+.jg-cel-mute {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  color: #2b1214;
+}
+.jg-cel-main {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 72px 24px 0;
+  z-index: 2;
+}
+.jg-cel-foot {
+  width: 100%;
+  max-width: 480px;
+  padding: 16px 20px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2;
+}
+.jg-burst {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  display: grid;
+  place-items: center;
+}
+.jg-burst-rays {
+  position: absolute;
+  inset: 0;
+  animation: jg-spin 14s linear infinite;
+}
+.jg-cel-badge {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+.jg-cel-badge svg {
+  display: block;
+}
+.jg-badge-svg,
+.jg-badge-svg svg {
+  display: block;
+}
+.jg-cel-kicker {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.jg-cel-name {
+  margin: 0;
+  font-size: 2rem;
+  line-height: 2.375rem;
+  font-weight: 800;
+  color: #2b1214;
+  text-wrap: balance;
+}
+.jg-cel-rare {
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 600;
+  color: #5f5456;
+}
+.jg-big {
+  width: 100%;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 16px;
+  background: #b31d24;
+  color: #ffffff;
+  font: inherit;
+  font-size: 1.0625rem;
+  font-weight: 800;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+}
+.jg-big:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+}
+.jg-ghost {
+  min-height: 48px;
+  border: 0;
+  background: transparent;
+  color: #5f5456;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+.jg-cel :focus-visible {
+  outline: 3px solid #4a0e14;
+  outline-offset: 2px;
+}
+.jg-cel-note {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  color: #5f5456;
+}
+
+/* Fireworks: 5 rockets, then 16 sparks each */
+.jg-fw {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.jg-rocket {
+  position: absolute;
+  width: 3px;
+  height: 18px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: linear-gradient(to top, rgba(252, 129, 5, 0), #fc8105 60%, #ffffff);
+  opacity: 0;
+  animation: jg-rocket 0.6s cubic-bezier(0.2, 0.7, 0.4, 1) both;
+}
+.jg-sparks {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.jg-sparks i {
+  position: absolute;
+  left: -3px;
+  top: -3px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: jg-spark 1.15s cubic-bezier(0.15, 0.7, 0.3, 1) both;
+}
+.jg-flash {
+  position: absolute;
+  left: -28px;
+  top: -28px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: jg-flash 0.5s ease-out both;
+}
+.jg-pop {
+  animation: jg-pop 0.7s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+.jg-rise {
+  animation: jg-rise 0.45s ease-out both;
+}
+.jg-rise.d1 {
+  animation-delay: 0.35s;
+}
+.jg-rise.d2 {
+  animation-delay: 0.5s;
+}
+.jg-rise.d3 {
+  animation-delay: 0.7s;
+}
+@keyframes jg-rocket {
+  0% {
+    transform: translateY(var(--from));
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+@keyframes jg-spark {
+  0% {
+    transform: translate(0, 0) scale(1.2);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), calc(var(--dy) + 26px)) scale(0.4);
+    opacity: 0;
+  }
+}
+@keyframes jg-flash {
+  0% {
+    transform: scale(0.2);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+@keyframes jg-pop {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes jg-rise {
+  0% {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  100% {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes jg-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes jg-fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-pop,
+  .jg-rise,
+  .jg-burst-rays,
+  .jg-cel {
+    animation: none;
+  }
+  .jg-fw {
+    display: none;
+  }
+}
+
+/* Share screen */
+.jg-share-main {
+  gap: 14px;
+}
+.jg-scard {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(74, 14, 20, 0.16);
+  color: #2b1214;
+  text-align: left;
+}
+.jg-scard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 800;
+}
+.jg-scard-mid {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.jg-scard-head {
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 800;
+}
+.jg-scard-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid #eee6e4;
+  font-size: 0.875rem;
+  line-height: 1.125rem;
+  overflow-wrap: anywhere;
+}
+.jg-scard-me b {
+  font-weight: 700;
+}
+.jg-scard-av {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #4a0e14;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.jg-scard-bot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 700;
+  color: #7a3a00;
+}
+.jg-me-toggle {
+  width: 100%;
+  max-width: 340px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #2b1214;
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-align: left;
+}
+.jg-cel .jg-switch {
+  border-color: #949494;
+  background: #f7f7f7;
+}
+.jg-cel .jg-switch::after {
+  background: #949494;
+}
+.jg-cel [aria-checked='true'] > .jg-switch {
+  border-color: #4a0e14;
+  background: #4a0e14;
+}
+.jg-cel [aria-checked='true'] > .jg-switch::after {
+  background: #ffffff;
+}
+.jg-circ-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  justify-items: center;
+}
+.jg-circ {
+  min-width: 56px;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #2b1214;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 600;
+}
+.jg-circ-ic {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+}
+.jg-circ:active .jg-circ-ic {
+  transform: scale(0.94);
+}
+.jg-circ-ic.ig {
+  background: linear-gradient(135deg, #f58529, #dd2a7b 55%, #8134af);
+  color: #ffffff;
+}
+.jg-circ-ic.wa {
+  background: #1fa855;
+  color: #ffffff;
+}
+.jg-circ-ic.plain {
+  background: #ffffff;
+  color: #2b1214;
+  box-shadow:
+    0 0 0 1px #dddddd,
+    0 2px 0 rgba(0, 0, 0, 0.08);
+}
+.jg-circ[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+@media (max-height: 640px) {
+  .jg-cel-main {
+    padding-top: 56px;
+  }
+  .jg-burst {
+    width: 170px;
+    height: 170px;
+  }
+  .jg-burst .jg-cel-badge svg {
+    width: 130px;
+    height: 130px;
+  }
+}
+
+/* Share on the rank card and unlocked badge rows */
+.jg-share-pill {
+  align-self: flex-start;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  border: 1px solid var(--color-border-control);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+.jg-share-pill::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+button.jg-ladder-row {
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.jg-scard-bot span:last-child {
+  white-space: nowrap;
+}

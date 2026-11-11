@@ -232,6 +232,13 @@ export function About({ onClose }) {
         <a href={ABOUT.durgaUrl}>Open Durga Puja Dekho</a>
       </p>
       <p className="jg-caption">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap. Distances are straight-line.</p>
+      <p className="jg-caption">
+        Fireworks sound:{' '}
+        <a href="https://budgetpixel.com/sfx/firework-whistle-burst-b9184d6f" target="_blank" rel="noopener noreferrer">
+          “Firework Whistle Burst”
+        </a>{' '}
+        by BudgetPixel AI, CC BY 4.0
+      </p>
       <p className="jg-caption jg-disclaimer">{ABOUT.disclaimer}</p>
     </div>
   );

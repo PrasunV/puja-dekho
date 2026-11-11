@@ -33,7 +33,9 @@ import {
   pujas as pujaCount,
   visibleList,
 } from './lib.js';
+import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
+import { rankOf, statsOf } from './ranks.js';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
 import { VisitBar } from './VisitBar.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
@@ -373,6 +375,8 @@ function Loaded({ data }) {
         if (geo.permission === 'granted' || geo.status === 'on') setTrack(true);
         else if (geo.permission !== 'denied') asking = true;
       }
+      // Badges already earned elsewhere aren't celebrated again on this phone.
+      if (s.user) setSeen({ u: s.user.name, r: rankOf(statsOf(s.visited, 0)).cur });
       if (then?.change?.action === 'here') {
         const p = byId.get(then.change.puja);
         if (p) countHere(p);
@@ -443,6 +447,20 @@ function Loaded({ data }) {
       setSheet((cur) => (cur === 'initial' ? back : cur));
     }
   }, []);
+  // ---- Badges: celebrate a rank earned on this phone, once (design 9.4) ----
+  // Rank depends only on totals and the best day, so "now" doesn't matter here.
+  const curRank = useMemo(() => rankOf(statsOf(account.visited, 0)).cur, [account.visited]);
+  const personTotal = useMemo(() => account.visited.filter((v) => v.mode === 'person').length, [account.visited]);
+  /** The highest rank this person has already seen celebrated here. Starts at their rank when they sign in. */
+  const [seen, setSeen] = useState(() => /** @type {{ u: string, r: number } | null} */ (storage.get('jg_seen_rank', null)));
+  const userKey = account.user?.name ?? null;
+  if (account.signedIn && (seen == null || seen.u !== userKey)) setSeen({ u: /** @type {string} */ (userKey), r: curRank });
+  if (!account.signedIn && seen != null) setSeen(null);
+  useEffect(() => {
+    storage.set('jg_seen_rank', seen);
+  }, [seen]);
+  const [shareRank, setShareRank] = useState(/** @type {number | null} */ (null));
+  const markSeen = () => userKey && setSeen({ u: userKey, r: curRank });
   const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
   const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
   const visitCtx = useRef({ pos, blocked: true, inPerson: /** @type {Set<string>} */ (new Set()) });
@@ -497,6 +515,7 @@ function Loaded({ data }) {
       .finally(() => setVisitBusy(false));
   };
   const onVisitYes = () => {
+    primeSound(); // a badge may unlock: let its sound play after the crowd step
     const p = visitStep?.puja;
     if (!p) return;
     if (account.signedIn) return countHere(p);
@@ -505,6 +524,7 @@ function Loaded({ data }) {
     setSignIn({ reason: 'here', change: { action: 'here', puja: p.id, on: true } });
   };
   const onCrowd = (/** @type {'free' | 'crowded'} */ level) => {
+    primeSound();
     const p = visitStep?.puja;
     if (!p) return;
     setVisitBusy(true);
@@ -779,7 +799,10 @@ function Loaded({ data }) {
             setBar(null);
           }}
           onCrowd={onCrowd}
-          onSkip={() => setBar(null)}
+          onSkip={() => {
+            primeSound();
+            setBar(null);
+          }}
         />
         <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={barShown}>
           <button
@@ -948,6 +971,7 @@ function Loaded({ data }) {
         }}
         onRemoveWish={(id) => applyChange({ action: 'wish', puja: id, on: false })}
         onSettings={() => setSettingsOpen(true)}
+        onShare={(i) => setShareRank(i)}
       />
       <SettingsSheet
         open={settingsOpen}
@@ -1010,6 +1034,27 @@ function Loaded({ data }) {
           </p>
         )}
       </ModalSheet>
+      <Celebration
+        rank={
+          account.signedIn && seen && curRank > seen.r && visitStep == null && signIn == null && !searchOpen && choosing == null
+            ? curRank
+            : null
+        }
+        total={personTotal}
+        onShare={() => {
+          markSeen();
+          setShareRank(curRank);
+        }}
+        onClose={markSeen}
+      />
+      <ShareScreen
+        rank={shareRank}
+        total={personTotal}
+        user={account.user}
+        online={online}
+        onClose={() => setShareRank(null)}
+        toast={show}
+      />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={barShown ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>

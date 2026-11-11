@@ -124,6 +124,8 @@ const PATHS = {
   arrowNE: <path d="M7 17 17 7M9 7h8v8" />,
   check: <path d="m5 12 5 5 9-10" />,
   next: <path d="m9 6 6 6-6 6" />,
+  sound: <path d="M4 9v6h4l5 4V5L8 9H4zM16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11" />,
+  mute: <path d="M4 9v6h4l5 4V5L8 9H4zM16 10l5 5M21 10l-5 5" />,
   gear: (
     <>
       <circle cx="12" cy="12" r="3" />

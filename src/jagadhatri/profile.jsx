@@ -3,7 +3,7 @@ import { Icon } from '../components/ui/Icon.jsx';
 import { storage } from '../lib/storage.js';
 import { renderGoogleButton } from './account.js';
 import { IN_APP_BROWSER, useBackClose } from './hooks.js';
-import { badgeArt, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
+import { badgeSvg, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
 import { Avatar, ModalSheet } from './ui.jsx';
 
 /** One message per reason the sign-in sheet opens (copy approved in the prototype). */
@@ -99,17 +99,12 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   );
 }
 
-/** Placeholder badge art: a lamp inside a ring of rays, grey with a lock until earned. */
-export function BadgeArt({ i, locked = false, size = 48 }) {
-  const a = badgeArt(i, locked);
+/** Badge art (placeholder until the final art arrives): grey with a lock until earned. */
+export function BadgeArt({ i, locked = false, size = 48, label = false }) {
   return (
     <span className="jg-badge-art" style={{ width: size, height: size }} data-locked={locked || undefined}>
-      <svg viewBox="0 0 120 120" width={size} height={size} aria-hidden="true">
-        <path d={a.rays} stroke={a.c1} strokeWidth="5" strokeLinecap="round" />
-        <circle cx="60" cy="58" r="40" fill={a.c2} stroke={a.c1} strokeWidth="5" />
-        <path d="M60 30c9 11 15 19 15 29a15 15 0 0 1-30 0c0-10 6-18 15-29Z" fill={a.flame} />
-        <rect x="44" y="80" width="32" height="8" rx="4" fill={a.c1} />
-      </svg>
+      {/* Markup built from constants in ranks.js, never from user input. */}
+      <span className="jg-badge-svg" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { locked, label, size }) }} />
       {locked && (
         <span className="jg-badge-lock">
           <Icon name="lock" size={14} />
@@ -168,7 +163,7 @@ function Bar({ pct, label }) {
  * The profile (design D): profile card, two stat cards, the rank card, the next badge, then Visited, Wish list and
  * Badges tabs. Only the tabs pin while the list scrolls.
  */
-export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemoveWish, onSettings }) {
+export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemoveWish, onSettings, onShare }) {
   const [tab, setTab] = useState(/** @type {'visited' | 'wish' | 'badges'} */ ('visited'));
   const [tall, setTall] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
@@ -226,7 +221,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
             <FirstBadgeCard stats={stats} />
           ) : (
             <>
-              <RankCardEarned stats={stats} cur={cur} />
+              <RankCardEarned stats={stats} cur={cur} onShare={() => onShare(cur)} />
               {next >= 0 && <Upcoming stats={stats} next={next} onSee={seeBadges} />}
             </>
           )}
@@ -318,8 +313,8 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                     : i === 0
                       ? 'Unlocks at 5 pujas in one day'
                       : `Unlocks at ${r.need} pujas`;
-                  return (
-                    <li key={r.id} className="jg-ladder-row" data-got={got || undefined}>
+                  const body = (
+                    <>
                       <BadgeArt i={i} locked={!got} />
                       <span className="jg-row-text">
                         <span className="jg-row-head">
@@ -330,6 +325,25 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                           <span>{`${r.id}-Rank · ${status}`}</span>
                         </span>
                       </span>
+                    </>
+                  );
+                  // An earned badge opens the share screen for it.
+                  return got ? (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        className="jg-ladder-row"
+                        data-got=""
+                        aria-label={`${r.id}-Rank ${r.name}, unlocked. Share it`}
+                        onClick={() => onShare(i)}
+                      >
+                        {body}
+                        <Icon name="next" size={20} />
+                      </button>
+                    </li>
+                  ) : (
+                    <li key={r.id} className="jg-ladder-row">
+                      {body}
                     </li>
                   );
                 })}
@@ -342,7 +356,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
   );
 }
 
-function RankCardEarned({ stats, cur }) {
+function RankCardEarned({ stats, cur, onShare }) {
   const r = RANKS[cur];
   const line = cur === 0 && stats.best >= 5 ? 'You completed 5 pujas in one day' : `You completed ${r.need} pujas`;
   return (
@@ -353,6 +367,22 @@ function RankCardEarned({ stats, cur }) {
           {r.name} <span className="jg-tag tonal">{`${r.id}-Rank`}</span>
         </p>
         <p className="jg-meta">{line}</p>
+        <button type="button" className="jg-share-pill" onClick={onShare} aria-label={`Share your ${r.name} badge`}>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />
+          </svg>
+          Share
+        </button>
       </div>
     </section>
   );

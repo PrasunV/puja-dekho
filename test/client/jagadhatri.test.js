@@ -100,3 +100,12 @@ test('crowd filters and time text', () => {
   assert.equal(agoText(0, 12 * 60_000), '12 min ago');
   assert.equal(agoText(0, 20_000), 'just now');
 });
+
+// ---- v0.2 badge sharing ----
+import { rareLine } from '../../src/jagadhatri/ranks.js';
+
+test('share lines say what earned the badge', () => {
+  assert.equal(rareLine(0, 3), '5 pujas in one day');
+  assert.equal(rareLine(2, 31), '31 pujas visited');
+  assert.equal(rareLine(1, 4), '10 pujas visited');
+});
