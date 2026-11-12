@@ -1155,9 +1155,12 @@
   right: 16px;
 }
 
-/* Sign-in sheet: header with divider and round close, one line, 3 benefits, Google, Not now, then terms */
+/* Sign-in sheet (design 7.14). Every value maps to a design token:
+   title 17/22 700 · body 15/20 400 in text colour · buttons `control` 14/16 500 (Google's own text style)
+   spacing on the 4-px scale: 16 header · 16 message · 16 benefits (12 apart) · 24 to buttons · 8 between · 8 terms
+   No brand colour on the sheet, so Google's button is the one thing that stands out. */
 .jg-signin .jg-modal-head {
-  padding: 4px 12px 12px 20px;
+  padding: 8px 4px 16px 16px;
   border-bottom: 1px solid var(--line);
 }
 .jg-signin .jg-modal-head .jg-icon-btn {
@@ -1175,17 +1178,20 @@
 .jg-signin .jg-modal-body {
   display: flex;
   flex-direction: column;
-  padding: 16px 20px 16px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
 }
 .jg-signin .jg-body {
   margin: 0;
-  color: var(--muted);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 400;
+  color: var(--ink);
 }
 .jg-benefits {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 20px 0 0;
+  margin: 16px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -1195,35 +1201,36 @@
   gap: 12px;
   font-size: 0.9375rem;
   line-height: 1.25rem;
-  font-weight: 600;
+  font-weight: 400;
+  color: var(--ink);
 }
 .jg-benefit-ic {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  border-radius: 10px;
-  background: var(--accent-soft);
-  color: var(--maroon);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--muted);
 }
 .jg-signin-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 4px;
+  gap: 8px;
   margin-top: 24px;
 }
 .jg-gsi {
   position: relative;
-  min-height: 48px;
+  min-height: 40px;
   display: grid;
   place-items: center;
 }
 .jg-gsi-slot {
   width: 100%;
   max-width: 400px;
-  min-height: 44px;
+  min-height: 40px;
   display: flex;
   justify-content: center;
   color-scheme: light;
@@ -1242,8 +1249,9 @@
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
   cursor: pointer;
 }
 .jg-notnow:active {
@@ -1254,7 +1262,7 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 16px;
   padding: 12px;
   border-radius: 12px;
   background: var(--surface-2);
@@ -1265,10 +1273,14 @@
   line-height: 1.25rem;
 }
 .jg-signin .jg-note {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 .jg-signin-terms {
-  margin: 12px 0 0;
+  margin: 8px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  font-weight: 400;
+  color: var(--muted);
   text-align: center;
 }
 .jg-signin-terms a,

@@ -69,7 +69,7 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
         {BENEFITS.map((b) => (
           <li key={b.icon}>
             <span className="jg-benefit-ic" aria-hidden="true">
-              <Icon name={b.icon} size={20} />
+              <Icon name={b.icon} size={18} />
             </span>
             {b.text}
           </li>
