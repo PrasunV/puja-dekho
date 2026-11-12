@@ -1,6 +1,9 @@
+import { useCallback, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
+import PhotoViewer from '../features/meetup/PhotoViewer.jsx';
 import { EVENTS } from './config.js';
 import { directionsUrl } from './lib.js';
+import { useBackClose } from './hooks.js';
 import { TrafficCard, useMinute } from './traffic.jsx';
 import { Section, useCollapse } from './ui.jsx';
 
@@ -153,6 +156,66 @@ export function WhatsNew({ byId, onClose, onTraffic, onEvent }) {
 export const eventById = (/** @type {string} */ id) => EVENTS.find((e) => e.id === id);
 
 /**
+ * The photos in a row: each one 85% wide so the next peeks in, snapping one at a time, with dots below.
+ * Every photo sits in the same 4:3 frame (portrait ones cropped from the top); tapping opens it whole, full screen.
+ * @param {{ photos: { src: string, alt: string }[] }} props
+ */
+function PhotoRow({ photos }) {
+  const [at, setAt] = useState(0);
+  const [open, setOpen] = useState(/** @type {number | null} */ (null));
+  const row = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const close = useCallback(() => setOpen(null), []);
+  // Back closes the viewer only, through the same stack as the sheets.
+  useBackClose(open !== null, close);
+  const n = photos.length;
+  if (n === 0) return null;
+  return (
+    <>
+      <div
+        ref={row}
+        className={`jg-ev-row${n === 1 ? ' one' : ''}`}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const slide = /** @type {HTMLElement | null} */ (el.firstElementChild);
+          if (!slide) return;
+          const step = slide.offsetWidth + 8;
+          setAt(Math.min(n - 1, Math.round(el.scrollLeft / step)));
+        }}
+      >
+        {photos.map((ph, i) => (
+          <button
+            key={ph.src}
+            type="button"
+            className="jg-ev-slide"
+            aria-label={`Open photo ${i + 1} of ${n}: ${ph.alt}`}
+            onClick={() => setOpen(i)}
+          >
+            <img
+              src={ph.src}
+              alt=""
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalHeight > img.naturalWidth) img.classList.add('tall');
+              }}
+            />
+          </button>
+        ))}
+      </div>
+      {n > 1 && (
+        <div className="jg-ev-dots" aria-hidden="true">
+          {photos.map((ph, i) => (
+            <span key={ph.src} className={i === at ? 'on' : undefined} />
+          ))}
+        </div>
+      )}
+      {open !== null && <PhotoViewer photos={photos} index={open} onClose={close} captions ownBack={false} />}
+    </>
+  );
+}
+
+/**
  * An event's details: status, all photos full width, date, place and organiser, the description, and a link if any.
  * @param {{ ev: JgEvent, puja: import('./lib.js').JgPuja | undefined, onBack: () => void, onClose: () => void, onOpenPuja: (id: string) => void }} props
  */
@@ -173,13 +236,6 @@ export function EventDetail({ ev, puja, onBack, onClose, onOpenPuja }) {
         </button>
       </div>
       <StateTag state={state} />
-      {ev.photos.length > 0 && (
-        <div className="jg-ev-photos">
-          {ev.photos.map((ph) => (
-            <img key={ph.src} src={ph.src} alt={ph.alt} loading="lazy" decoding="async" />
-          ))}
-        </div>
-      )}
       <ul className="jg-ev-facts">
         <li>
           <Icon name="calendar" size={18} />
@@ -202,6 +258,7 @@ export function EventDetail({ ev, puja, onBack, onClose, onOpenPuja }) {
           </li>
         ))}
       </ul>
+      <PhotoRow photos={ev.photos} />
       <p className="jg-body">{ev.body}</p>
       <div className="jg-ev-links">
         {puja && (

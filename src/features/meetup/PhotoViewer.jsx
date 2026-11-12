@@ -149,9 +149,12 @@ function Slide({ photo, active, onZoom }) {
 /**
  * Full-screen photo viewer: swipe between photos, pinch or double-tap to zoom, X, Escape or the Back button to close.
  *
- * @param {{ photos: ReadonlyArray<{ src: string, alt: string }>, index: number, onClose: () => void }} props
+ * `captions` shows each photo's description at the bottom (the Jagadhatri events use it; the meetup does not).
+ * `ownBack={false}` leaves the Back button to the page, when it already keeps its own stack of open layers.
+ * @param {{ photos: ReadonlyArray<{ src: string, alt: string }>, index: number, onClose: () => void, captions?: boolean,
+ *   ownBack?: boolean }} props
  */
-export default function PhotoViewer({ photos, index, onClose }) {
+export default function PhotoViewer({ photos, index, onClose, captions = false, ownBack = true }) {
   const [at, setAt] = useState(index);
   const [zoomed, setZoomed] = useState(false);
   const track = useRef(/** @type {HTMLDivElement | null} */ (null));
@@ -166,6 +169,7 @@ export default function PhotoViewer({ photos, index, onClose }) {
 
   // The phone's Back button closes the viewer instead of leaving the meetup.
   useEffect(() => {
+    if (!ownBack) return undefined;
     history.pushState({ ...history.state, viewer: true }, '');
     const onPop = () => {
       closed.current = true;
@@ -176,7 +180,7 @@ export default function PhotoViewer({ photos, index, onClose }) {
       window.removeEventListener('popstate', onPop);
       if (!closed.current && history.state?.viewer) history.back();
     };
-  }, [onClose]);
+  }, [onClose, ownBack]);
 
   useEffect(() => {
     const opener = /** @type {HTMLElement | null} */ (document.activeElement);
@@ -216,6 +220,11 @@ export default function PhotoViewer({ photos, index, onClose }) {
           <Slide key={photo.src} photo={photo} active={i === at} onZoom={i === at ? setZoomed : () => {}} />
         ))}
       </div>
+      {captions && photos[at]?.alt && (
+        <p className="pv-cap" data-testid="pv-cap">
+          {photos[at].alt}
+        </p>
+      )}
     </div>,
     document.body,
   );

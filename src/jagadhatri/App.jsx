@@ -341,6 +341,8 @@ function Loaded({ data }) {
   useBackClose(searchOpen, () => openSearch(false));
   useBackClose(choosing != null, () => setChoosing(null));
   useBackClose(view.kind !== 'list', () => (view.kind === 'puja' ? closePuja() : toList()));
+  // An event or the traffic notice sits on top of What's new: Back returns there first, like the on-screen back arrow.
+  useBackClose(view.kind === 'event' || view.kind === 'traffic', () => setView({ kind: 'whatsnew' }));
 
   // ---------- Account: wish list, visited, sign-in ----------
   const { change: accountChange } = account;

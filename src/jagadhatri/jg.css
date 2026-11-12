@@ -2850,18 +2850,6 @@ button.jg-ladder-row {
   align-self: flex-start;
   margin-top: 8px;
 }
-.jg-ev-photos {
-  display: grid;
-  gap: 8px;
-  margin-top: 16px;
-}
-.jg-ev-photos img {
-  width: 100%;
-  aspect-ratio: 4 / 3;
-  object-fit: cover;
-  border-radius: 12px;
-  background: var(--surface-2);
-}
 .jg-ev-facts {
   list-style: none;
   margin: 16px 0 0;
@@ -2903,4 +2891,64 @@ button.jg-ladder-row {
 }
 .jg-ev-detail .jg-detail-titles {
   flex: 1;
+}
+
+/* ---- Event photos: a row that peeks the next photo, with dots; tap opens the full-screen viewer ---- */
+.jg-ev-row {
+  display: flex;
+  gap: 8px;
+  margin: 16px -16px 0; /* runs to the sheet edges so the next photo peeks in */
+  padding: 0 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 16px;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.jg-ev-row::-webkit-scrollbar {
+  display: none;
+}
+.jg-ev-slide {
+  flex: 0 0 85%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  border: 0;
+  border-radius: 12px; /* radius-md */
+  overflow: hidden;
+  background: var(--surface-2);
+  scroll-snap-align: start;
+  cursor: zoom-in;
+  -webkit-tap-highlight-color: transparent;
+}
+.jg-ev-row.one .jg-ev-slide {
+  flex-basis: 100%;
+}
+.jg-ev-slide:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: -3px;
+}
+.jg-ev-slide img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+.jg-ev-slide img.tall {
+  object-position: center top; /* portrait photos (an invitation, a poster) keep their heading */
+}
+.jg-ev-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.jg-ev-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background-color 0.15s;
+}
+.jg-ev-dots span.on {
+  background: var(--ink);
 }
