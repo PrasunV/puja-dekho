@@ -86,13 +86,13 @@ function EventCard({ ev, state, puja, onOpen }) {
         className="jg-ev"
         data-state={state}
         onClick={onOpen}
-        aria-label={`${ev.title}. ${STATE_WORD[state]}. ${ev.when}${puja ? `, ${puja.n}` : ''}${n ? `. ${n} photo${n > 1 ? 's' : ''}` : ''}`}
+        aria-label={`${ev.title}. ${STATE_WORD[state]}. ${ev.short ?? ev.when}${puja ? `, ${puja.n}` : ''}${n ? `. ${n} photo${n > 1 ? 's' : ''}` : ''}`}
       >
         <span className="jg-ev-head">
           <span className="jg-ev-title">{ev.title}</span>
           <StateTag state={state} />
         </span>
-        <span className="jg-ev-meta">{[ev.when, puja?.n].filter(Boolean).join(' · ')}</span>
+        <span className="jg-ev-meta">{[ev.short ?? ev.when, puja?.n].filter(Boolean).join(' · ')}</span>
         <Thumbs photos={ev.photos} />
       </button>
     </li>

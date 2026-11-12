@@ -22,9 +22,9 @@ export const POPULAR_ORDER = Object.freeze([
 
 /**
  * What's new events. `section`: 'highlight' (picked by hand) or 'latest'. `day` is the India date (YYYY-MM-DD) it happens;
- * `endDay` when it runs over several days. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
+ * `endDay` when it runs over several days. `short`: a short date for the card when `when` is long. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
  * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
- * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, day: string, endDay?: string, start?: string,
+ * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, short?: string, day: string, endDay?: string, start?: string,
  *   end?: string, when: string, pujaId: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string,
  *   photos: { src: string, alt: string }[] }} JgEvent
  */
@@ -33,6 +33,18 @@ const CHOKKHUDAAN =
 
 /** @type {readonly JgEvent[]} */
 export const EVENTS = Object.freeze([
+  {
+    id: 'gohona-mala-adima',
+    section: 'highlight',
+    title: 'গহণা ও মালা পরানো · আদিমা',
+    day: '2026-11-12',
+    when: '১২ই নভেম্বর, ২০২৬ (বৃহস্পতিবার) – তৃতীয়ার দিন',
+    short: '12 Nov',
+    pujaId: 'adi-maa-chaulpatti',
+    by: 'চাউলপট্টি সার্বজনীন',
+    body: 'মায়ের এই অপরূপ সাজ দর্শন করতে আপনারা সপরিবারে আসুন, মায়ের আশীর্বাদ গ্রহণ করুন। 🌺',
+    photos: [],
+  },
   {
     id: 'chokkhudaan-burima',
     section: 'highlight',
