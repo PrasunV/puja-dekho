@@ -6,17 +6,17 @@ import { useBackClose } from './hooks.js';
 
 /** The three things to know, in the order people meet them. */
 const ROWS = [
-  { icon: 'pin', title: 'Find pujas near you', text: 'Map and list, Near me, stations and ghats.' },
-  { icon: 'award', title: 'Count pujas, earn badges', text: 'Spend 2 minutes at a puja and tap Yes when asked.' },
-  { icon: 'users', title: 'See the crowd live', text: 'Free or Crowded, from people at the puja.' },
+  { icon: 'pin', title: 'Find pujas near you', text: 'The closest pandals, one tap away.' },
+  { icon: 'award', title: 'Save pujas, earn badges', text: 'Turn your puja hopping into badges worth showing off.' },
+  { icon: 'users', title: 'See the crowd live', text: 'Skip the queues. Go where it’s free right now.' },
 ];
 
 /**
  * The first-visit card (like the Durga Celebfie intro): logo, welcome, three feature rows, Start exploring.
  * Shown once per phone; About opens it again.
- * @param {{ open: boolean, count: number, onClose: () => void }} props
+ * @param {{ open: boolean, onClose: () => void }} props
  */
-export function Welcome({ open, count, onClose }) {
+export function Welcome({ open, onClose }) {
   const reduce = useReducedMotion();
   const button = useRef(/** @type {HTMLButtonElement | null} */ (null));
   useBackClose(open, onClose);
@@ -57,7 +57,7 @@ export function Welcome({ open, count, onClose }) {
             <h2 id="jg-welcome-title" className="jg-welcome-title">
               Welcome to Jagadhatri Puja Dekho
             </h2>
-            <p className="jg-welcome-sub">{`${count} pujas in Chandannagar, Mankundu and Bhadreswar.`}</p>
+            <p className="jg-welcome-sub">Your guide to Chandannagar’s nights of lights.</p>
             <ul className="jg-welcome-rows">
               {ROWS.map((r) => (
                 <li key={r.icon}>

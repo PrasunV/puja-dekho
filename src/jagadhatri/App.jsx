@@ -1073,7 +1073,7 @@ function Loaded({ data }) {
         onClose={() => setShareRank(null)}
         toast={show}
       />
-      <Welcome open={welcome} count={pujas.length} onClose={closeWelcome} />
+      <Welcome open={welcome} onClose={closeWelcome} />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={barShown ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>

@@ -2532,3 +2532,9 @@ button.jg-ladder-row {
     margin-top: 20px;
   }
 }
+.jg-welcome-sub {
+  text-wrap: balance;
+}
+.jg-welcome-text span {
+  text-wrap: pretty;
+}
