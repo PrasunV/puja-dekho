@@ -65,7 +65,7 @@ function Thumbs({ photos }) {
     <span className="jg-ev-thumbs" aria-hidden="true">
       {photos.slice(0, 3).map((ph, i) => (
         <span key={ph.src} className="jg-ev-thumb">
-          <img src={ph.src} alt="" loading="lazy" decoding="async" />
+          <img src={ph.thumb ?? ph.src} alt="" loading="lazy" decoding="async" />
           {i === 2 && more > 0 && <span className="jg-ev-more">{`+${more}`}</span>}
         </span>
       ))}
@@ -86,13 +86,13 @@ function EventCard({ ev, state, puja, onOpen }) {
         className="jg-ev"
         data-state={state}
         onClick={onOpen}
-        aria-label={`${ev.title}. ${STATE_WORD[state]}. ${ev.short ?? ev.when}${puja ? `, ${puja.n}` : ''}${n ? `. ${n} photo${n > 1 ? 's' : ''}` : ''}`}
+        aria-label={`${ev.title}. ${STATE_WORD[state]}. ${ev.short ?? ev.when}, ${puja?.n ?? ev.place ?? ''}${n ? `. ${n} photo${n > 1 ? 's' : ''}` : ''}`}
       >
         <span className="jg-ev-head">
           <span className="jg-ev-title">{ev.title}</span>
           <StateTag state={state} />
         </span>
-        <span className="jg-ev-meta">{[ev.short ?? ev.when, puja?.n].filter(Boolean).join(' · ')}</span>
+        <span className="jg-ev-meta">{[ev.short ?? ev.when, puja?.n ?? ev.place].filter(Boolean).join(' · ')}</span>
         <Thumbs photos={ev.photos} />
       </button>
     </li>
@@ -134,7 +134,13 @@ export function WhatsNew({ byId, onClose, onTraffic, onEvent }) {
           <Section key={g.key} title={g.title} open={isOpen(g.key)} onToggle={() => toggle(g.key)}>
             <ul className="jg-ev-list">
               {g.rows.map(({ ev, state }) => (
-                <EventCard key={ev.id} ev={ev} state={state} puja={byId.get(ev.pujaId)} onOpen={() => onEvent(ev.id)} />
+                <EventCard
+                  key={ev.id}
+                  ev={ev}
+                  state={state}
+                  puja={ev.pujaId ? byId.get(ev.pujaId) : undefined}
+                  onOpen={() => onEvent(ev.id)}
+                />
               ))}
             </ul>
           </Section>
@@ -179,10 +185,10 @@ export function EventDetail({ ev, puja, onBack, onClose, onOpenPuja }) {
           <Icon name="calendar" size={18} />
           {ev.when}
         </li>
-        {puja && (
+        {(puja || ev.place) && (
           <li>
             <Icon name="pin" size={18} />
-            {`${puja.n}, ${puja.t}`}
+            {puja ? `${puja.n}, ${puja.t}` : ev.place}
           </li>
         )}
         <li>
@@ -214,12 +220,20 @@ export function EventDetail({ ev, puja, onBack, onClose, onOpenPuja }) {
   );
 }
 
-/** Footer for an event: Get directions to its puja, the one main action (same as a puja sheet). */
-export function EventActions({ puja }) {
-  if (!puja) return null;
+/**
+ * Footer for an event: Get directions to its puja (or its place), the one main action (same as a puja sheet).
+ * @param {{ puja: import('./lib.js').JgPuja | undefined, place?: string }} props
+ */
+export function EventActions({ puja, place }) {
+  const href = puja
+    ? directionsUrl(puja.la, puja.lo)
+    : place
+      ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(place)}&travelmode=walking`
+      : null;
+  if (!href) return null;
   return (
     <div className="jg-actions">
-      <a className="btn primary block" href={directionsUrl(puja.la, puja.lo)} target="_blank" rel="noopener noreferrer">
+      <a className="btn primary block" href={href} target="_blank" rel="noopener noreferrer">
         <Icon name="nav" size={20} />
         Get directions
       </a>

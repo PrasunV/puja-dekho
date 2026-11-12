@@ -25,14 +25,42 @@ export const POPULAR_ORDER = Object.freeze([
  * `endDay` when it runs over several days. `short`: a short date for the card when `when` is long. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
  * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
  * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, short?: string, day: string, endDay?: string, start?: string,
- *   end?: string, when: string, pujaId: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string,
- *   photos: { src: string, alt: string }[] }} JgEvent
+ *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string,
+ *   photos: { src: string, thumb?: string, alt: string }[] }} JgEvent
  */
 const CHOKKHUDAAN =
   'Chokkhudaan is the moment the artist paints the eyes of the Goddess, when the idol is believed to come alive. It happens a few days before the puja.';
 
 /** @type {readonly JgEvent[]} */
 export const EVENTS = Object.freeze([
+  {
+    id: 'inauguration-2026',
+    section: 'highlight',
+    title: 'Puja Inauguration by Mr. Suvendu Adhikari (C.M)',
+    day: '2026-11-13',
+    start: '2026-11-13T14:00:00+05:30',
+    when: '13 Nov, 2:00 PM',
+    place: 'Marie Math, Chandannagar',
+    by: 'Chandannagar Municipal Corporation and Chandannagar Subdivision',
+    body: 'The formal opening of Chandannagar’s Jagadhatri Puja festival, on Shukla Chaturthi (13 Kartik 1433). Everyone is invited.',
+    photos: [
+      {
+        src: '/jagadhatripuja/events/inauguration-stage.jpg',
+        thumb: '/jagadhatripuja/events/inauguration-stage-thumb.jpg',
+        alt: 'The stage at Marie Math lit up, with the Jagadhatri Puja 2026 banner in front',
+      },
+      {
+        src: '/jagadhatripuja/events/inauguration-screen.jpg',
+        thumb: '/jagadhatripuja/events/inauguration-screen-thumb.jpg',
+        alt: 'Big screen showing the Goddess and the words Jagadhatri Puja 2026',
+      },
+      {
+        src: '/jagadhatripuja/events/inauguration-invite.jpg',
+        thumb: '/jagadhatripuja/events/inauguration-invite-thumb.jpg',
+        alt: 'Invitation to the inauguration from the Chandannagar administration, in Bengali',
+      },
+    ],
+  },
   {
     id: 'gohona-mala-adima',
     section: 'highlight',

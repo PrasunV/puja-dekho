@@ -620,11 +620,11 @@ function Loaded({ data }) {
     peek = "What's new";
   } else if (view.kind === 'event' && eventById(view.id)) {
     const ev = /** @type {import('./config.js').JgEvent} */ (eventById(view.id));
-    const evPuja = byId.get(ev.pujaId);
+    const evPuja = ev.pujaId ? byId.get(ev.pujaId) : undefined;
     body = (
       <EventDetail ev={ev} puja={evPuja} onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} onOpenPuja={(id) => openPuja(id)} />
     );
-    footer = <EventActions puja={evPuja} />;
+    footer = <EventActions puja={evPuja} place={ev.place} />;
     peek = ev.title;
   } else if (view.kind === 'traffic') {
     body = <TrafficDetail onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} />;
