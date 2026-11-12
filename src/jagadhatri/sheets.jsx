@@ -214,7 +214,7 @@ export function WhatsNew({ byId, onClose, onOpenPuja, onTraffic }) {
 }
 
 /** About (F12, F13): the short story, the maker, the map credit and the disclaimer. */
-export function About({ onClose }) {
+export function About({ onClose, onWelcome }) {
   return (
     <div className="jg-detail">
       <div className="jg-detail-head" data-sheet-head>
@@ -224,6 +224,10 @@ export function About({ onClose }) {
         </button>
       </div>
       <p className="jg-body">{ABOUT.story}</p>
+      <button type="button" className="btn small jg-btn-outline jg-about-how" onClick={onWelcome}>
+        <Icon name="info" size={16} />
+        How Puja Dekho works
+      </button>
       <p className="jg-body">
         Made with love by{' '}
         <a href={ABOUT.makerUrl} target="_blank" rel="noopener noreferrer">

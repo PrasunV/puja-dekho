@@ -39,6 +39,7 @@ import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
 import { VisitBar } from './VisitBar.jsx';
+import { Welcome } from './Welcome.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar } from './ui.jsx';
 
@@ -161,6 +162,12 @@ function Loaded({ data }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile' | 'track'} */ (null));
   const [searchOpen, setSearchOpen] = useState(false);
+  // First-visit card: once per phone (About opens it again). Until it is closed, nothing else asks for anything.
+  const [welcome, setWelcome] = useState(() => !storage.get('jg_welcome_seen', false));
+  const closeWelcome = useCallback(() => {
+    setWelcome(false);
+    storage.set('jg_welcome_seen', true);
+  }, []);
   const [picked, setPicked] = useState(/** @type {{ kind: 'puja' | 'station', id: string, name: string } | null} */ (null));
   const [stationCentre, setStationCentre] = useState(/** @type {{ id: string, radius: number } | null} */ (null));
   const [near, setNear] = useState({ on: false, radius: RADIUS_STEPS[0] });
@@ -408,7 +415,7 @@ function Loaded({ data }) {
   // Once a session, after 5 minutes on screen, signed-out people are asked to start their tour, but never over
   // another sheet, the search panel or a puja.
   const nudgeBlocked = useRef(true);
-  const blocked = account.signedIn || choosing != null || searchOpen || view.kind !== 'list' || signIn != null;
+  const blocked = account.signedIn || choosing != null || searchOpen || view.kind !== 'list' || signIn != null || welcome;
   useEffect(() => {
     nudgeBlocked.current = blocked;
   }, [blocked]);
@@ -466,7 +473,7 @@ function Loaded({ data }) {
   const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
   const visitCtx = useRef({ pos, blocked: true, inPerson: /** @type {Set<string>} */ (new Set()) });
   const inPerson = useMemo(() => new Set(account.visited.filter((v) => v.mode === 'person').map((v) => v.puja)), [account.visited]);
-  const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen;
+  const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen || welcome;
   useEffect(() => {
     visitCtx.current = { pos, blocked: visitBlocked, inPerson };
   }, [pos, visitBlocked, inPerson]);
@@ -606,7 +613,7 @@ function Loaded({ data }) {
     body = <TrafficDetail onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} />;
     peek = 'Traffic and road closures';
   } else if (view.kind === 'about') {
-    body = <About onClose={toList} />;
+    body = <About onClose={toList} onWelcome={() => setWelcome(true)} />;
     peek = 'About Puja Dekho';
   } else if (view.kind === 'popular') {
     body = <PujaListSheet title="Popular pujas" rows={mustVisitRows} onOpen={(id) => openPuja(id)} onClose={toList} />;
@@ -1066,6 +1073,7 @@ function Loaded({ data }) {
         onClose={() => setShareRank(null)}
         toast={show}
       />
+      <Welcome open={welcome} count={pujas.length} onClose={closeWelcome} />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={barShown ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>
