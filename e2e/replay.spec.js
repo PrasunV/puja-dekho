@@ -5,21 +5,33 @@ test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true
 const IST = (s) => new Date(`${s}+05:30`).getTime();
 const open = async (page, { at, state = 'prompt', seen = false }) => {
   await page.addInitScript(
-    ({ at, state, seen }) => {
+    ({ at: when, state: perm, seen: wasSeen }) => {
       /** @type {any} */ (window).__PD_E2E_REPLAY__ = true;
       const real = Date.now;
-      const offset = at - real();
+      const offset = when - real();
       Date.now = () => real() + offset;
-      if (seen) { try { localStorage.setItem('pd_explainerSeen', 'true'); localStorage.setItem('pd_outsideSeen', 'true'); localStorage.setItem('pd_reportHintSeen', 'true'); } catch { /* no storage */ } }
+      if (wasSeen) {
+        try {
+          localStorage.setItem('pd_explainerSeen', 'true');
+          localStorage.setItem('pd_outsideSeen', 'true');
+          localStorage.setItem('pd_reportHintSeen', 'true');
+        } catch {
+          /* no storage */
+        }
+      }
       const query = navigator.permissions.query.bind(navigator.permissions);
-      navigator.permissions.query = (d) => (d.name === 'geolocation' ? Promise.resolve({ state }) : query(d));
+      navigator.permissions.query = (d) => (d.name === 'geolocation' ? Promise.resolve({ state: perm }) : query(d));
     },
     { at, state, seen },
   );
   await page.goto('/');
 };
 
-for (const [name, state] of [['new visitor', 'prompt'], ['already allowed', 'granted'], ['already blocked', 'denied']]) {
+for (const [name, state] of [
+  ['new visitor', 'prompt'],
+  ['already allowed', 'granted'],
+  ['already blocked', 'denied'],
+]) {
   test(`${name} who has seen it all sees the welcome card again on 23 Oct`, async ({ page }) => {
     await open(page, { at: IST('2026-10-23T21:00:00'), state, seen: true });
     await expect(page.locator('.explainer')).toBeVisible();

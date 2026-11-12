@@ -40,7 +40,8 @@ import { TrafficDetail } from './traffic.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
 import { VisitBar } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
-import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
+import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
+import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
 const JgMap = React.lazy(() => import('./JgMap.jsx'));
@@ -58,7 +59,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'traffic' } | { kind: 'about' } | { kind: 'popular' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'traffic' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
  */
 
 export default function App() {
@@ -608,8 +609,23 @@ function Loaded({ data }) {
     footer = <PujaActions puja={p} wished={mine.wish.has(p.id)} onWish={(on) => ask({ action: 'wish', puja: p.id, on })} />;
     peek = p.n;
   } else if (view.kind === 'whatsnew') {
-    body = <WhatsNew byId={byId} onClose={toList} onOpenPuja={(id) => openPuja(id)} onTraffic={() => setView({ kind: 'traffic' })} />;
+    body = (
+      <WhatsNew
+        byId={byId}
+        onClose={toList}
+        onTraffic={() => setView({ kind: 'traffic' })}
+        onEvent={(id) => setView({ kind: 'event', id })}
+      />
+    );
     peek = "What's new";
+  } else if (view.kind === 'event' && eventById(view.id)) {
+    const ev = /** @type {import('./config.js').JgEvent} */ (eventById(view.id));
+    const evPuja = byId.get(ev.pujaId);
+    body = (
+      <EventDetail ev={ev} puja={evPuja} onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} onOpenPuja={(id) => openPuja(id)} />
+    );
+    footer = <EventActions puja={evPuja} />;
+    peek = ev.title;
   } else if (view.kind === 'traffic') {
     body = <TrafficDetail onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} />;
     peek = 'Traffic and road closures';
@@ -702,7 +718,7 @@ function Loaded({ data }) {
                 </button>
               ))}
               <WhatsNewChip
-                open={view.kind === 'whatsnew' || view.kind === 'traffic'}
+                open={view.kind === 'whatsnew' || view.kind === 'traffic' || view.kind === 'event'}
                 onOpen={() => {
                   setView({ kind: 'whatsnew' });
                   setSheet('half');
@@ -1423,7 +1439,12 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
           />
         ))}
       </Section>
-      <Section {...group('Age', AGE_GROUPS.filter(([id]) => draft.ages.includes(id)).map(([, label]) => label))}>
+      <Section
+        {...group(
+          'Age',
+          AGE_GROUPS.filter(([id]) => draft.ages.includes(id)).map(([, label]) => label),
+        )}
+      >
         {AGE_GROUPS.map(([id, label]) => (
           <ChoiceRow
             key={id}
@@ -1442,7 +1463,12 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
           onClick={() => setDraft((d) => ({ ...d, procession: !d.procession }))}
         />
       </Section>
-      <Section {...group('Procession zone', draft.zones.map((z) => `Zone ${z}`))}>
+      <Section
+        {...group(
+          'Procession zone',
+          draft.zones.map((z) => `Zone ${z}`),
+        )}
+      >
         {ZONES.map((z) => (
           <ChoiceRow
             key={z}

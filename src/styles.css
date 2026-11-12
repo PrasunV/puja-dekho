@@ -3618,7 +3618,9 @@ select {
   border-radius: 50%;
   background: var(--accent-soft);
   color: var(--accent-ink);
-  box-shadow: 0 0 0 3px var(--accent), var(--shadow-sm);
+  box-shadow:
+    0 0 0 3px var(--accent),
+    var(--shadow-sm);
   cursor: pointer;
 }
 
@@ -3812,14 +3814,15 @@ select {
   background:
     linear-gradient(var(--surface), var(--surface)) padding-box,
     conic-gradient(
-      from var(--trail),
-      transparent 0deg,
-      transparent 150deg,
-      color-mix(in srgb, var(--accent) calc(var(--lit) * 100%), transparent) 250deg,
-      color-mix(in srgb, var(--primary) calc(var(--lit) * 100%), transparent) 320deg,
-      color-mix(in srgb, #fff calc(var(--lit) * 100%), transparent) 350deg,
-      transparent 360deg
-    ) border-box,
+        from var(--trail),
+        transparent 0deg,
+        transparent 150deg,
+        color-mix(in srgb, var(--accent) calc(var(--lit) * 100%), transparent) 250deg,
+        color-mix(in srgb, var(--primary) calc(var(--lit) * 100%), transparent) 320deg,
+        color-mix(in srgb, #fff calc(var(--lit) * 100%), transparent) 350deg,
+        transparent 360deg
+      )
+      border-box,
     linear-gradient(color-mix(in srgb, var(--accent) 55%, var(--line)), color-mix(in srgb, var(--accent) 55%, var(--line))) border-box;
   animation: trail-run 2.9s linear 0.4s both;
   font-weight: 600;
@@ -3848,7 +3851,9 @@ select {
 }
 /* The tap: 1x > 0.97x > 1x. */
 .chip.whats-new.tap {
-  animation: trail-run 2.9s linear 0.4s both, chip-tap 0.22s ease-out;
+  animation:
+    trail-run 2.9s linear 0.4s both,
+    chip-tap 0.22s ease-out;
 }
 .chip.whats-new:active:not([disabled]) {
   transform: none;
@@ -3977,7 +3982,10 @@ select {
   height: 62px;
   border: 3px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 0 0 3px var(--accent), 0 0 14px 3px color-mix(in srgb, var(--primary) 60%, transparent), var(--shadow);
+  box-shadow:
+    0 0 0 3px var(--accent),
+    0 0 14px 3px color-mix(in srgb, var(--primary) 60%, transparent),
+    var(--shadow);
   animation: mu-glow 2.4s ease-in-out infinite;
 }
 .mu-pin-b .mu-new {
@@ -3992,7 +4000,10 @@ select {
 }
 @keyframes mu-glow {
   50% {
-    box-shadow: 0 0 0 4px var(--primary), 0 0 20px 6px color-mix(in srgb, var(--accent) 70%, transparent), var(--shadow);
+    box-shadow:
+      0 0 0 4px var(--primary),
+      0 0 20px 6px color-mix(in srgb, var(--accent) 70%, transparent),
+      var(--shadow);
   }
 }
 /* C: brand badge, no photo */

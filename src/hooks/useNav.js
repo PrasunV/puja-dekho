@@ -11,7 +11,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
  * @property {boolean} meetup   The meetup highlights are open
  */
 
-export const HOME = Object.freeze({ pujaId: null, stationId: null, metro: false, lines: /** @type {string[]} */ ([]), ghat: false, meetup: false });
+export const HOME = Object.freeze({
+  pujaId: null,
+  stationId: null,
+  metro: false,
+  lines: /** @type {string[]} */ ([]),
+  ghat: false,
+  meetup: false,
+});
 
 /** The address of a puja's page: `/?puja=S001`. This is what Share copies and what a shared link opens. */
 export const pujaUrl = (/** @type {string} */ id) => `${location.pathname}?puja=${encodeURIComponent(id)}`;
@@ -47,7 +54,7 @@ const addressFor = (/** @type {Nav} */ nav) => {
  * @returns {[Nav, (patch: Partial<Nav>, options?: { replace?: boolean }) => void, () => void]}
  */
 export function useNav() {
-  const [nav, setNav] = useState(/** @type {Nav} */ (fromUrl));
+  const [nav, setNav] = useState(/** @type {() => Nav} */ (fromUrl));
   const navRef = useRef(nav);
   useEffect(() => {
     navRef.current = nav;
@@ -73,7 +80,12 @@ export function useNav() {
     if (
       history.state?.pd &&
       history.length > 1 &&
-      (navRef.current.pujaId || navRef.current.stationId || navRef.current.metro || navRef.current.lines.length || navRef.current.ghat || navRef.current.meetup)
+      (navRef.current.pujaId ||
+        navRef.current.stationId ||
+        navRef.current.metro ||
+        navRef.current.lines.length ||
+        navRef.current.ghat ||
+        navRef.current.meetup)
     ) {
       history.back();
     } else go(HOME, { replace: true });

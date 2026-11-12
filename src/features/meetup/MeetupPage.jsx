@@ -388,7 +388,7 @@ function LoveFab() {
         {taps > 0 && state === 'liked' && (
           <span className="mu-burst">
             {[0, 1, 2, 3, 4, 5].map((i) => (
-              <i key={i} style={{ '--a': `${i * 60}deg` }} />
+              <i key={i} style={/** @type {import('react').CSSProperties} */ ({ '--a': `${i * 60}deg` })} />
             ))}
           </span>
         )}

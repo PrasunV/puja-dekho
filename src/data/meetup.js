@@ -42,7 +42,8 @@ export const MEETUP = Object.freeze({
     lat: 22.6017,
     lng: 88.3738,
   }),
-  photos: Object.freeze([
+  photos: /** @type {ReadonlyArray<{ src: string, alt: string, focus?: string }>} */ (
+    Object.freeze([
     Object.freeze({
       src: photo2,
       alt: 'Five friends posing together beside a police barricade at the Shyambazar meetup, smiling and one making a peace sign.',
@@ -52,7 +53,8 @@ export const MEETUP = Object.freeze({
       focus: '50% 35%', // which part stays in the 4:3 frame when the photo is portrait ("x% y%")
       alt: 'Two friends smiling at the camera on the street at Shyambazar, one giving a thumbs up, with a lit-up puja pandal behind them.',
     }),
-  ]),
+    ])
+  ),
   // Everyone tagged in this meetup, in the order they appear in the chip. `platform` is 'instagram' or 'facebook'.
   people: Object.freeze([
     Object.freeze({ name: 'Tapojit Mitra', platform: 'instagram', handle: 'harry___bol', url: 'https://www.instagram.com/harry___bol' }),

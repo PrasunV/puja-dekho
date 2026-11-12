@@ -23,7 +23,7 @@ export function usePinStyle() {
     storage.set('pinStyle2', id);
     listeners.forEach((notify) => notify());
   };
-  return [style, choose];
+  return /** @type {[('a' | 'b' | 'c' | 'd'), (id: string) => void]} */ ([style, choose]);
 }
 
 /** The pin-look switcher is a test aid: it shows in the preview and with `?pinlab` in the address, never for normal visitors. */

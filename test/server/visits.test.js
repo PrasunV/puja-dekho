@@ -27,7 +27,7 @@ function browser(handler, jar0 = { cookie: '' }) {
         cookie
           .split('; ')
           .filter(Boolean)
-          .map((c) => c.split('=')),
+          .map((c) => /** @type {[string, string]} */ (c.split('='))),
       );
       for (const line of set) jar.set(line.split(';')[0].split('=')[0], line.split(';')[0].split('=')[1]);
       cookie = [...jar].map(([k, v]) => `${k}=${v}`).join('; ');

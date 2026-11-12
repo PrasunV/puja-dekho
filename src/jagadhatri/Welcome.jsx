@@ -4,7 +4,10 @@ import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 import { useBackClose } from './hooks.js';
 
-/** The three things to know, in the order people meet them. */
+/**
+ * The three things to know, in the order people meet them.
+ * @type {{ icon: import('../components/ui/Icon.jsx').IconName, title: string, text: string }[]}
+ */
 const ROWS = [
   { icon: 'pin', title: 'Find pujas near you', text: 'The closest pandals, one tap away.' },
   { icon: 'award', title: 'Save pujas, earn badges', text: 'Turn your puja hopping into badges worth showing off.' },

@@ -60,7 +60,12 @@ export default function GhatPage() {
               <Icon name="copy" size={18} />
               Copy
             </button>
-            <a className="btn small" target="_blank" rel="noopener noreferrer" href={ghatDirectionsUrl(ghat).replace('/dir/', '/search/').replace('destination=', 'query=')}>
+            <a
+              className="btn small"
+              target="_blank"
+              rel="noopener noreferrer"
+              href={ghatDirectionsUrl(ghat).replace('/dir/', '/search/').replace('destination=', 'query=')}
+            >
               <Icon name="nav" size={18} />
               Open in Maps
             </a>

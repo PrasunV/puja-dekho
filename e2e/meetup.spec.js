@@ -461,7 +461,7 @@ test.describe('the round pin follows the zoom', () => {
   test('small far out, up to 88 px wide close up; the label fades in; one band, no outline on each letter', async ({ page }) => {
     await openApp(page);
     const at = async (zoom) => {
-      await page.evaluate(({ lat, lng, zoom }) => window.__pdMap.jumpTo({ center: [lng, lat], zoom }), { ...MEETUP.place, zoom });
+      await page.evaluate(({ lat, lng, z }) => window.__pdMap.jumpTo({ center: [lng, lat], zoom: z }), { ...MEETUP.place, z: zoom });
       await expect(page.locator('.mu-pin')).toBeVisible();
       const box = await page.locator('.mu-pin').boundingBox();
       const label = await page.locator('.mu-pin .mu-lbl').evaluate((el) => Number(getComputedStyle(el).opacity));
@@ -495,7 +495,7 @@ test.describe('the round pin follows the zoom', () => {
   test('the tip stays on the spot while zooming', async ({ page }) => {
     await openApp(page);
     const tip = async (zoom) => {
-      await page.evaluate(({ lat, lng, zoom }) => window.__pdMap.jumpTo({ center: [lng, lat], zoom }), { ...MEETUP.place, zoom });
+      await page.evaluate(({ lat, lng, z }) => window.__pdMap.jumpTo({ center: [lng, lat], zoom: z }), { ...MEETUP.place, z: zoom });
       await expect(page.locator('.mu-pin')).toBeVisible();
       const box = await page.locator('.mu-pin').boundingBox();
       const spot = await page.evaluate(({ lat, lng }) => window.__pdMap.project([lng, lat]), MEETUP.place);
@@ -560,8 +560,8 @@ for (const [w, h] of [
     const problems = await page.evaluate(() => {
       const out = [];
       if (document.documentElement.scrollWidth > window.innerWidth) out.push('page scrolls sideways');
-      const page = document.querySelector('[data-testid=meetup-page]');
-      for (const node of page.querySelectorAll('h2, .mu-blurb, .btn, .chip')) {
+      const root = document.querySelector('[data-testid=meetup-page]');
+      for (const node of root.querySelectorAll('h2, .mu-blurb, .btn, .chip')) {
         const r = node.getBoundingClientRect();
         if (r.right > window.innerWidth + 1) out.push(`${node.className} overflows right`);
       }

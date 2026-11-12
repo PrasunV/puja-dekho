@@ -35,8 +35,9 @@ function Slide({ photo, active, onZoom }) {
     if (!el) return;
     const w = el.clientWidth * v.s;
     const h = el.clientHeight * v.s;
-    const maxX = Math.max(0, (w - el.parentElement.clientWidth) / 2);
-    const maxY = Math.max(0, (h - el.parentElement.clientHeight) / 2);
+    const frame = /** @type {HTMLElement} */ (el.parentElement);
+    const maxX = Math.max(0, (w - frame.clientWidth) / 2);
+    const maxY = Math.max(0, (h - frame.clientHeight) / 2);
     v.x = clamp(v.x, -maxX, maxX);
     v.y = clamp(v.y, -maxY, maxY);
     if (v.s <= 1.01) {
@@ -130,7 +131,7 @@ function Slide({ photo, active, onZoom }) {
       onPointerUp={up}
       onPointerCancel={up}
       onDoubleClick={(e) => {
-        if (e.nativeEvent.pointerType === 'touch') return;
+        if (/** @type {PointerEvent} */ (/** @type {unknown} */ (e.nativeEvent)).pointerType === 'touch') return;
         if (view.current.s > 1.01) view.current = { s: 1, x: 0, y: 0 };
         else zoomAt(2.5, e.clientX, e.clientY);
         apply(true);
@@ -148,7 +149,7 @@ function Slide({ photo, active, onZoom }) {
 /**
  * Full-screen photo viewer: swipe between photos, pinch or double-tap to zoom, X, Escape or the Back button to close.
  *
- * @param {{ photos: { src: string, alt: string }[], index: number, onClose: () => void }} props
+ * @param {{ photos: ReadonlyArray<{ src: string, alt: string }>, index: number, onClose: () => void }} props
  */
 export default function PhotoViewer({ photos, index, onClose }) {
   const [at, setAt] = useState(index);

@@ -144,25 +144,27 @@ test.describe('tap area', () => {
 
 test.describe('location card states', () => {
   /** A phone whose location lookup fails with this error code (1 blocked, 2 no signal, 3 timeout). */
-  const failWith = (code) => async ({ page }) => {
-    await page.addInitScript((errorCode) => {
-      try {
-        localStorage.setItem('pd_explainerSeen', 'true');
-      } catch {
-        /* ignore */
-      }
-      const state = { state: 'prompt', onchange: null, addEventListener() {}, removeEventListener() {} };
-      navigator.permissions.query = () => Promise.resolve(state);
-      Object.defineProperty(navigator, 'geolocation', {
-        configurable: true,
-        value: {
-          getCurrentPosition: (_ok, fail) => setTimeout(() => fail({ code: errorCode }), 150),
-          watchPosition: () => 1,
-          clearWatch: () => {},
-        },
-      });
-    }, code);
-  };
+  const failWith =
+    (code) =>
+    async ({ page }) => {
+      await page.addInitScript((errorCode) => {
+        try {
+          localStorage.setItem('pd_explainerSeen', 'true');
+        } catch {
+          /* ignore */
+        }
+        const state = { state: 'prompt', onchange: null, addEventListener() {}, removeEventListener() {} };
+        navigator.permissions.query = () => Promise.resolve(state);
+        Object.defineProperty(navigator, 'geolocation', {
+          configurable: true,
+          value: {
+            getCurrentPosition: (_ok, fail) => setTimeout(() => fail({ code: errorCode }), 150),
+            watchPosition: () => 1,
+            clearWatch: () => {},
+          },
+        });
+      }, code);
+    };
 
   test('default: names the benefit and the scope, answers where the location goes', async ({ page }) => {
     await failWith(1)({ page });

@@ -123,7 +123,10 @@ export function metroNotes(metro, station, phase) {
   for (const line of ['yellow', 'purple']) {
     if (!station.lines.includes(line)) continue;
     const hours = timingText(metro, line, phase);
-    if (hours) notes.push(`${line[0].toUpperCase()}${line.slice(1)} Line runs ${hours.replace(/(\d)-(\d)/g, '$1 – $2')} only. Plan another way back at night.`);
+    if (hours)
+      notes.push(
+        `${line[0].toUpperCase()}${line.slice(1)} Line runs ${hours.replace(/(\d)-(\d)/g, '$1 – $2')} only. Plan another way back at night.`,
+      );
   }
   return notes;
 }

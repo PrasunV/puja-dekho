@@ -24,7 +24,8 @@ async function ready(page) {
     };
   }, IST('2026-10-21T18:00:00'));
   await openApp(page);
-  for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1) await page.locator('.grab').click();
+  for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1)
+    await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
 }
 const hold = async (page, locator, ms = 700) => {
@@ -114,7 +115,9 @@ test.describe('share sheet', () => {
       await page.getByTestId('ghat-card').click();
       await expect(page.getByTestId('ghat-share')).toBeVisible();
       await page.waitForTimeout(700);
-      const [a, b] = await page.evaluate(() => [...document.querySelectorAll('.actions .btn')].map((n) => n.getBoundingClientRect().toJSON()));
+      const [a, b] = await page.evaluate(() =>
+        [...document.querySelectorAll('.actions .btn')].map((n) => n.getBoundingClientRect().toJSON()),
+      );
       expect(Math.abs(a.top - b.top)).toBeLessThan(1);
       expect(a.height).toBeGreaterThanOrEqual(47.5);
       expect(b.height).toBeGreaterThanOrEqual(47.5);
@@ -124,7 +127,12 @@ test.describe('share sheet', () => {
 
   test('buttons read text first, then the icon', async ({ page }) => {
     await page.getByTestId('share-btn').first().click();
-    const order = await page.evaluate(() => [...document.querySelectorAll('.share-actions .btn')].map((b) => [b.firstChild.nodeType === 3 ? 'text' : b.firstChild.nodeName, b.lastElementChild.nodeName]));
+    const order = await page.evaluate(() =>
+      [...document.querySelectorAll('.share-actions .btn')].map((b) => [
+        b.firstChild.nodeType === 3 ? 'text' : b.firstChild.nodeName,
+        b.lastElementChild.nodeName,
+      ]),
+    );
     for (const [first, last] of order) {
       expect(first).toBe('text');
       expect(last).toBe('svg');
@@ -149,14 +157,17 @@ test.describe('share sheet', () => {
       const sheet = page.getByTestId('share-sheet');
       await expect(sheet).toBeVisible();
       expect(await sheet.evaluate((n) => n.scrollWidth <= n.clientWidth + 1)).toBe(true);
-      const btns = await Promise.all([page.getByRole('link', { name: /Post on/ }).boundingBox(), page.getByRole('button', { name: 'Copy link' }).boundingBox()]);
+      const btns = await Promise.all([
+        page.getByRole('link', { name: /Post on/ }).boundingBox(),
+        page.getByRole('button', { name: 'Copy link' }).boundingBox(),
+      ]);
       for (const x of btns) expect(x.height).toBeGreaterThanOrEqual(47.5);
     });
   }
 });
 
 test.describe('shared link address (/api/share)', () => {
-  test('a video link answers with that video\'s picture and title, then sends people into the app', async ({ request }) => {
+  test("a video link answers with that video's picture and title, then sends people into the app", async ({ request }) => {
     const res = await request.get('/api/share?v=04sRqedFlMk&s=wa');
     const html = await res.text();
     expect(html).toContain('<meta property="og:image" content="https://i.ytimg.com/vi/04sRqedFlMk/hqdefault.jpg" />');

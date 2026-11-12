@@ -88,8 +88,20 @@ function Loaded({ data }) {
   const [outsideOpen, setOutsideOpen] = useState(false);
   const explainerSeen = replay ? explainerOpen : explainerStored;
   const outsideSeen = replay ? outsideOpen : outsideStored;
-  const setExplainerSeen = useCallback((/** @type {boolean} */ v) => { setExplainerOpen(v); setExplainerStored(v); }, [setExplainerStored]);
-  const setOutsideSeen = useCallback((/** @type {boolean} */ v) => { setOutsideOpen(v); setOutsideStored(v); }, [setOutsideStored]);
+  const setExplainerSeen = useCallback(
+    (/** @type {boolean} */ v) => {
+      setExplainerOpen(v);
+      setExplainerStored(v);
+    },
+    [setExplainerStored],
+  );
+  const setOutsideSeen = useCallback(
+    (/** @type {boolean} */ v) => {
+      setOutsideOpen(v);
+      setOutsideStored(v);
+    },
+    [setOutsideStored],
+  );
   const [permission, setPermission] = useState(/** @type {string | null} */ (navigator.permissions ? null : 'unknown'));
 
   // Location. A fix far from Kolkata still draws the dot, but is not used for distances or for moving the map.
@@ -237,18 +249,18 @@ function Loaded({ data }) {
     nav.meetup
       ? 'meetup'
       : nav.ghat
-      ? 'ghat'
-      : nav.pujaId
-        ? 'puja'
-        : nav.stationId
-        ? 'station'
-        : nav.metro
-          ? 'metro'
-          : nav.lines.length && !(filters.zones.length && zoneFocus)
-            ? 'lines'
-            : near.puja
-              ? 'near'
-              : 'browse'
+        ? 'ghat'
+        : nav.pujaId
+          ? 'puja'
+          : nav.stationId
+            ? 'station'
+            : nav.metro
+              ? 'metro'
+              : nav.lines.length && !(filters.zones.length && zoneFocus)
+                ? 'lines'
+                : near.puja
+                  ? 'near'
+                  : 'browse'
   );
   useEffect(() => {
     cardHiddenRef.current = sheet === 'peek' || view !== 'browse';
@@ -371,7 +383,10 @@ function Loaded({ data }) {
   const setLines = useCallback(
     (lines) => {
       if (lines.length) setZoneFocus(false);
-      go({ lines, stationId: null, pujaId: null, metro: false, ghat: false, meetup: false }, { replace: lines.length > 0 && nav.lines.length > 0 });
+      go(
+        { lines, stationId: null, pujaId: null, metro: false, ghat: false, meetup: false },
+        { replace: lines.length > 0 && nav.lines.length > 0 },
+      );
       // Frame the whole selected line(s): a line like Green can lie entirely outside the current view.
       const byId = new Map(data.stations.map((stop) => [stop.id, stop]));
       const points = lines.flatMap((line) =>
@@ -395,7 +410,8 @@ function Loaded({ data }) {
         setSheet((current) => (current === 'peek' ? 'initial' : current));
       }
       // Whatever was open (a puja, a station, Metro nearby) closes: the sheet now shows the chosen areas.
-      if (nav.pujaId || nav.stationId || nav.metro || nav.ghat || nav.meetup) go({ pujaId: null, stationId: null, metro: false, ghat: false, meetup: false }, { replace: true });
+      if (nav.pujaId || nav.stationId || nav.metro || nav.ghat || nav.meetup)
+        go({ pujaId: null, stationId: null, metro: false, ghat: false, meetup: false }, { replace: true });
     },
     [filters, nav.pujaId, nav.stationId, nav.metro, nav.ghat, nav.meetup, go],
   );

@@ -7,7 +7,10 @@ async function openDetail(page, id) {
   await openApp(page);
   await page.evaluate((pujaId) => window.__pd.openPuja(pujaId), id);
   await expect(page.getByRole('button', { name: 'Close details' })).toBeVisible();
-  await page.locator('.grab').click().catch(() => {});
+  await page
+    .locator('.grab')
+    .click()
+    .catch(() => {});
 }
 
 test.describe('jubilee rule', () => {
@@ -15,7 +18,9 @@ test.describe('jubilee rule', () => {
     await openApp(page);
     const out = await page.evaluate(async () => {
       const { heritage } = await import('/src/lib/heritage.js').catch(() => ({ heritage: null }));
-      return heritage ? [heritage(1934, 2026), heritage(2001, 2026), heritage(1951, 2026), heritage(2026, 2026), heritage(null, 2026)] : null;
+      return heritage
+        ? [heritage(1934, 2026), heritage(2001, 2026), heritage(1951, 2026), heritage(2026, 2026), heritage(null, 2026)]
+        : null;
     });
     // Dev-server imports are not available in the built app, so this is also covered below through the page.
     if (out) {
@@ -30,12 +35,17 @@ test.describe('jubilee rule', () => {
 
 test.describe('detail sheet: facts strip and bento cards', () => {
   test('tile icons are 16 px, no blue dot in the metro tile, titles stay on one line, icon and arrow stay put', async ({ page }) => {
-    for (const [w, scale] of [[390, 1], [320, 1.5]]) {
+    for (const [w, scale] of [
+      [390, 1],
+      [320, 1.5],
+    ]) {
       await page.setViewportSize({ width: w, height: 740 });
       await openDetail(page, 'S001');
       if (scale !== 1) {
         await page.evaluate((f) => {
-          for (const sheet of document.styleSheets) for (const r of sheet.cssRules) if (r.style && r.style.fontSize?.endsWith('px')) r.style.fontSize = `${parseFloat(r.style.fontSize) * f}px`;
+          for (const sheet of document.styleSheets)
+            for (const r of sheet.cssRules)
+              if (r.style && r.style.fontSize?.endsWith('px')) r.style.fontSize = `${parseFloat(r.style.fontSize) * f}px`;
         }, scale);
       }
       await expect(page.locator('#card-metro .bento-preview .dot')).toHaveCount(0);
@@ -46,7 +56,14 @@ test.describe('detail sheet: facts strip and bento cards', () => {
           const chev = document.querySelector(`#card-${id} .bento-chev`).getBoundingClientRect();
           const title = document.querySelector(`#card-${id} .bento-title`);
           const cs = getComputedStyle(title);
-          return { iw: icon.width, iLeft: icon.left - card.left, cRight: card.right - chev.right, lines: title.getBoundingClientRect().height / parseFloat(cs.lineHeight), nowrap: cs.whiteSpace, ell: cs.textOverflow };
+          return {
+            iw: icon.width,
+            iLeft: icon.left - card.left,
+            cRight: card.right - chev.right,
+            lines: title.getBoundingClientRect().height / parseFloat(cs.lineHeight),
+            nowrap: cs.whiteSpace,
+            ell: cs.textOverflow,
+          };
         }),
       );
       for (const g of geo) {

@@ -349,7 +349,12 @@ test('a drag that starts on a puja card scrolls the list and does not open the p
   await openAt(page, 'half');
   const card = page.locator('.pcard').first();
   const box = await card.boundingBox();
-  await swipe(page, { x: box.x + 60, y: box.y + box.height / 2 }, { x: box.x + 60, y: box.y + box.height / 2 - 80 }, { ms: 400, steps: 16 });
+  await swipe(
+    page,
+    { x: box.x + 60, y: box.y + box.height / 2 },
+    { x: box.x + 60, y: box.y + box.height / 2 - 80 },
+    { ms: 400, steps: 16 },
+  );
   await page.waitForTimeout(300);
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
   await expect(page.locator('.puja-page, .pp')).toHaveCount(0);

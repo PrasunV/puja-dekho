@@ -51,24 +51,24 @@ export default function PujaBento({ puja }) {
   return (
     <>
       {(age || stations.length > 0) && (
-      <div className="facts-strip">
-        {age && (
-          <button type="button" className="fact" onClick={() => jump('heritage')}>
-            <span className="fact-label">
-              Since <Icon name="chevron" size={14} />
-            </span>
-            <b>{puja.e}</b>
-          </button>
-        )}
-        {stations.length > 0 && (
-          <button type="button" className="fact" onClick={() => jump('metro')}>
-            <span className="fact-label">
-              Nearest metro <Icon name="chevron" size={14} />
-            </span>
-            <b>{`${walkMinutes(stations[0].distance)} min walk`}</b>
-          </button>
-        )}
-      </div>
+        <div className="facts-strip">
+          {age && (
+            <button type="button" className="fact" onClick={() => jump('heritage')}>
+              <span className="fact-label">
+                Since <Icon name="chevron" size={14} />
+              </span>
+              <b>{puja.e}</b>
+            </button>
+          )}
+          {stations.length > 0 && (
+            <button type="button" className="fact" onClick={() => jump('metro')}>
+              <span className="fact-label">
+                Nearest metro <Icon name="chevron" size={14} />
+              </span>
+              <b>{`${walkMinutes(stations[0].distance)} min walk`}</b>
+            </button>
+          )}
+        </div>
       )}
 
       <div className="bento" data-stacked={stacked || undefined}>
@@ -119,7 +119,9 @@ export default function PujaBento({ puja }) {
                   </div>
                 );
               })}
-              {stations[0].distance > 1500 && <div className="sub">No Blue or Green Line station within 1.5 km. Plan on a cab or bike for the last stretch.</div>}
+              {stations[0].distance > 1500 && (
+                <div className="sub">No Blue or Green Line station within 1.5 km. Plan on a cab or bike for the last stretch.</div>
+              )}
               <div className="sub">Distances are straight-line; walking time assumes a 1.3× detour at 75 m a minute.</div>
             </div>
           </BentoCard>
@@ -133,7 +135,9 @@ export default function PujaBento({ puja }) {
             preview={
               <>
                 <b className="bp-big num">{age.years}</b>
-                <span className="bp-sub">{age.jubilee ? `years of puja · ${age.jubilee} year` : `years of puja · ${age.next.name} in ${age.next.year}`}</span>
+                <span className="bp-sub">
+                  {age.jubilee ? `years of puja · ${age.jubilee} year` : `years of puja · ${age.next.name} in ${age.next.year}`}
+                </span>
               </>
             }
             open={open.heritage}
@@ -172,7 +176,12 @@ export default function PujaBento({ puja }) {
               <Icon name="copy" size={18} />
               Copy
             </button>
-            <a className="btn small" target="_blank" rel="noopener noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${puja.la},${puja.lo}`}>
+            <a
+              className="btn small"
+              target="_blank"
+              rel="noopener noreferrer"
+              href={`https://www.google.com/maps/search/?api=1&query=${puja.la},${puja.lo}`}
+            >
               <Icon name="nav" size={18} />
               Open in Maps
             </a>

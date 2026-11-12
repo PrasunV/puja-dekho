@@ -426,7 +426,9 @@ test.describe('metro lines: chips, timing tiles, station fallback', () => {
     await expect(page.getByRole('region', { name: 'Metro timings' }).locator('.bento-card')).toHaveCount(2);
   });
 
-  test('each line is a timing tile (hours and frequency shut); opening it shows weekday, weekend and frequency; Back stays pinned', async ({ page }) => {
+  test('each line is a timing tile (hours and frequency shut); opening it shows weekday, weekend and frequency; Back stays pinned', async ({
+    page,
+  }) => {
     await openApp(page);
     await blue(page).click();
     const tile = page.locator('#card-timings-blue');
@@ -730,8 +732,15 @@ test.describe('report, credit and metro button', () => {
     expect(icon.x).toBeGreaterThan(nameBox.x + nameBox.width - 1);
     expect(Math.abs(icon.y + icon.height / 2 - (nameBox.y + nameBox.height / 2))).toBeLessThan(6);
     // a tap anywhere on the block, not just on the name, lands on the link
-    for (const [fx, fy] of [[0.1, 0.1], [0.5, 0.95], [0.9, 0.5]]) {
-      const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('a.made-with') != null, [box.x + box.width * fx, box.y + box.height * fy]);
+    for (const [fx, fy] of [
+      [0.1, 0.1],
+      [0.5, 0.95],
+      [0.9, 0.5],
+    ]) {
+      const hit = await page.evaluate(
+        ([x, y]) => document.elementFromPoint(x, y)?.closest('a.made-with') != null,
+        [box.x + box.width * fx, box.y + box.height * fy],
+      );
       expect(hit).toBe(true);
     }
   });
@@ -1103,7 +1112,10 @@ test.describe('Search this area', () => {
     await page.mouse.up();
     await settled(page);
     await page.getByRole('button', { name: 'Search this area' }).click();
-    await page.locator('.panel .grab').click().catch(() => {});
+    await page
+      .locator('.panel .grab')
+      .click()
+      .catch(() => {});
     const inArea = await page.getByTestId('area-section').locator('.pcard').count();
     const everywhere = await page.locator('.panel .pcard').count();
     // The section's pujas are taken out of the list below it, so together they never exceed the whole list.
@@ -1123,7 +1135,9 @@ test('puja page: nearest metro is dated and flags Yellow and Orange line limits'
 });
 
 test.describe('sort menu, loading and accessibility', () => {
-  test('the sort menu offers Nearest, Oldest first and A to Z; picking A to Z reorders the list and Escape closes the menu', async ({ page }) => {
+  test('the sort menu offers Nearest, Oldest first and A to Z; picking A to Z reorders the list and Escape closes the menu', async ({
+    page,
+  }) => {
     await openApp(page);
     await page.locator('.grab').click();
     await page.locator('.grab').click(); // half
@@ -1141,7 +1155,9 @@ test.describe('sort menu, loading and accessibility', () => {
     await expect(page.getByRole('menu')).toHaveCount(0);
   });
 
-  test('the list section is "All Pujas", with the sort drop-down (grey, medium weight, down arrow) at the right of the same line; rows carry no grey dots', async ({ page }) => {
+  test('the list section is "All Pujas", with the sort drop-down (grey, medium weight, down arrow) at the right of the same line; rows carry no grey dots', async ({
+    page,
+  }) => {
     await openApp(page);
     await page.locator('.grab').click();
     await page.locator('.grab').click();
@@ -1187,9 +1203,13 @@ test.describe('sort menu, loading and accessibility', () => {
   test('touch targets are at least 48 px, and the peek content is inert when the list is open', async ({ page }) => {
     await openApp(page);
     // The list opens at half while the Bhasan card is up, so step the handle until it does.
-    for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1) await page.locator('.grab').click();
+    for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1)
+      await page.locator('.grab').click();
     await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
-    const filters = await page.getByRole('button', { name: /Filters/ }).first().boundingBox();
+    const filters = await page
+      .getByRole('button', { name: /Filters/ })
+      .first()
+      .boundingBox();
     expect(filters.height).toBeGreaterThanOrEqual(47.5);
     // Sort looks 40 px tall but its tap area is 48: a tap 3.5 px above and below the pill still lands on it.
     const sort = page.getByRole('button', { name: /Sort:/ });
@@ -1201,7 +1221,9 @@ test.describe('sort menu, loading and accessibility', () => {
       .poll(() =>
         page.evaluate(() => {
           const r = document.querySelector('.sort-btn').getBoundingClientRect(); // measured and probed in one go, so the sheet cannot move in between
-          return [r.top - 3.5, r.bottom + 3.5].every((y) => document.elementFromPoint(r.left + r.width / 2, y)?.closest('.sort-btn') != null);
+          return [r.top - 3.5, r.bottom + 3.5].every(
+            (y) => document.elementFromPoint(r.left + r.width / 2, y)?.closest('.sort-btn') != null,
+          );
         }),
       )
       .toBe(true);
@@ -1216,7 +1238,7 @@ test.describe('sort menu, loading and accessibility', () => {
       const channel = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
       const lum = (rgb) => 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
       const rgb = getComputedStyle(document.querySelector('.grab span')).backgroundColor.match(/\d+/g).map(Number);
-      return (1.05) / (lum(rgb) + 0.05);
+      return 1.05 / (lum(rgb) + 0.05);
     });
     expect(ratio).toBeGreaterThanOrEqual(3);
   });
@@ -1267,7 +1289,10 @@ test.describe('shared links and the Back to Kolkata chip', () => {
 });
 
 test.describe('section labels are grey, in both themes', () => {
-  for (const [scheme, rgb] of [['light', 'rgb(106, 106, 106)'], ['dark', 'rgb(168, 168, 168)']]) {
+  for (const [scheme, rgb] of [
+    ['light', 'rgb(106, 106, 106)'],
+    ['dark', 'rgb(168, 168, 168)'],
+  ]) {
     test(`Must-visit pujas and All Pujas use the label grey in ${scheme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: scheme });
       await openApp(page);
@@ -1276,14 +1301,22 @@ test.describe('section labels are grey, in both themes', () => {
       for (const name of ['Must-visit pujas', 'All Pujas']) {
         await expect(page.getByRole('heading', { name })).toHaveCSS('color', rgb);
       }
-      await page.getByRole('button', { name: /^Filters/ }).first().click();
+      await page
+        .getByRole('button', { name: /^Filters/ })
+        .first()
+        .click();
       await expect(page.getByRole('heading', { name: 'Radius' })).toHaveCSS('color', rgb);
     });
   }
 });
 
 test('the action row stays on one line, Get directions at two thirds, on every phone width at 100% text', async ({ page }) => {
-  for (const [w, h] of [[320, 640], [360, 740], [390, 844], [430, 932]]) {
+  for (const [w, h] of [
+    [320, 640],
+    [360, 740],
+    [390, 844],
+    [430, 932],
+  ]) {
     await page.setViewportSize({ width: w, height: h });
     await openApp(page);
     await page.evaluate(() => window.__pd.openPuja('S001'));
@@ -1296,6 +1329,8 @@ test('the action row stays on one line, Get directions at two thirds, on every p
     expect(a.width / (a.width + b.width), `${w}: ratio`).toBeGreaterThan(0.655);
     expect(a.width / (a.width + b.width), `${w}: ratio`).toBeLessThan(0.68);
     expect(await link.evaluate((e) => e.scrollWidth <= e.clientWidth + 1), `${w}: Get directions whole`).toBe(true);
-    expect(await page.getByRole('button', { name: /^Save/ }).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), `${w}: Save whole`).toBe(true);
+    expect(await page.getByRole('button', { name: /^Save/ }).evaluate((e) => e.scrollWidth <= e.clientWidth + 1), `${w}: Save whole`).toBe(
+      true,
+    );
   }
 });

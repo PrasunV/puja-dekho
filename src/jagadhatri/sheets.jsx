@@ -1,8 +1,7 @@
 import { BentoCard, useBento } from '../components/ui/Bento.jsx';
 import { Icon } from '../components/ui/Icon.jsx';
-import { ABOUT, WHATS_NEW } from './config.js';
+import { ABOUT } from './config.js';
 import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
-import { TrafficCard } from './traffic.jsx';
 import { ViewCue } from './ui.jsx';
 import { agoText } from './visit.js';
 
@@ -23,9 +22,7 @@ export function PujaRow({ puja, d, onOpen, showTag = false, crowd }) {
             {crowd && <span className={`jg-tag ${crowd}`}>{CROWD_WORD[crowd]}</span>}
           </span>
           <span className="jg-row-meta">
-            <span>
-              {[d != null ? formatDistance(d) : null, puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}
-            </span>
+            <span>{[d != null ? formatDistance(d) : null, puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}</span>
           </span>
         </span>
       </button>
@@ -146,72 +143,6 @@ export function PujaActions({ puja, wished, onWish }) {
         <Icon name="heart" size={20} fill={wished} />
         Wish list
       </button>
-    </div>
-  );
-}
-
-/** What's new (design 7.3, PRD chip row): the latest happenings, or an empty state. */
-export function WhatsNew({ byId, onClose, onOpenPuja, onTraffic }) {
-  return (
-    <div className="jg-detail">
-      <div className="jg-detail-head" data-sheet-head>
-        <h2 className="jg-title">What's new</h2>
-        <button type="button" className="jg-icon-btn" aria-label="Close What's new" onClick={onClose}>
-          <Icon name="x" />
-        </button>
-      </div>
-      <TrafficCard onOpen={onTraffic} />
-      {WHATS_NEW.length === 0 && (
-        <div className="jg-empty">
-          <p>No updates yet. News from the pujas shows here during the festival.</p>
-        </div>
-      )}
-      {WHATS_NEW.map((item) => {
-        const puja = byId.get(item.pujaId);
-        return (
-          <article key={item.id} className="jg-news">
-            {item.past && <span className="jg-tag">Past event</span>}
-            <h3 className="jg-news-title">{item.title}</h3>
-            <p className="jg-meta">{item.by}</p>
-            <ul className="jg-news-facts">
-              <li>
-                <Icon name="calendar" size={16} />
-                {item.when}
-              </li>
-              <li>
-                <Icon name="users" size={16} />
-                {item.participants}
-              </li>
-            </ul>
-            <p className="jg-body">{item.body}</p>
-            {item.photos.length > 0 && (
-              <div className="jg-photos">
-                {item.photos.map((ph) => (
-                  <img key={ph.src} src={ph.src} alt={ph.alt} loading="lazy" />
-                ))}
-              </div>
-            )}
-            <div className="jg-news-actions">
-              {puja && (
-                <a className="btn dark small" href={directionsUrl(puja.la, puja.lo)} target="_blank" rel="noopener noreferrer">
-                  <Icon name="nav" size={16} />
-                  Directions
-                </a>
-              )}
-              {puja && (
-                <button type="button" className="btn small jg-btn-outline" onClick={() => onOpenPuja(puja.id)}>
-                  See the puja
-                </button>
-              )}
-              {item.facebook && (
-                <a className="btn small jg-btn-outline" href={item.facebook} target="_blank" rel="noopener noreferrer">
-                  Visit Facebook page
-                </a>
-              )}
-            </div>
-          </article>
-        );
-      })}
     </div>
   );
 }

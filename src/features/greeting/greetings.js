@@ -83,7 +83,7 @@ function decide() {
   const today = todayIst();
   // Under test (and in the preview) one row is in play: the one asked for by id, otherwise the first (Ashtami), so tests do not
   // slide on to the next greeting once the first has had its opens.
-  const only = w.__PD_E2E__ ? /** @type {any} */ ((rules).id ?? GREETINGS[0].id) : null;
+  const only = w.__PD_E2E__ ? /** @type {any} */ (rules.id ?? GREETINGS[0].id) : null;
   const greeting = GREETINGS.filter((g) => !only || g.id === only)
     .map((g) => ({ ...g, ...rules }))
     .find(

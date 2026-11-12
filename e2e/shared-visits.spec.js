@@ -12,7 +12,9 @@ test.describe('hidden share-link count', () => {
     expect(ok.headers()['x-robots-tag']).toContain('noindex');
   });
 
-  test('a tagged visit counts once per device per day, by source; a plain visit does not; the public total is unchanged', async ({ playwright }) => {
+  test('a tagged visit counts once per device per day, by source; a plain visit does not; the public total is unchanged', async ({
+    playwright,
+  }) => {
     const baseURL = 'http://localhost:3111';
     const device = () => playwright.request.newContext({ baseURL });
     const admin = await device();

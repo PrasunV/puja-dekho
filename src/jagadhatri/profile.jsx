@@ -15,6 +15,7 @@ const SIGN_IN_COPY = {
 };
 
 /** What signing in gives, shown on every sign-in sheet. */
+/** @type {{ icon: import('../components/ui/Icon.jsx').IconName, text: string }[]} */
 const BENEFITS = [
   { icon: 'award', text: 'Earn badges as you visit pujas' },
   { icon: 'heart', text: 'Keep your wish list on any phone' },

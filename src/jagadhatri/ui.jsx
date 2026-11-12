@@ -40,10 +40,11 @@ export function useCollapse(resetKey) {
  * A section inside a sheet: a sticky header (title, optional count on the right, arrow button) over its content.
  * The whole header is the button and collapses the section. Once rows scroll under the stuck header a short fade
  * appears below it; at rest there is none. When collapsed, `summary` (what is chosen inside) follows the title.
+ * `collapsible={false}` keeps the same header look with no arrow and nothing to tap (a pinned section such as Notice).
  * @param {{ title: string, count?: number, summary?: string, open: boolean, onToggle: () => void,
- *   id?: string, className?: string, children: import('react').ReactNode }} props
+ *   collapsible?: boolean, id?: string, className?: string, children: import('react').ReactNode }} props
  */
-export function Section({ title, count, summary, open, onToggle, id, className = '', children }) {
+export function Section({ title, count, summary, open, onToggle, collapsible = true, id, className = '', children }) {
   const auto = useId();
   const headId = id ?? `${auto}h`;
   const bodyId = `${auto}b`;
@@ -76,9 +77,8 @@ export function Section({ title, count, summary, open, onToggle, id, className =
     const sc = el && scrollParent(el);
     // Collapsing while stuck would leave the reader far below a now-short section: bring its top back into view.
     if (el && sc && open && el.hasAttribute('data-stuck')) {
-      const target =
-        sc.scrollTop +
-        (/** @type {HTMLElement} */ (el.parentElement).getBoundingClientRect().top - sc.getBoundingClientRect().top);
+      const section = /** @type {HTMLElement} */ (el.parentElement);
+      const target = sc.scrollTop + (section.getBoundingClientRect().top - sc.getBoundingClientRect().top);
       onToggle();
       requestAnimationFrame(() => {
         sc.scrollTop = target;
@@ -91,16 +91,27 @@ export function Section({ title, count, summary, open, onToggle, id, className =
   return (
     <section className={`jg-sec ${className}`} aria-labelledby={headId} data-open={open || undefined}>
       <h3 className="jg-shead" ref={head}>
-        <button type="button" id={headId} className="jg-shead-btn" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
-          <span className="jg-shead-title">{title}</span>
-          {!open && summary && <span className="jg-shead-sum">{summary}</span>}
-          <span className="jg-shead-end">
-            {count != null && <span className="jg-shead-count">{count.toLocaleString('en-IN')}</span>}
-            <span className="jg-shead-arrow" aria-hidden="true">
-              <Icon name="up" size={16} />
-            </span>
+        {!collapsible ? (
+          <span id={headId} className="jg-shead-btn jg-shead-static">
+            <span className="jg-shead-title">{title}</span>
+            {count != null && (
+              <span className="jg-shead-end">
+                <span className="jg-shead-count">{count.toLocaleString('en-IN')}</span>
+              </span>
+            )}
           </span>
-        </button>
+        ) : (
+          <button type="button" id={headId} className="jg-shead-btn" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
+            <span className="jg-shead-title">{title}</span>
+            {!open && summary && <span className="jg-shead-sum">{summary}</span>}
+            <span className="jg-shead-end">
+              {count != null && <span className="jg-shead-count">{count.toLocaleString('en-IN')}</span>}
+              <span className="jg-shead-arrow" aria-hidden="true">
+                <Icon name="up" size={16} />
+              </span>
+            </span>
+          </button>
+        )}
       </h3>
       <div id={bodyId} className="jg-sec-body" hidden={!open}>
         {children}

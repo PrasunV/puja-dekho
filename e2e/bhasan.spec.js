@@ -5,7 +5,8 @@ test.use({ viewport: { width: 390, height: 844 } });
 
 const IST = (text) => new Date(`${text}+05:30`).getTime();
 const toHalf = async (page) => {
-  for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1) await page.locator('.grab').click();
+  for (let i = 0; i < 4 && (await page.locator('.panel').getAttribute('data-sheet')) !== 'half'; i += 1)
+    await page.locator('.grab').click();
   await expect(page.locator('.panel')).toHaveAttribute('data-sheet', 'half');
 };
 
@@ -48,9 +49,6 @@ test.describe('while it is on', () => {
 
   test('order: ghat card, then the video cards (newest first), then Must-visit', async ({ page }) => {
     const ghat = page.getByTestId('ghat-card');
-    const live = page.getByTestId('video-0');
-    const second = page.getByTestId('video-1');
-    const replay = page.getByTestId('video-3');
     await expect(ghat).toContainText('Baje Kadomtala Ghat');
     await expect(ghat).toContainText('Strand Rd, B.B.D. Bagh');
     await expect(ghat).toContainText('Bhasan today');

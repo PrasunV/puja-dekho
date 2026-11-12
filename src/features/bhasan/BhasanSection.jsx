@@ -46,7 +46,9 @@ function GhatCard({ config, status }) {
         <span className="ghat-area">{config.ghat.area}</span>
         <span className="ghat-meta">
           <GhatChip status={status} />
-          <span className="tag ghat-chip" data-testid="ghat-started">{config.startedLabel}</span>
+          <span className="tag ghat-chip" data-testid="ghat-started">
+            {config.startedLabel}
+          </span>
           <span className="tag ghat-vip">CM S.Adhikari visited</span>
           {distance && <span className="ghat-dist num">{distance}</span>}
         </span>
@@ -73,36 +75,36 @@ function VideoCard({ video, index, onShare }) {
   const kind = isLive ? 'Watch live' : 'Replay';
   return (
     <div className="vid-wrap">
-    <a
-      className="vid-card"
-      data-type={video.type}
-      data-testid={`video-${index}`}
-      href={video.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      aria-label={`${kind}: ${video.title}, ${video.channel}. Opens YouTube in a new tab. Press and hold to share`}
-      {...press}
-    >
-      <span className="vid-thumb" aria-hidden="true">
-        {video.thumb && !broken && <img src={video.thumb} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />}
-        <span className="vid-play">
-          <PlayMark />
-        </span>
-        {isLive && video.live && (
-          <span className="live-badge" data-testid="live-badge">
-            <i className="pulse-dot" aria-hidden="true" />
-            LIVE
+      <a
+        className="vid-card"
+        data-type={video.type}
+        data-testid={`video-${index}`}
+        href={video.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`${kind}: ${video.title}, ${video.channel}. Opens YouTube in a new tab. Press and hold to share`}
+        {...press}
+      >
+        <span className="vid-thumb" aria-hidden="true">
+          {video.thumb && !broken && <img src={video.thumb} alt="" loading="lazy" decoding="async" onError={() => setBroken(true)} />}
+          <span className="vid-play">
+            <PlayMark />
           </span>
-        )}
-      </span>
-      <span className="vid-text">
-        <span className="vid-kind">
-          <b>{kind}</b> · {video.channel}
+          {isLive && video.live && (
+            <span className="live-badge" data-testid="live-badge">
+              <i className="pulse-dot" aria-hidden="true" />
+              LIVE
+            </span>
+          )}
         </span>
-        <span className="vid-title">{video.title}</span>
-      </span>
-    </a>
-    <ShareButton label={`Share: ${video.title}`} onShare={onShare} className="on-video" />
+        <span className="vid-text">
+          <span className="vid-kind">
+            <b>{kind}</b> · {video.channel}
+          </span>
+          <span className="vid-title">{video.title}</span>
+        </span>
+      </a>
+      <ShareButton label={`Share: ${video.title}`} onShare={onShare} className="on-video" />
     </div>
   );
 }

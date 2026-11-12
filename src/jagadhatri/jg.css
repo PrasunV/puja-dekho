@@ -2746,3 +2746,161 @@ button.jg-ladder-row {
     transition: none;
   }
 }
+
+/* ---- What's new: Notice (outlined card), Highlights and Latest events (off-white cards) ---- */
+.jg-whatsnew .jg-sec {
+  margin-top: 4px;
+}
+.jg-shead-static {
+  cursor: default;
+}
+.jg-ev-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jg-ev {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 0;
+  border-radius: 12px; /* radius-md */
+  background: var(--tile); /* warm off-white; #272324 in dark */
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.jg-ev:active {
+  background: color-mix(in srgb, var(--tile) 92%, var(--ink));
+}
+.jg-ev:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: 2px;
+}
+.jg-ev-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.jg-ev-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem; /* label 15/20, bold for a card title */
+  line-height: 1.25rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.jg-ev-tag {
+  flex: none;
+}
+.jg-ev .jg-ev-tag:not(.tonal),
+.jg-ev-detail .jg-ev-tag:not(.tonal) {
+  background: var(--surface); /* plain tags need to stand off the off-white card */
+  color: var(--muted);
+}
+.jg-ev-detail .jg-ev-tag:not(.tonal) {
+  background: var(--surface-2);
+}
+.jg-ev-meta {
+  font-size: 0.875rem; /* meta 14/20 */
+  line-height: 1.25rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.jg-ev-thumbs {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.jg-ev-thumb {
+  position: relative;
+  width: 59px; /* 4:3 at 44 tall */
+  height: 44px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--tile-line);
+}
+.jg-ev-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.jg-ev-more {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  font-size: 0.875rem; /* control 14/16 */
+  line-height: 1rem;
+  font-weight: 600;
+}
+/* Details sheet */
+.jg-ev-detail > .jg-ev-tag {
+  align-self: flex-start;
+  margin-top: 8px;
+}
+.jg-ev-photos {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.jg-ev-photos img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+.jg-ev-facts {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.9375rem; /* body 15/20 */
+  line-height: 1.25rem;
+  color: var(--ink);
+}
+.jg-ev-facts li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.jg-ev-facts .ic {
+  flex: none;
+  margin-top: 1px;
+  color: var(--muted);
+}
+.jg-ev-detail > .jg-body {
+  margin: 16px 0 0;
+}
+.jg-ev-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.jg-ev-links:empty {
+  display: none;
+}
+.jg-ev-sub {
+  margin: 2px 0 0;
+}
+.jg-ev-detail .jg-detail-head {
+  align-items: flex-start;
+}
+.jg-ev-detail .jg-detail-titles {
+  flex: 1;
+}

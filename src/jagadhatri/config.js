@@ -21,21 +21,65 @@ export const POPULAR_ORDER = Object.freeze([
 ]);
 
 /**
- * What's new items, newest first. `past` items show as held, with their date.
- * `facebook` and `photos` are left empty until the link and pictures arrive; empty means the button or photos hide.
+ * What's new events. `section`: 'highlight' (picked by hand) or 'latest'. `day` is the India date (YYYY-MM-DD) it happens;
+ * `endDay` when it runs over several days. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
+ * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
+ * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, day: string, endDay?: string, start?: string,
+ *   end?: string, when: string, pujaId: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string,
+ *   photos: { src: string, alt: string }[] }} JgEvent
  */
-export const WHATS_NEW = Object.freeze([
+const CHOKKHUDAAN =
+  'Chokkhudaan is the moment the artist paints the eyes of the Goddess, when the idol is believed to come alive. It happens a few days before the puja.';
+
+/** @type {readonly JgEvent[]} */
+export const EVENTS = Object.freeze([
+  {
+    id: 'chokkhudaan-burima',
+    section: 'highlight',
+    subtitle: 'Anointing the eye',
+    title: 'মায়ের চক্ষুদান · বুড়িমা',
+    day: '2026-11-12',
+    when: '12 Nov',
+    pujaId: 'gourhati-tetultala',
+    by: 'Tetultala (বুড়িমা)',
+    body: CHOKKHUDAAN,
+    photos: [],
+  },
+  {
+    id: 'chokkhudaan-ranima',
+    section: 'highlight',
+    subtitle: 'Anointing the eye',
+    title: 'মায়ের চক্ষুদান · রানিমা',
+    day: '2026-11-11',
+    when: '11 Nov',
+    pujaId: 'tematha',
+    by: 'Tematha Sarbajanin (রানিমা)',
+    body: CHOKKHUDAAN,
+    photos: [],
+  },
+  {
+    id: 'chokkhudaan-bagbazar',
+    section: 'highlight',
+    subtitle: 'Anointing the eye',
+    title: 'মায়ের চক্ষুদান · বাগবাজার',
+    day: '2026-11-11',
+    when: '11 Nov',
+    pujaId: 'bagbazar-sarbojonin',
+    by: 'Bagbazar Sarbajanin',
+    body: CHOKKHUDAAN,
+    photos: [],
+  },
   {
     id: 'alpona-2026',
+    section: 'latest',
     title: "World's largest Alpona competition",
-    by: 'Bagbazar Sarbojanin Jagadhatri Puja Committee',
+    day: '2026-11-08',
+    when: '8 Nov, from 2:00 PM',
     pujaId: 'bagbazar-sarbojonin',
-    when: 'Held on 8 Nov, from 2:00 pm',
-    past: true,
-    participants: '2,000+ participants',
+    by: 'Bagbazar Sarbojanin Jagadhatri Puja Committee',
+    facts: ['2,000+ participants'],
     body: 'Thousands of people painted alpona together on the streets of Bagbazar ahead of the puja.',
-    facebook: '',
-    photos: /** @type {{ src: string, alt: string }[]} */ ([]),
+    photos: [],
   },
 ]);
 

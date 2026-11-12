@@ -13,7 +13,12 @@ export const JAGADHATRI_VISITS = Object.freeze({ table: 'jg_visit_counter', cook
 /** The calendar day in India, so "once a day" follows the festival, not UTC. */
 const istDay = (ms) => new Date(ms + IST_OFFSET_MS).toISOString().slice(0, 10);
 
-/** Opens (and prepares) the database the visit counters live in. Shared with the private stats page. */
+/**
+ * Opens (and prepares) the database the visit counters live in. Shared with the private stats page.
+ * @param {Record<string, string | undefined>} [env]
+ * @param {string} [dbPath]
+ * @param {string} [table]
+ */
 export async function openVisitDb(env = process.env, dbPath, table = DURGA.table) {
   const hosted = env.TURSO_DATABASE_URL;
   if (!hosted && env.VERCEL) throw new Error('TURSO_DATABASE_URL is not set');

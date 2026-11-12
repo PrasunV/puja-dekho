@@ -45,7 +45,7 @@ const PIN_LABEL_FROM = 14;
  * @property {string} [meetupLabel]   The word curved over the round pin
  * @property {string} [meetupPhotoFocus]   Which part of that photo stays in the round or rounded frame, like '50% 35%'
  * @property {boolean} [meetupSelected]   The highlights are open
- * @property {'a' | 'b' | 'c'} [pinStyle]   Which of the three pin looks to draw
+ * @property {'a' | 'b' | 'c' | 'd'} [pinStyle]   Which of the pin looks to draw
  * @property {() => void} [onGhat]
  * @property {() => void} [onMeetup]
  * @property {import('../../lib/types.js').Position | null} position

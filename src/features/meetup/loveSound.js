@@ -10,8 +10,9 @@ export function playLoveSound() {
     const Ctx = window.AudioContext ?? /** @type {any} */ (window).webkitAudioContext;
     if (!Ctx) return;
     context ??= new Ctx();
-    if (context.state === 'suspended') void context.resume();
-    const t = context.currentTime;
+    const ctx = /** @type {AudioContext} */ (context);
+    if (ctx.state === 'suspended') void ctx.resume();
+    const t = ctx.currentTime;
     const note = (
       /** @type {number} */ from,
       /** @type {number} */ to,
@@ -19,15 +20,15 @@ export function playLoveSound() {
       /** @type {number} */ length,
       /** @type {number} */ peak,
     ) => {
-      const osc = context.createOscillator();
-      const gain = context.createGain();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(from, t + start);
       osc.frequency.exponentialRampToValueAtTime(to, t + start + length * 0.7);
       gain.gain.setValueAtTime(0.0001, t + start);
       gain.gain.exponentialRampToValueAtTime(peak, t + start + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, t + start + length);
-      osc.connect(gain).connect(context.destination);
+      osc.connect(gain).connect(ctx.destination);
       osc.start(t + start);
       osc.stop(t + start + length + 0.02);
     };

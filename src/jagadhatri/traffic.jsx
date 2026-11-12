@@ -4,7 +4,7 @@ import { Section, useCollapse } from './ui.jsx';
 import { ALL_POINTS, ALL_POINTS_COMPLETE, GOODS_POINTS, NOTICE_IMAGE, SOURCE, trafficStatus, windowRows } from './traffic.js';
 
 /** The time, refreshed every minute, so the status line stays true while the sheet is open. */
-function useMinute() {
+export function useMinute() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 30_000);

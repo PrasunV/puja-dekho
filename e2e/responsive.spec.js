@@ -28,7 +28,11 @@ async function scaleText(page, factor) {
       }
     };
     for (const sheet of document.styleSheets) {
-      try { walk(sheet.cssRules); } catch { /* cross-origin sheet */ }
+      try {
+        walk(sheet.cssRules);
+      } catch {
+        /* cross-origin sheet */
+      }
     }
     document.documentElement.style.fontSize = `${16 * f}px`;
   }, factor);
@@ -43,13 +47,20 @@ async function problems(page) {
     const out = [];
     const vw = window.innerWidth;
     if (document.documentElement.scrollWidth > vw + 1) out.push(`page scrolls sideways (${document.documentElement.scrollWidth} > ${vw})`);
-    const label = (el) => `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} "${(el.textContent || '').trim().slice(0, 28)}"`;
-    const hasOwnText = (el) => (el.textContent || '').trim().length > 0 && !el.matches('.od-win, .od-cell, .od-strip, .swap-measure, .panel');
+    const label = (el) =>
+      `${el.tagName.toLowerCase()}.${String(el.className).split(' ')[0]} "${(el.textContent || '').trim().slice(0, 28)}"`;
+    const hasOwnText = (el) =>
+      (el.textContent || '').trim().length > 0 && !el.matches('.od-win, .od-cell, .od-strip, .swap-measure, .panel');
     for (const el of document.body.querySelectorAll('*')) {
       const box = el.getBoundingClientRect();
       if (box.width === 0 || box.height === 0) continue;
       const cs = getComputedStyle(el);
-      if (cs.visibility === 'hidden' || cs.display === 'none' || el.closest('[inert], [hidden], .maplibregl-map, .peek-line, .preview-controls, [aria-hidden="true"]')) continue;
+      if (
+        cs.visibility === 'hidden' ||
+        cs.display === 'none' ||
+        el.closest('[inert], [hidden], .maplibregl-map, .peek-line, .preview-controls, [aria-hidden="true"]')
+      )
+        continue;
       const clips = cs.overflowX !== 'visible' || cs.overflowY !== 'visible';
       const scroller = cs.overflowX === 'auto' || cs.overflowX === 'scroll' || cs.overflowY === 'auto' || cs.overflowY === 'scroll';
       const ellipsis = cs.textOverflow === 'ellipsis' || (cs.webkitLineClamp && cs.webkitLineClamp !== 'none'); // cut on purpose, with an ellipsis
@@ -64,7 +75,13 @@ async function problems(page) {
         }
         return false;
       })();
-      if (el.matches('button, a.btn, [role=button]') && (box.right > vw + 1 || box.left < -1) && !inScroller && !el.closest('.maplibregl-ctrl')) out.push(`off screen: ${label(el)} (${Math.round(box.left)}..${Math.round(box.right)})`);
+      if (
+        el.matches('button, a.btn, [role=button]') &&
+        (box.right > vw + 1 || box.left < -1) &&
+        !inScroller &&
+        !el.closest('.maplibregl-ctrl')
+      )
+        out.push(`off screen: ${label(el)} (${Math.round(box.left)}..${Math.round(box.right)})`);
     }
     return [...new Set(out)];
   });
@@ -72,7 +89,13 @@ async function problems(page) {
 
 async function boot(page, width, height, scale) {
   await page.setViewportSize({ width, height });
-  await page.addInitScript(() => { try { localStorage.setItem('pd_explainerSeen', 'true'); } catch { /* no storage */ } });
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('pd_explainerSeen', 'true');
+    } catch {
+      /* no storage */
+    }
+  });
   await openApp(page);
   await scaleText(page, scale);
   await page.waitForTimeout(300);
@@ -115,7 +138,10 @@ for (const [name, width, height] of PHONES) {
       await page.locator('.grab').click();
       await page.waitForTimeout(700);
       expect(await problems(page), 'list at half').toEqual([]);
-      await page.getByRole('button', { name: /^Filters/ }).first().click();
+      await page
+        .getByRole('button', { name: /^Filters/ })
+        .first()
+        .click();
       await page.waitForTimeout(700);
       await page.screenshot({ path: `${shot}-filters.png` });
       expect(await problems(page), 'filters').toEqual([]);
@@ -186,7 +212,10 @@ for (const [name, width, height] of PHONES) {
       await page.getByRole('button', { name: /^Blue line/ }).click();
       await page.waitForTimeout(700);
       expect(await problems(page), 'blue line stations').toEqual([]);
-      await page.getByRole('button', { name: /Blue Line/ }).first().click();
+      await page
+        .getByRole('button', { name: /Blue Line/ })
+        .first()
+        .click();
       await page.waitForTimeout(500);
       expect(await problems(page), 'blue line tile open').toEqual([]);
       await page.evaluate(() => window.__pd.openStation('kalighat'));

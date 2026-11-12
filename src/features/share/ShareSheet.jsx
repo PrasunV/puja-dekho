@@ -24,9 +24,14 @@ export default function ShareSheet({ item, onClose }) {
   const [copied, setCopied] = useState(/** @type {'idle' | 'ok' | 'fail'} */ ('idle'));
   const firstButton = useRef(/** @type {HTMLAnchorElement | null} */ (null));
   const [broken, setBroken] = useState(false);
-  useEffect(() => {
+  // A new item starts fresh: no "Copied" message, picture not marked broken.
+  const [shownFor, setShownFor] = useState(item);
+  if (shownFor !== item) {
+    setShownFor(item);
     setCopied('idle');
     setBroken(false);
+  }
+  useEffect(() => {
     if (!item) return undefined;
     const previous = document.activeElement;
     const frame = requestAnimationFrame(() => firstButton.current?.focus());
@@ -45,6 +50,7 @@ export default function ShareSheet({ item, onClose }) {
   }, [copied]);
 
   const copy = async () => {
+    if (!item) return;
     try {
       await navigator.clipboard.writeText(shareLink(item, 'cp'));
       setCopied('ok');
@@ -56,7 +62,16 @@ export default function ShareSheet({ item, onClose }) {
   return createPortal(
     <AnimatePresence>
       {item && (
-        <motion.div className="share-root" key="share" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+        <motion.div
+          className="share-root"
+          key="share"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        >
+          {/* Tapping outside is a pointer shortcut; keyboards close with Escape or the Close button. */}
+          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
           <div className="share-scrim" data-testid="share-scrim" onClick={onClose} />
           <motion.section
             className="share-sheet"
@@ -90,7 +105,14 @@ export default function ShareSheet({ item, onClose }) {
             </div>
             <p className="share-msg">{item.message}</p>
             <div className="share-actions">
-              <a ref={firstButton} className="btn share-wa" href={whatsappLink(item)} target="_blank" rel="noopener noreferrer" onClick={() => setTimeout(onClose, 150)}>
+              <a
+                ref={firstButton}
+                className="btn share-wa"
+                href={whatsappLink(item)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setTimeout(onClose, 150)}
+              >
                 Post on
                 <WhatsAppMark />
               </a>

@@ -39,7 +39,7 @@ export function createShareHandler({ env = process.env } = {}) {
   return function share(req, res) {
     const query = new URL(req.url || '/', 'http://x').searchParams;
     const id = /^[A-Za-z0-9_-]{1,20}$/.test(query.get('v') ?? '') ? query.get('v') : null;
-    const tag = /^[a-z0-9_-]{1,20}$/i.test(query.get('s') ?? '') ? query.get('s').toLowerCase() : 'link';
+    const tag = /^[a-z0-9_-]{1,20}$/i.test(query.get('s') ?? '') ? (query.get('s') ?? 'link').toLowerCase() : 'link';
     const card = shareCard(id, site);
     const self = `${site}/api/share?v=${encodeURIComponent(id ?? '')}&s=${tag}`;
     const target = id === 'meetup' ? `/?s=${tag}&meetup=1` : `/?s=${tag}`;

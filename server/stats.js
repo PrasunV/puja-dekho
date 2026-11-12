@@ -36,7 +36,12 @@ export function createStatsHandler({ env = process.env, now = Date.now, dbPath }
       const client = await getClient();
       const today = istDay(now());
       const from = istDay(now() - 6 * 24 * 60 * 60 * 1000);
-      const rows = (await client.execute({ sql: 'SELECT day, source, total FROM shared_visits WHERE day >= ? ORDER BY day DESC, total DESC', args: [from] })).rows;
+      const rows = (
+        await client.execute({
+          sql: 'SELECT day, source, total FROM shared_visits WHERE day >= ? ORDER BY day DESC, total DESC',
+          args: [from],
+        })
+      ).rows;
       const byDay = new Map();
       for (const row of rows) byDay.set(row.day, [...(byDay.get(row.day) ?? []), [String(row.source), Number(row.total)]]);
       const sum = (list = []) => list.reduce((n, [, c]) => n + c, 0);
