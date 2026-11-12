@@ -2550,3 +2550,199 @@ button.jg-ladder-row {
 .jg-welcome-text span {
   text-wrap: pretty;
 }
+
+/* ---- View button on puja rows: tonal red pill, same action as the row ---- */
+:root {
+  /* Tonal brand red: 12% red on the surface, red label (5.5:1). */
+  --jg-view-bg: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  --jg-view-bg-pressed: color-mix(in srgb, var(--primary) 20%, var(--surface));
+  --jg-view-ink: var(--primary);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    /* #E0434B on the dark tint is only 3.6:1, so the label goes light pink (7.5:1). */
+    --jg-view-bg: color-mix(in srgb, var(--primary) 16%, var(--surface));
+    --jg-view-bg-pressed: color-mix(in srgb, var(--primary) 26%, var(--surface));
+    --jg-view-ink: #f2a3a8;
+  }
+}
+:root[data-theme='dark'] {
+  --jg-view-bg: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  --jg-view-bg-pressed: color-mix(in srgb, var(--primary) 26%, var(--surface));
+  --jg-view-ink: #f2a3a8;
+}
+.jg-prow {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+}
+.jg-prow > .jg-row {
+  flex: 1;
+  min-width: 0;
+  /* 12px space before View, inside the row's own tap area so there is no dead gap. */
+  padding-right: 12px;
+  border-bottom: 0;
+}
+.jg-prow:has(> .jg-row:active, > .jg-view:active) {
+  background: var(--surface-2);
+}
+.jg-prow > .jg-row:active {
+  background: transparent;
+}
+.jg-wish-row .jg-heart {
+  margin-right: 4px;
+}
+.jg-view {
+  flex: none;
+  position: relative;
+  height: 48px; /* tap area */
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 10px 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--jg-view-ink);
+  font: inherit;
+  font-size: 0.875rem; /* control 14/16, 500 */
+  line-height: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  isolation: isolate;
+  cursor: pointer;
+}
+.jg-view::before {
+  /* the visible 32px pill */
+  content: '';
+  position: absolute;
+  inset: 8px 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: var(--jg-view-bg);
+}
+.jg-view:active::before {
+  background: var(--jg-view-bg-pressed);
+}
+.jg-view .ic {
+  margin-right: -2px;
+}
+
+/* ---- Section headers inside sheets: sticky, count on the right, arrow button, fade only while rows are under it ---- */
+:root {
+  --jg-sheet-bg: var(--bg); /* the main sheet */
+}
+.jg-modal {
+  --jg-sheet-bg: var(--surface); /* modal sheets sit on the surface colour */
+}
+.jg-sec + .jg-sec {
+  margin-top: 8px;
+}
+.jg-shead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -16px;
+  background: var(--jg-sheet-bg);
+  font: inherit;
+}
+.jg-shead::after {
+  /* 16px fade below the header, shown only once rows scroll behind it */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 16px;
+  background: linear-gradient(var(--jg-sheet-bg), color-mix(in srgb, var(--jg-sheet-bg) 0%, transparent));
+  opacity: 0;
+  transition: opacity 0.15s ease-out;
+  pointer-events: none;
+}
+.jg-shead[data-stuck]::after {
+  opacity: 1;
+}
+.jg-shead-btn {
+  width: 100%;
+  min-height: 48px; /* the whole header is the tap target */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font: inherit;
+  font-size: 0.9375rem; /* label 15/20, bold for a header */
+  line-height: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.jg-shead-btn:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: -3px;
+  border-radius: 12px;
+}
+.jg-shead-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.jg-shead-sum {
+  /* what is chosen inside a collapsed filter group: takes what space is left, then cuts off */
+  flex: 1 1 0;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.jg-shead-sum::before {
+  content: '· ';
+}
+.jg-shead-end {
+  flex: none;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.jg-shead-count {
+  font-weight: 500;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.jg-shead-arrow {
+  /* the visible button: grey pill as tall as the header text */
+  width: 32px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--jg-tonal);
+  color: var(--ink);
+  transition: background-color 0.1s;
+}
+.jg-shead-arrow .ic {
+  transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.jg-sec:not([data-open]) .jg-shead-arrow .ic {
+  transform: rotate(180deg);
+}
+.jg-shead-btn:active .jg-shead-arrow {
+  background: var(--jg-tonal-pressed);
+}
+@media (hover: hover) {
+  .jg-shead-btn:hover .jg-shead-arrow {
+    background: var(--jg-tonal-pressed);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-shead::after,
+  .jg-shead-arrow,
+  .jg-shead-arrow .ic {
+    transition: none;
+  }
+}

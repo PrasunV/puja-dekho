@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
+import { Section, useCollapse } from './ui.jsx';
 import { ALL_POINTS, ALL_POINTS_COMPLETE, GOODS_POINTS, NOTICE_IMAGE, SOURCE, trafficStatus, windowRows } from './traffic.js';
 
 /** The time, refreshed every minute, so the status line stays true while the sheet is open. */
@@ -69,6 +70,8 @@ function PointList({ points }) {
 export function TrafficDetail({ onBack, onClose }) {
   const status = trafficStatus(useMinute());
   const rows = windowRows();
+  const [isOpen, toggle] = useCollapse(true);
+  const sec = (/** @type {string} */ key, /** @type {string} */ title) => ({ title, open: isOpen(key), onToggle: () => toggle(key) });
   return (
     <div className="jg-detail jg-traffic">
       <div className="jg-detail-head" data-sheet-head>
@@ -86,10 +89,7 @@ export function TrafficDetail({ onBack, onClose }) {
         <p className="jg-meta">Worked out from the police notice. Always follow traffic police on the road.</p>
       </div>
 
-      <section className="jg-group" aria-labelledby="jg-tr-when">
-        <h3 className="jg-label" id="jg-tr-when">
-          When vehicles are stopped
-        </h3>
+      <Section {...sec('when', 'When vehicles are stopped')}>
         <ul className="jg-traffic-days">
           {rows.map((r, i) => {
             const now = status.state === 'on' && status.index === i;
@@ -105,23 +105,17 @@ export function TrafficDetail({ onBack, onClose }) {
           })}
         </ul>
         <p className="jg-caption">Each closure ends the next morning. Same hours for both lists below.</p>
-      </section>
+      </Section>
 
-      <section className="jg-group" aria-labelledby="jg-tr-goods">
-        <h3 className="jg-label" id="jg-tr-goods">
-          {`Goods vehicles stopped at ${GOODS_POINTS.length} points`}
-        </h3>
+      <Section {...sec('goods', `Goods vehicles stopped at ${GOODS_POINTS.length} points`)}>
         <PointList points={GOODS_POINTS} />
-      </section>
+      </Section>
 
-      <section className="jg-group" aria-labelledby="jg-tr-all">
-        <h3 className="jg-label" id="jg-tr-all">
-          All vehicles stopped at
-        </h3>
+      <Section {...sec('all', 'All vehicles stopped at')}>
         <p className="jg-caption">Including auto, toto, e-rickshaw, motorcycle, rickshaw and van.</p>
         <PointList points={ALL_POINTS} />
         {!ALL_POINTS_COMPLETE && <p className="jg-note">More points are in the notice. Open it below to see them all.</p>}
-      </section>
+      </Section>
 
       <section className="jg-group jg-traffic-source">
         <p className="jg-caption">{`Source: ${SOURCE}`}</p>

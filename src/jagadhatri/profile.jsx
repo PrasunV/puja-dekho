@@ -4,7 +4,7 @@ import { storage } from '../lib/storage.js';
 import { renderGoogleButton } from './account.js';
 import { IN_APP_BROWSER, useBackClose } from './hooks.js';
 import { badgeSvg, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
-import { Avatar, ModalSheet } from './ui.jsx';
+import { Avatar, ModalSheet, ViewCue } from './ui.jsx';
 
 /** One message per reason the sign-in sheet opens (copy approved in the prototype). */
 const SIGN_IN_COPY = {
@@ -269,7 +269,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                   {visited.map((v) => {
                     const p = byId.get(v.puja);
                     return (
-                      <li key={v.puja}>
+                      <li key={v.puja} className="jg-prow">
                         <button type="button" className="jg-row" onClick={() => onOpenPuja(v.puja)}>
                           <span className="jg-row-text">
                             <span className="jg-row-head">
@@ -281,6 +281,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                             </span>
                           </span>
                         </button>
+                        <ViewCue onClick={() => onOpenPuja(v.puja)} />
                       </li>
                     );
                   })}
@@ -297,7 +298,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                   {wish.map((w) => {
                     const p = byId.get(w.puja);
                     return (
-                      <li key={w.puja} className="jg-wish-row">
+                      <li key={w.puja} className="jg-prow jg-wish-row">
                         <button type="button" className="jg-row" onClick={() => onOpenPuja(w.puja)}>
                           <span className="jg-row-text">
                             <span className="jg-row-title">{p.n}</span>
@@ -314,6 +315,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
                         >
                           <Icon name="heart" fill />
                         </button>
+                        <ViewCue onClick={() => onOpenPuja(w.puja)} />
                       </li>
                     );
                   })}

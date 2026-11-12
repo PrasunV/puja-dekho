@@ -4,6 +4,126 @@ import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 import { formatRadius, pujas as pujaCount, search } from './lib.js';
 
+/** The nearest ancestor that scrolls (the sheet body), or null. */
+function scrollParent(/** @type {HTMLElement} */ el) {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY;
+    if (o === 'auto' || o === 'scroll') return p;
+  }
+  return null;
+}
+
+/**
+ * Which sections are collapsed. Everything opens again whenever `resetKey` changes (each time a sheet opens).
+ * @param {unknown} resetKey
+ * @returns {[(id: string) => boolean, (id: string) => void]}
+ */
+export function useCollapse(resetKey) {
+  const [closed, setClosed] = useState(() => /** @type {Set<string>} */ (new Set()));
+  const [key, setKey] = useState(resetKey);
+  if (key !== resetKey) {
+    setKey(resetKey);
+    setClosed(new Set());
+  }
+  const isOpen = (/** @type {string} */ id) => !closed.has(id);
+  const toggle = (/** @type {string} */ id) =>
+    setClosed((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  return [isOpen, toggle];
+}
+
+/**
+ * A section inside a sheet: a sticky header (title, optional count on the right, arrow button) over its content.
+ * The whole header is the button and collapses the section. Once rows scroll under the stuck header a short fade
+ * appears below it; at rest there is none. When collapsed, `summary` (what is chosen inside) follows the title.
+ * @param {{ title: string, count?: number, summary?: string, open: boolean, onToggle: () => void,
+ *   id?: string, className?: string, children: import('react').ReactNode }} props
+ */
+export function Section({ title, count, summary, open, onToggle, id, className = '', children }) {
+  const auto = useId();
+  const headId = id ?? `${auto}h`;
+  const bodyId = `${auto}b`;
+  const head = useRef(/** @type {HTMLHeadingElement | null} */ (null));
+
+  useEffect(() => {
+    const el = head.current;
+    const sc = el && scrollParent(el);
+    if (!el || !sc) return undefined;
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const sec = /** @type {HTMLElement} */ (el.parentElement).getBoundingClientRect();
+      // Stuck = the header has slid down from where it sits naturally, at the top of its section.
+      el.toggleAttribute('data-stuck', el.getBoundingClientRect().top - sec.top > 1);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(check);
+    };
+    sc.addEventListener('scroll', onScroll, { passive: true });
+    check();
+    return () => {
+      sc.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [open]);
+
+  const toggle = () => {
+    const el = head.current;
+    const sc = el && scrollParent(el);
+    // Collapsing while stuck would leave the reader far below a now-short section: bring its top back into view.
+    if (el && sc && open && el.hasAttribute('data-stuck')) {
+      const target =
+        sc.scrollTop +
+        (/** @type {HTMLElement} */ (el.parentElement).getBoundingClientRect().top - sc.getBoundingClientRect().top);
+      onToggle();
+      requestAnimationFrame(() => {
+        sc.scrollTop = target;
+      });
+      return;
+    }
+    onToggle();
+  };
+
+  return (
+    <section className={`jg-sec ${className}`} aria-labelledby={headId} data-open={open || undefined}>
+      <h3 className="jg-shead" ref={head}>
+        <button type="button" id={headId} className="jg-shead-btn" aria-expanded={open} aria-controls={bodyId} onClick={toggle}>
+          <span className="jg-shead-title">{title}</span>
+          {!open && summary && <span className="jg-shead-sum">{summary}</span>}
+          <span className="jg-shead-end">
+            {count != null && <span className="jg-shead-count">{count.toLocaleString('en-IN')}</span>}
+            <span className="jg-shead-arrow" aria-hidden="true">
+              <Icon name="up" size={16} />
+            </span>
+          </span>
+        </button>
+      </h3>
+      <div id={bodyId} className="jg-sec-body" hidden={!open}>
+        {children}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * "View ›" at the right of every puja row. Tonal brand red: clearly an action, quieter than Get directions.
+ * The row itself is the one tap target and the one thing screen readers hear, so this is hidden from them and out of
+ * the tab order; tapping it does the same as tapping the row.
+ * @param {{ onClick: () => void }} props
+ */
+export function ViewCue({ onClick }) {
+  return (
+    <button type="button" className="jg-view" tabIndex={-1} aria-hidden="true" onClick={onClick}>
+      View
+      <Icon name="next" size={16} />
+    </button>
+  );
+}
+
 /**
  * The person's Google photo, or their initials when there is none or it fails to load.
  * @param {{ user: { name: string, picture: string | null }, size?: number }} props

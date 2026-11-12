@@ -41,7 +41,7 @@ import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit
 import { VisitBar } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow, WhatsNew } from './sheets.jsx';
-import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar } from './ui.jsx';
+import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
 const JgMap = React.lazy(() => import('./JgMap.jsx'));
 
@@ -161,6 +161,7 @@ function Loaded({ data }) {
   const [signInErr, setSignInErr] = useState(/** @type {string | null} */ (null));
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile' | 'track'} */ (null));
+  const [stationOpen, stationToggle] = useCollapse(choosing === 'stations');
   const [searchOpen, setSearchOpen] = useState(false);
   // First-visit card: once per phone (About opens it again). Until it is closed, nothing else asks for anything.
   const [welcome, setWelcome] = useState(() => !storage.get('jg_welcome_seen', false));
@@ -875,8 +876,12 @@ function Loaded({ data }) {
 
       <ModalSheet open={choosing === 'stations'} title="Stations & ghats" onClose={() => setChoosing(null)}>
         {['station', 'ghat'].map((kind) => (
-          <div key={kind} className="jg-group">
-            <p className="jg-label">{kind === 'station' ? 'Railway stations' : 'Ferry ghats'}</p>
+          <Section
+            key={kind}
+            title={kind === 'station' ? 'Railway stations' : 'Ferry ghats'}
+            open={stationOpen(kind)}
+            onToggle={() => stationToggle(kind)}
+          >
             {stations
               .filter((s) => s.kind === kind)
               .map((s) => (
@@ -889,7 +894,7 @@ function Loaded({ data }) {
                   onClick={() => chooseStation(s.id)}
                 />
               ))}
-          </div>
+          </Section>
         ))}
       </ModalSheet>
 
@@ -1280,6 +1285,7 @@ function ListBody({
  * scroll. With Near me or a station: one list, nearest first, with the Must visit tag after the name.
  */
 function ListRows({ list, sectioned, onOpen, total, crowd }) {
+  const [isOpen, toggle] = useCollapse(sectioned);
   if (!sectioned) {
     return (
       <ul className="jg-list">
@@ -1296,16 +1302,13 @@ function ListRows({ list, sectioned, onOpen, total, crowd }) {
   return (
     <>
       {groups.map(([title, rows, count]) => (
-        <section key={title} className="jg-section" aria-label={`${title}, ${pujaCount(count)}`}>
-          <h3 className="jg-section-head">
-            {title} <span className="jg-section-count">{count.toLocaleString('en-IN')}</span>
-          </h3>
+        <Section key={title} title={title} count={count} open={isOpen(title)} onToggle={() => toggle(title)}>
           <ul className="jg-list">
             {rows.map((r) => (
               <PujaRow key={r.puja.id} puja={r.puja} d={r.d} onOpen={onOpen} crowd={crowd[r.puja.id]?.level} />
             ))}
           </ul>
-        </section>
+        </Section>
       ))}
     </>
   );
@@ -1341,6 +1344,14 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
     if (open) setDraft(filters);
   }
   const count = useMemo(() => visibleList(pujas, draft, centre).length, [pujas, draft, centre]);
+  const [isOpen, toggle] = useCollapse(open);
+  /** Props for one filter group; `chosen` is what is on inside it, shown in the header while collapsed. */
+  const group = (/** @type {string} */ title, /** @type {(string | false)[]} */ chosen) => ({
+    title,
+    open: isOpen(title),
+    onToggle: () => toggle(title),
+    summary: chosen.filter(Boolean).join(', ') || undefined,
+  });
   const toggleIn = (/** @type {'towns' | 'ages' | 'zones'} */ key, /** @type {string} */ v) =>
     setDraft((d) => ({ ...d, [key]: d[key].includes(v) ? d[key].filter((x) => x !== v) : [...d[key], v] }));
   const n = (/** @type {(p: any) => boolean} */ fn) => pujaCount(pujas.filter(fn).length);
@@ -1364,8 +1375,7 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
         </div>
       }
     >
-      <section className="jg-group">
-        <p className="jg-label">Crowd</p>
+      <Section {...group('Crowd', [draft.freeNow && 'Free now', draft.hideCrowded && 'Hide crowded'])}>
         <ChoiceRow
           label="Free now"
           count={n((p) => crowd[p.id]?.level === 'free')}
@@ -1378,9 +1388,8 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
           selected={draft.hideCrowded}
           onClick={() => setDraft((d) => ({ ...d, hideCrowded: !d.hideCrowded }))}
         />
-      </section>
-      <section className="jg-group">
-        <p className="jg-label">Your pujas</p>
+      </Section>
+      <Section {...group('Your pujas', [!!mine && draft.wish && 'Wish list', !!mine && draft.notVisited && 'Not visited yet'])}>
         {mine ? (
           <>
             <ChoiceRow
@@ -1402,9 +1411,8 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
             <ChoiceRow label="Not visited yet" note="Sign in to use" selected={false} onClick={onSignIn} />
           </>
         )}
-      </section>
-      <section className="jg-group">
-        <p className="jg-label">Town</p>
+      </Section>
+      <Section {...group('Town', draft.towns)}>
         {TOWNS.map((t) => (
           <ChoiceRow
             key={t}
@@ -1414,9 +1422,8 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
             onClick={() => toggleIn('towns', t)}
           />
         ))}
-      </section>
-      <section className="jg-group">
-        <p className="jg-label">Age</p>
+      </Section>
+      <Section {...group('Age', AGE_GROUPS.filter(([id]) => draft.ages.includes(id)).map(([, label]) => label))}>
         {AGE_GROUPS.map(([id, label]) => (
           <ChoiceRow
             key={id}
@@ -1426,18 +1433,16 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
             onClick={() => toggleIn('ages', id)}
           />
         ))}
-      </section>
-      <section className="jg-group">
-        <p className="jg-label">Procession</p>
+      </Section>
+      <Section {...group('Procession', [draft.procession && 'Going for procession'])}>
         <ChoiceRow
           label="Going for procession"
           count={n((p) => !!p.pr)}
           selected={draft.procession}
           onClick={() => setDraft((d) => ({ ...d, procession: !d.procession }))}
         />
-      </section>
-      <section className="jg-group">
-        <p className="jg-label">Procession zone</p>
+      </Section>
+      <Section {...group('Procession zone', draft.zones.map((z) => `Zone ${z}`))}>
         {ZONES.map((z) => (
           <ChoiceRow
             key={z}
@@ -1447,7 +1452,7 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
             onClick={() => toggleIn('zones', z)}
           />
         ))}
-      </section>
+      </Section>
     </ModalSheet>
   );
 }

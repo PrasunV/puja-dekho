@@ -3,17 +3,18 @@ import { Icon } from '../components/ui/Icon.jsx';
 import { ABOUT, WHATS_NEW } from './config.js';
 import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
 import { TrafficCard } from './traffic.jsx';
+import { ViewCue } from './ui.jsx';
 import { agoText } from './visit.js';
 
 const CROWD_WORD = { free: 'Free', crowded: 'Crowded' };
 
 /**
- * One row of the puja list (design: rows 52 tall, the name truncates, distances never do).
+ * One row of the puja list (design: rows 52 tall, the name truncates; distance leads the meta line so it never does; View sits right).
  * @param {{ puja: import('./lib.js').JgPuja, d: number | null, onOpen: (id: string) => void, showTag?: boolean, crowd?: string }} props
  */
 export function PujaRow({ puja, d, onOpen, showTag = false, crowd }) {
   return (
-    <li>
+    <li className="jg-prow">
       <button type="button" className="jg-row" onClick={() => onOpen(puja.id)}>
         <span className="jg-row-text">
           <span className="jg-row-head">
@@ -22,11 +23,13 @@ export function PujaRow({ puja, d, onOpen, showTag = false, crowd }) {
             {crowd && <span className={`jg-tag ${crowd}`}>{CROWD_WORD[crowd]}</span>}
           </span>
           <span className="jg-row-meta">
-            <span>{[puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}</span>
+            <span>
+              {[d != null ? formatDistance(d) : null, puja.t, puja.c !== 'Other' ? puja.c : null].filter(Boolean).join(' · ')}
+            </span>
           </span>
         </span>
-        {d != null && <span className="jg-row-stat">{formatDistance(d)}</span>}
       </button>
+      <ViewCue onClick={() => onOpen(puja.id)} />
     </li>
   );
 }
