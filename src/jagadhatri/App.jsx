@@ -39,7 +39,7 @@ import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile
 import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
-import { VisitBar, WhoBar } from './VisitBar.jsx';
+import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
 import { makePlan } from './plan.js';
@@ -558,32 +558,10 @@ function Loaded({ data }) {
     setWhoState(v);
     storage.set('jg_who', v);
   }, []);
-  const [whoReady, setWhoReady] = useState(false);
   const [whoDismissed, setWhoDismissed] = useState(false);
   const todayIst = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+  // A card at the top of the puja list from the first open until answered; a skip brings it back once on a later day.
   const whoDue = !who.answer && who.skips < 2 && who.day !== todayIst && !whoDismissed;
-  // Ready 30 s after the first touch, or as soon as the first puja sheet closes, whichever comes first.
-  useEffect(() => {
-    if (!whoDue || whoReady) return undefined;
-    let timer = 0;
-    const first = () => {
-      window.removeEventListener('pointerdown', first);
-      window.removeEventListener('keydown', first);
-      timer = window.setTimeout(() => setWhoReady(true), 30_000);
-    };
-    window.addEventListener('pointerdown', first, { passive: true });
-    window.addEventListener('keydown', first);
-    return () => {
-      window.removeEventListener('pointerdown', first);
-      window.removeEventListener('keydown', first);
-      clearTimeout(timer);
-    };
-  }, [whoDue, whoReady]);
-  const lastKind = useRef(view.kind);
-  useEffect(() => {
-    if (lastKind.current === 'puja' && view.kind === 'list') setWhoReady(true);
-    lastKind.current = view.kind;
-  }, [view.kind]);
   const markSeen = () => userKey && setSeen({ u: userKey, r: curRank });
   const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
   const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
@@ -815,6 +793,24 @@ function Loaded({ data }) {
         onPickStation={() => setChoosing('stations')}
         onClearFilters={() => setFilters(NO_FILTERS)}
         onPlanFrom={(id) => openPlanner(id)}
+        ask={
+          whoDue && !(account.signedIn && seen != null && curRank > seen.r) ? (
+            <WhoCard
+              onLocal={() => {
+                setWho({ ...who, answer: 'local' });
+                show("Welcome home. Tick the pujas you've seen to earn your local badge");
+              }}
+              onVisitor={() => {
+                setWho({ ...who, answer: 'visitor' });
+                openPlanner();
+              }}
+              onSkip={() => {
+                setWho({ ...who, skips: who.skips + 1, day: todayIst });
+                setWhoDismissed(true);
+              }}
+            />
+          ) : null
+        }
       />
     );
     peek = centre
@@ -825,23 +821,8 @@ function Loaded({ data }) {
   const toolsBottom = 'calc(var(--sheet-h, 35%) + 16px)';
   // The bar takes the space above the sheet: chips, the counter pill and the location button step aside meanwhile.
   const barShown = visitStep != null && !searchOpen && sheet !== 'full';
-  // The local-or-visitor bar waits for anything else on screen: the welcome card, a sheet, search, the visiting bar.
-  const celebrating = account.signedIn && seen != null && curRank > seen.r;
-  const whoShown =
-    whoReady && whoDue && !barShown && !visitBlocked && !celebrating && shareRank == null && view.kind === 'list' && sheet !== 'full';
-  /** Either grey bar is up: chips, the counter pill and the map buttons step aside. */
-  const floatBar = barShown || whoShown;
-  // Like the visiting bar: a half-open sheet drops to a third while the question shows, and comes back after.
-  const whoLowered = useRef(false);
-  useEffect(() => {
-    if (whoShown && sheet === 'half') {
-      whoLowered.current = true;
-      setSheet('initial');
-    } else if (!whoShown && whoLowered.current) {
-      whoLowered.current = false;
-      if (view.kind === 'list') setSheet('half');
-    }
-  }, [whoShown, sheet, view.kind]);
+  /** The grey visiting bar is up: chips, the counter pill and the map buttons step aside. */
+  const floatBar = barShown;
   const pillBottom = 'min(calc(var(--sheet-h, 35%) + 16px), calc(100% - 38px))';
 
   return (
@@ -1021,22 +1002,6 @@ function Loaded({ data }) {
           onSkip={() => {
             primeSound();
             setBar(null);
-          }}
-        />
-        <WhoBar
-          show={whoShown}
-          bottom="calc(var(--sheet-h, 35%) + 12px)"
-          onLocal={() => {
-            setWho({ ...who, answer: 'local' });
-            show('Thanks. More for locals is coming soon');
-          }}
-          onVisitor={() => {
-            setWho({ ...who, answer: 'visitor' });
-            openPlanner();
-          }}
-          onSkip={() => {
-            setWho({ ...who, skips: who.skips + 1, day: todayIst });
-            setWhoDismissed(true);
           }}
         />
         <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={floatBar}>
@@ -1365,6 +1330,7 @@ function ListBody({
   onPickStation,
   onClearFilters,
   onPlanFrom,
+  ask,
 }) {
   // A new list starts again at the first 60 rows.
   const [shown, setShown] = useState(60);
@@ -1476,6 +1442,7 @@ function ListBody({
           </>
         )}
       </div>
+      {!centre && !filtered && ask}
       {list.length === 0 ? (
         <div className="jg-empty">
           {centre ? (

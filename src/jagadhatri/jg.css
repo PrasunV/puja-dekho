@@ -3189,6 +3189,24 @@ button.jg-ladder-row {
 .jg-plan-from-btn {
   margin-top: 8px;
 }
+.jg-who-card {
+  margin: 4px 0 12px;
+  padding: 16px 16px 16px;
+  border-radius: 12px;
+  background: var(--tile);
+}
+.jg-who-card .jg-visit-head {
+  margin: -8px -8px 0 0;
+}
+.jg-who-card .jg-visit-btn {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.jg-who-card .jg-visit-btn:first-child {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: none;
+}
 .jg-who-q {
   flex: 1;
   min-width: 0;
