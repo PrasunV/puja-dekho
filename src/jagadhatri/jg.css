@@ -91,6 +91,11 @@
 .jg-map-loading {
   position: absolute;
   inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Centre the eye in the part of the map that is not under the search bar or the sheet. */
+  padding: var(--jg-top-h) 0 40dvh;
   background: var(--surface-2);
 }
 .jg-map-fail {
@@ -685,18 +690,6 @@
   background: var(--maroon);
   color: var(--on-maroon);
 }
-.jg-empty {
-  padding: 16px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 12px;
-}
-.jg-empty p {
-  margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.25rem;
-}
 .jg-more-rows {
   margin-top: 12px;
 }
@@ -1023,10 +1016,9 @@
   width: 70%;
   margin-top: 12px;
 }
-.jg-fail {
-  max-width: 420px;
-  margin: 0 auto;
-  padding: 48px 24px;
+.jg-loading .pd-loading {
+  position: absolute;
+  inset: 0;
 }
 
 /* ---- Wide screens: the sheet and search sit in a left column, like Google Maps on a laptop ---- */
@@ -1241,6 +1233,24 @@
 }
 .jg-gsi .jg-spinner {
   position: absolute;
+}
+.jg-gsi-wait {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--surface-2) 50%, var(--line) 75%) 0 0 / 200% 100%;
+  animation: jg-shimmer 1.4s linear infinite;
+}
+@keyframes jg-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-gsi-wait {
+    animation: none;
+    background: var(--line);
+  }
 }
 .jg-notnow {
   min-height: 48px;
@@ -1526,12 +1536,6 @@ button.jg-card:active {
 }
 .jg-ppanel {
   min-height: 40dvh;
-}
-.jg-pempty {
-  margin: 8px 0;
-  font-size: 0.9375rem;
-  line-height: 1.25rem;
-  color: var(--muted);
 }
 .jg-wish-row {
   display: flex;
@@ -2294,14 +2298,6 @@ button.jg-ladder-row {
 }
 .jg-scard-bot span:last-child {
   white-space: nowrap;
-}
-.jg-pempty p {
-  margin: 0;
-}
-.jg-pempty .jg-pempty-title {
-  margin-bottom: 2px;
-  color: var(--ink);
-  font-weight: 700;
 }
 .jg-map-fail:empty {
   display: none;

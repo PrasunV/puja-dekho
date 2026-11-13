@@ -22,6 +22,9 @@ import {
 import { storage } from '../lib/storage.js';
 import { useAccount, useCrowd } from './account.js';
 import { IN_APP_BROWSER, useBackClose, useGeo, useJgData, useToast } from './hooks.js';
+import EmptyState from './loader/EmptyState.jsx';
+import LoadingState from './loader/LoadingState.jsx';
+import { hideSplash } from './loader/splash.js';
 import {
   ageGroup,
   countsByRadius,
@@ -73,22 +76,24 @@ const TOAST_TEXT = {
 
 export default function App() {
   const { data, error, retry } = useJgData();
+  // The first-paint splash stays until the first screen has data, or has failed (then the failed state below shows).
+  useEffect(() => {
+    if (data || error) hideSplash();
+  }, [data, error]);
   if (error) {
     return (
-      <div className="jg-fail" role="alert">
-        <h1 className="jg-title">Couldn't load the pujas</h1>
-        <p className="jg-body">Check your connection, then try again.</p>
-        <button type="button" className="btn dark" onClick={retry}>
-          Try again
-        </button>
+      <div className="jg-loading">
+        <LoadingState isLoading={false} isError onRetry={retry} />
       </div>
     );
   }
   if (!data) {
+    // Only seen after Try again: the splash covers the first load.
     return (
       <div className="jg-loading" aria-busy="true" aria-label="Loading pujas">
         <div className="jg-skel bar" />
         <div className="jg-skel chips" />
+        <LoadingState isLoading />
       </div>
     );
   }
@@ -198,6 +203,9 @@ function Loaded({ data }) {
   const [meCentre, setMeCentre] = useState(/** @type {{ lat: number, lng: number } | null} */ (null));
   const [panning, setPanning] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  /** Bumped by Try again on the map loader: the map starts over. */
+  const [mapKey, setMapKey] = useState(0);
   const camBeforePick = useRef(/** @type {ReturnType<import('./JgMap.jsx').MapHandle['camera']>} */ (null));
   const sheetBeforeSearch = useRef(sheet);
   /** What a pending location request is for, once the first fix arrives. */
@@ -544,14 +552,21 @@ function Loaded({ data }) {
   useEffect(() => {
     // Their first tap, key press or scroll once the welcome card is gone.
     const touch = () => {
-      if (welcomeNow.current) return;
+      if (welcomeNow.current || document.getElementById('pd-splash')) return; // a tap on the splash is not an action
       firstAction.current ??= Date.now();
+    };
+    // The five seconds start when the splash is gone, not when the data arrived under it.
+    const splashGone = () => {
+      readyAt.current = Date.now();
+      firstAction.current = null;
     };
     const opts = { passive: true, capture: true };
     window.addEventListener('pointerdown', touch, opts);
     window.addEventListener('scroll', touch, opts);
     window.addEventListener('keydown', touch, opts);
+    window.addEventListener('pd-splash-gone', splashGone);
     return () => {
+      window.removeEventListener('pd-splash-gone', splashGone);
       window.removeEventListener('pointerdown', touch, opts);
       window.removeEventListener('scroll', touch, opts);
       window.removeEventListener('keydown', touch, opts);
@@ -1025,8 +1040,9 @@ function Loaded({ data }) {
             </div>
           ) : (
             <MapBoundary onFail={() => setMapFailed(true)}>
-              <Suspense fallback={<div className="jg-map-loading" aria-hidden="true" />}>
+              <Suspense fallback={null}>
                 <JgMap
+                  key={mapKey}
                   ref={mapRef}
                   pujas={pujas}
                   stations={stations}
@@ -1043,10 +1059,23 @@ function Loaded({ data }) {
                     if (view.kind === 'puja') closePuja();
                   }}
                   onPan={setPanning}
+                  onReady={() => setMapReady(true)}
                   onFail={() => setMapFailed(true)}
                 />
               </Suspense>
             </MapBoundary>
+          )}
+          {!mapFailed && !mapReady && (
+            // Covers the map until its first tiles are drawn. The eye appears only if that takes longer than 300 ms.
+            <div className="jg-map-loading">
+              <LoadingState
+                isLoading
+                context="map"
+                onRetry={() => {
+                  setMapKey((k) => k + 1);
+                }}
+              />
+            </div>
           )}
         </div>
 
@@ -1506,22 +1535,18 @@ function ListBody({
       </div>
       {!centre && !filtered && ask}
       {list.length === 0 ? (
-        <div className="jg-empty">
-          {centre ? (
-            <EmptyRadius centre={centre} counts={radiusCounts} onRadius={onRadius} />
-          ) : (
-            <>
-              <p>
-                {filters.freeNow && !Object.values(crowd).some((c) => c.level === 'free')
-                  ? 'No crowd reports in the last hour'
-                  : 'No pujas match these filters.'}
-              </p>
-              <button type="button" className="btn dark small" onClick={onClearFilters}>
-                Clear filters
-              </button>
-            </>
-          )}
-        </div>
+        centre ? (
+          <EmptyRadius centre={centre} counts={radiusCounts} onRadius={onRadius} />
+        ) : (
+          <EmptyState
+            title={
+              filters.freeNow && !Object.values(crowd).some((c) => c.level === 'free')
+                ? 'No crowd reports in the last hour'
+                : 'No pujas match these filters'
+            }
+            action={{ label: 'Clear filters', onClick: onClearFilters }}
+          />
+        )
       ) : (
         <ListRows list={list.slice(0, shown)} sectioned={!centre} onOpen={onOpen} total={list} crowd={crowd} />
       )}
@@ -1573,14 +1598,11 @@ function EmptyRadius({ centre, counts, onRadius }) {
   const next = RADIUS_STEPS.find((m) => m > centre.radius && (counts[m] ?? 0) > 0);
   const r = (m) => (m < 1000 ? `${m} m` : `${m / 1000} km`);
   return (
-    <>
-      <p>{`No pujas within ${r(centre.radius)}.${next ? ` ${counts[next]} within ${r(next)}.` : ''}`}</p>
-      {next && (
-        <button type="button" className="btn dark small" onClick={() => onRadius(next)}>
-          {`Show ${r(next)}`}
-        </button>
-      )}
-    </>
+    <EmptyState
+      title={`No pujas within ${r(centre.radius)}`}
+      text={next ? `${counts[next]} within ${r(next)}.` : undefined}
+      action={next ? { label: `Show ${r(next)}`, onClick: () => onRadius(next) } : undefined}
+    />
   );
 }
 

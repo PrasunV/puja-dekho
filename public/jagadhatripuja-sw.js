@@ -5,10 +5,10 @@
 // Offline, the page, the puja data, search and puja details work. Map tiles and the live counters need a connection.
 // On install it reads the page and caches the scripts and styles the page links to, so one visit is enough.
 // Bump CACHE when this file's logic changes; hashed app files refresh themselves.
-const CACHE = 'jagadhatri-v1';
+const CACHE = 'jagadhatri-v2';
 const PAGE = '/jagadhatripuja';
 const DATA = '/jagadhatripuja/data/pujas.json';
-const STATIC = [DATA, '/icon.svg', '/jagadhatripuja/icon.svg', '/jagadhatripuja/manifest.webmanifest'];
+const STATIC = [DATA, '/icon.svg', '/jagadhatripuja/icon.svg', '/jagadhatripuja/manifest.webmanifest', '/jagadhatripuja/splash.js'];
 
 /** A redirected response cannot answer a page load, so keep a plain copy. */
 const plain = async (res) => (res.redirected ? new Response(await res.blob(), { status: res.status, headers: res.headers }) : res);

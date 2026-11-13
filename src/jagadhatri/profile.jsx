@@ -3,6 +3,7 @@ import { Icon } from '../components/ui/Icon.jsx';
 import { storage } from '../lib/storage.js';
 import { renderGoogleButton } from './account.js';
 import { IN_APP_BROWSER, useBackClose } from './hooks.js';
+import EmptyState from './loader/EmptyState.jsx';
 import { badgeSvg, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
 import { Avatar, ModalSheet, ViewCue } from './ui.jsx';
 
@@ -42,6 +43,8 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   const slot = useRef(/** @type {HTMLDivElement | null} */ (null));
   const [loadError, setLoadError] = useState(/** @type {string | null} */ (null));
   const [attempt, setAttempt] = useState(0);
+  /** Google's button has been drawn. Until then the slot shows a button-shaped skeleton. */
+  const [btnReady, setBtnReady] = useState(false);
   const handler = useRef(onCredential);
   useEffect(() => {
     handler.current = onCredential;
@@ -51,15 +54,25 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   useEffect(() => {
     if (!open) return undefined;
     let alive = true;
+    let drawn = false;
+    // A script that never answers counts as a failure at 12 s.
+    const giveUp = setTimeout(() => alive && !drawn && setLoadError(signInError(new Error('google_unavailable'))), 12_000);
     // The sheet slides in first, so the button is measured at its real width.
     const t = setTimeout(() => {
       if (!slot.current) return;
       setLoadError(null);
-      renderGoogleButton(slot.current, (c) => handler.current(c)).catch((e) => alive && setLoadError(signInError(e)));
+      renderGoogleButton(slot.current, (c) => handler.current(c))
+        .then(() => {
+          drawn = true;
+          if (alive) setBtnReady(true);
+        })
+        .catch((e) => alive && setLoadError(signInError(e)));
     }, 260);
     return () => {
       alive = false;
       clearTimeout(t);
+      clearTimeout(giveUp);
+      setBtnReady(false);
     };
   }, [open, attempt]);
 
@@ -80,6 +93,11 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
       <div className="jg-signin-actions">
         <div className="jg-gsi" aria-busy={busy || undefined}>
           <div ref={slot} className="jg-gsi-slot" data-busy={busy || undefined} />
+          {!btnReady && !loadError && (
+            <span className="jg-gsi-wait" role="status">
+              <span className="pd-sr">Loading Google sign-in</span>
+            </span>
+          )}
           {busy && <span className="jg-spinner" aria-label="Signing you in" />}
         </div>
         <button type="button" className="jg-notnow" onClick={onClose}>
@@ -262,10 +280,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
           <div role="tabpanel" className="jg-ppanel">
             {tab === 'visited' &&
               (visited.length === 0 ? (
-                <div className="jg-pempty">
-                  <p className="jg-pempty-title">No pujas visited yet</p>
-                  <p>Visit a puja and tap Yes when asked, or tap Mark as visited.</p>
-                </div>
+                <EmptyState title="No pujas visited yet" text="Visit a puja and tap Yes when asked, or tap Mark as visited." />
               ) : (
                 <ul className="jg-list">
                   {visited.map((v) => {
@@ -291,10 +306,7 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
               ))}
             {tab === 'wish' &&
               (wish.length === 0 ? (
-                <div className="jg-pempty">
-                  <p className="jg-pempty-title">No pujas saved yet</p>
-                  <p>Tap Wish list on any puja to save it here.</p>
-                </div>
+                <EmptyState title="No pujas saved yet" text="Tap Wish list on any puja to save it here." />
               ) : (
                 <ul className="jg-list">
                   {wish.map((w) => {

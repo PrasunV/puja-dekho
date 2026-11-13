@@ -3,6 +3,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 import { formatRadius, pujas as pujaCount, search } from './lib.js';
+import EmptyState from './loader/EmptyState.jsx';
 
 /** The nearest ancestor that scrolls (the sheet body), or null. */
 function scrollParent(/** @type {HTMLElement} */ el) {
@@ -548,19 +549,17 @@ export function SearchBar({
             </div>
           )}
           {typing && results.length === 0 && (
-            <div className="jg-empty" role="status">
-              <p>{`No ${tab === 'pujas' ? 'pujas' : 'stations or ghats'} match ‘${text.trim()}’.`}</p>
-              <button
-                type="button"
-                className="btn dark small"
-                onClick={() => {
+            <EmptyState
+              role="status"
+              title={`No ${tab === 'pujas' ? 'pujas' : 'stations or ghats'} match ‘${text.trim()}’`}
+              action={{
+                label: 'See popular pujas',
+                onClick: () => {
                   input.current?.blur();
                   onSeePopular();
-                }}
-              >
-                See popular pujas
-              </button>
-            </div>
+                },
+              }}
+            />
           )}
         </div>
       )}

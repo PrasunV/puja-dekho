@@ -55,5 +55,7 @@ export default [
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
   },
   { files: ['public/sw.js', 'public/jagadhatripuja-sw.js'], languageOptions: { globals: globals.serviceworker } },
+  // The first-paint splash is a plain script (the CSP blocks inline ones), not a module.
+  { files: ['public/jagadhatripuja/splash.js'], languageOptions: { sourceType: 'script', globals: globals.browser } },
   prettier,
 ];

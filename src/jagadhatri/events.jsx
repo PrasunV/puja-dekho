@@ -4,6 +4,7 @@ import PhotoViewer from '../features/meetup/PhotoViewer.jsx';
 import { EVENTS } from './config.js';
 import { directionsUrl } from './lib.js';
 import { useBackClose } from './hooks.js';
+import LazyImage from './loader/LazyImage.jsx';
 import { TrafficCard, useMinute } from './traffic.jsx';
 import { Section, useCollapse } from './ui.jsx';
 
@@ -87,7 +88,7 @@ function Thumbs({ photos }) {
     <span className="jg-ev-thumbs" aria-hidden="true">
       {photos.slice(0, 3).map((ph, i) => (
         <span key={ph.src} className="jg-ev-thumb">
-          <img src={ph.thumb ?? ph.src} alt="" loading="lazy" decoding="async" />
+          <LazyImage compact src={ph.thumb ?? ph.src} alt="" loading="lazy" decoding="async" />
           {i === 2 && more > 0 && <span className="jg-ev-more">{`+${more}`}</span>}
         </span>
       ))}
@@ -209,7 +210,7 @@ function PhotoRow({ photos }) {
             aria-label={`Open photo ${i + 1} of ${n}: ${ph.alt}`}
             onClick={() => setOpen(i)}
           >
-            <img
+            <LazyImage
               src={ph.src}
               alt=""
               loading={i === 0 ? 'eager' : 'lazy'}

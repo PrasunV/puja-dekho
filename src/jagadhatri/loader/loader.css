@@ -1,0 +1,167 @@
+/* Loaders and empty states. Colours and sizes come from the app tokens, so dark mode follows on its own. */
+.pd-eye {
+  display: inline-block;
+  line-height: 0;
+  color: var(--ink);
+}
+.pd-eye svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pd-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.pd-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--ink);
+}
+.pd-line {
+  margin: 0;
+  max-width: 30ch;
+  font-size: 0.9375rem; /* body 15/20 */
+  line-height: 1.25rem;
+  animation: pd-fade 0.35s ease both;
+}
+
+/* Photos */
+.pd-img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--tile-line);
+}
+.pd-img img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.pd-img[data-state='loading'] img {
+  opacity: 0;
+}
+/* While a photo loads, the frame shimmers behind the still eye. A failed photo stops shimmering. */
+.pd-img[data-state='loading'] {
+  background: linear-gradient(90deg, var(--tile-line) 25%, var(--surface-2) 50%, var(--tile-line) 75%) 0 0 / 200% 100%;
+  animation: pd-shimmer 1.4s linear infinite;
+}
+@keyframes pd-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.pd-img img {
+  transition: opacity 0.25s;
+}
+.pd-img-ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.pd-img-eye {
+  width: min(30%, 56px);
+  opacity: 0;
+  animation: pd-fade-to-35 0.25s 0.3s both; /* the eye waits 300 ms, so a cached photo never shows it */
+}
+.pd-img.compact .pd-img-eye {
+  width: 22px;
+}
+.pd-img-eye svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pd-img-msg {
+  font-size: 0.8125rem; /* caption 13/16 */
+  line-height: 1rem;
+}
+
+/* Empty states */
+.pd-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  text-align: center;
+}
+.pd-empty-eye {
+  width: 56px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  opacity: 0.6;
+}
+.pd-empty-eye svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.pd-empty-title,
+.pd-empty-text {
+  margin: 0;
+  max-width: 32ch;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.pd-empty-title {
+  color: var(--ink);
+  font-weight: 700;
+}
+.pd-empty-text {
+  color: var(--muted);
+}
+.pd-empty .btn {
+  margin-top: 8px;
+}
+
+@keyframes pd-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pd-fade-to-35 {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.4;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pd-line {
+    animation: none;
+  }
+  .pd-img img {
+    transition: none;
+  }
+  .pd-img[data-state='loading'] {
+    animation: none;
+    background: var(--tile-line);
+  }
+  .pd-img-eye {
+    animation: none;
+    opacity: 0.4;
+  }
+}
