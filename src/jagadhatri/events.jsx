@@ -34,6 +34,24 @@ export function eventState(ev, now) {
   return 'upcoming';
 }
 
+/** A Highlight that ended more than this many days ago moves down to Latest events. */
+const HIGHLIGHT_DAYS_AFTER_END = 2;
+const DAY_MS = 24 * 3600 * 1000;
+
+/**
+ * Which section an event belongs in right now: a Highlight stays up the day it ends and the next 2 days, then moves
+ * to Latest events for good.
+ * @param {JgEvent} ev
+ * @param {number} now
+ * @returns {'highlight' | 'latest'}
+ */
+export function sectionOf(ev, now) {
+  if (ev.section !== 'highlight') return ev.section;
+  const last = Date.parse(`${ev.endDay ?? ev.day}T00:00:00Z`);
+  const today = Date.parse(`${istDay(now)}T00:00:00Z`);
+  return today - last > HIGHLIGHT_DAYS_AFTER_END * DAY_MS ? 'latest' : 'highlight';
+}
+
 const STATE_WORD = /** @type {const} */ ({ live: 'Live now', today: 'Today', upcoming: 'Upcoming', ended: 'Ended' });
 
 /**
@@ -48,7 +66,8 @@ export function orderEvents(list, now) {
     .sort((a, b) => {
       const r = rank(a.state) - rank(b.state);
       if (r) return r;
-      return a.state === 'ended' ? b.ev.day.localeCompare(a.ev.day) : a.ev.day.localeCompare(b.ev.day);
+      if (a.state === 'ended') return b.ev.day.localeCompare(a.ev.day) || (b.ev.start ?? '').localeCompare(a.ev.start ?? '');
+      return a.ev.day.localeCompare(b.ev.day) || (a.ev.start ?? '').localeCompare(b.ev.start ?? '');
     });
 }
 
@@ -116,7 +135,7 @@ export function WhatsNew({ byId, onClose, onTraffic, onEvent }) {
     key,
     title,
     rows: orderEvents(
-      EVENTS.filter((e) => e.section === key),
+      EVENTS.filter((e) => sectionOf(e, now) === key),
       now,
     ),
   }));

@@ -62,6 +62,42 @@ export const EVENTS = Object.freeze([
     ],
   },
   {
+    id: 'gohona-mala-ranima',
+    section: 'highlight',
+    title: 'গহণা ও মালা পরানো · রানিমা',
+    day: '2026-11-13',
+    start: '2026-11-13T19:00:00+05:30',
+    when: '13 Nov, 7:00 PM',
+    pujaId: 'tematha',
+    by: 'Tematha Sarbajanin (রানিমা)',
+    body: 'রাণীর অলংকারের সুসজ্জিত হতে চলেছে মা। সকলের উপস্থিতি একান্ত কাম্য।',
+    photos: [
+      {
+        src: '/jagadhatripuja/events/gohona-ranima.jpg',
+        thumb: '/jagadhatripuja/events/gohona-ranima-thumb.jpg',
+        alt: 'Poster: Ranimaer gohona porano, today at 7 PM, with the silver crown of the Goddess',
+      },
+    ],
+  },
+  {
+    id: 'inauguration-mankundu',
+    section: 'highlight',
+    title: 'শুভ উদ্বোধন · মানকুণ্ডু সর্বজনীন',
+    day: '2026-11-13',
+    start: '2026-11-13T20:00:00+05:30',
+    when: '13 Nov, 8:00 PM',
+    pujaId: 'mankundu-sarbojanin-sporting-club',
+    by: 'Mankundu Sarbojanin',
+    body: '১৩ই নভেম্বর, সন্ধ্যা ৮টায় শুভ উদ্বোধন।',
+    photos: [
+      {
+        src: '/jagadhatripuja/events/inauguration-mankundu.jpg',
+        thumb: '/jagadhatripuja/events/inauguration-mankundu-thumb.jpg',
+        alt: 'Poster: Mankundu Sarbojanin, diamond jubilee year, with a QR code to find the puja pandal',
+      },
+    ],
+  },
+  {
     id: 'gohona-mala-adima',
     section: 'highlight',
     title: 'গহণা ও মালা পরানো · আদিমা',
