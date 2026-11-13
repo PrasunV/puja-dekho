@@ -19,6 +19,7 @@ const THEME = {
  * @property {(lat: number, lng: number, radius: number) => void} fitRadius
  * @property {() => { center: [number, number], zoom: number } | null} camera
  * @property {(cam: { center: [number, number], zoom: number }) => void} restore
+ * @property {(points: { la: number, lo: number }[]) => void} fitPoints  Frame a planned route above the sheet
  *
  * @typedef {object} MapProps
  * @property {import('./lib.js').JgPuja[]} pujas
@@ -35,6 +36,7 @@ const THEME = {
  * @property {(moving: boolean) => void} onPan    True when a person starts to pan or zoom, false when the map stops
  * @property {() => void} [onReady]
  * @property {() => void} [onFail]     The map style could not load (no network on a first visit)
+ * @property {{ la: number, lo: number, n?: number, end?: boolean }[] | null} [route]  A planned walk: dotted line, numbered stops
  */
 
 /** Pin radius by zoom: small dots for the whole town, 30 px pins at street level. */
@@ -68,6 +70,26 @@ function circle(lat, lng, radius, steps = 72) {
   return { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [coords] } };
 }
 const EMPTY = { type: 'FeatureCollection', features: [] };
+
+/** A planned walk: one dotted line through every point, and a numbered dot for each puja (start and end unnumbered). */
+function routeFeatures(/** @type {{ la: number, lo: number, n?: number, end?: boolean }[] | null | undefined} */ route) {
+  if (!route || route.length < 2) return { line: EMPTY, stops: EMPTY };
+  return {
+    line: {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'LineString', coordinates: route.map((p) => [p.lo, p.la]) },
+    },
+    stops: {
+      type: 'FeatureCollection',
+      features: route.map((p, i) => ({
+        type: 'Feature',
+        properties: { label: p.n != null ? String(p.n) : '', end: !!p.end, i },
+        geometry: { type: 'Point', coordinates: [p.lo, p.la] },
+      })),
+    },
+  };
+}
 
 function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}) {
   return {
@@ -135,6 +157,20 @@ const JgMap = forwardRef(
       },
       restore(cam) {
         mapRef.current?.flyTo({ center: cam.center, zoom: cam.zoom, duration: 600 });
+      },
+      fitPoints(points) {
+        const map = mapRef.current;
+        if (!map || points.length === 0) return;
+        const lats = points.map((p) => p.la);
+        const lngs = points.map((p) => p.lo);
+        const h = map.getContainer().clientHeight;
+        map.fitBounds(
+          [
+            [Math.min(...lngs), Math.min(...lats)],
+            [Math.max(...lngs), Math.max(...lats)],
+          ],
+          { padding: { top: 140, bottom: Math.round(h * 0.4), left: 40, right: 40 }, duration: 700, maxZoom: 16 },
+        );
       },
     }));
 
@@ -255,6 +291,43 @@ const JgMap = forwardRef(
             'text-ignore-placement': true,
           },
           paint: { 'text-color': ink, 'text-halo-color': surface, 'text-halo-width': 2 },
+        });
+
+        // Planned walk, above the pins: dotted line, then numbered stops.
+        const rf = routeFeatures(p.route);
+        map.addSource('jg-route', { type: 'geojson', data: /** @type {any} */ (rf.line) });
+        map.addSource('jg-route-stops', { type: 'geojson', data: /** @type {any} */ (rf.stops) });
+        map.addLayer({
+          id: 'jg-route-line',
+          type: 'line',
+          source: 'jg-route',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: { 'line-color': primary, 'line-width': 3, 'line-dasharray': [0.6, 2] },
+        });
+        map.addLayer({
+          id: 'jg-route-dot',
+          type: 'circle',
+          source: 'jg-route-stops',
+          paint: {
+            'circle-radius': ['case', ['==', ['get', 'label'], ''], 6, 11],
+            'circle-color': ['case', ['==', ['get', 'label'], ''], surface, primary],
+            'circle-stroke-color': ['case', ['==', ['get', 'label'], ''], primary, surface],
+            'circle-stroke-width': 2.5,
+          },
+        });
+        map.addLayer({
+          id: 'jg-route-num',
+          type: 'symbol',
+          source: 'jg-route-stops',
+          filter: ['!=', ['get', 'label'], ''],
+          layout: {
+            'text-field': ['get', 'label'],
+            'text-font': bold,
+            'text-size': 12,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: { 'text-color': surface },
         });
 
         map.addSource('jg-me', { type: 'geojson', data: EMPTY });
@@ -380,10 +453,13 @@ const JgMap = forwardRef(
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-me-acc')).setData(
         /** @type {any} */ (p.me && p.me.accuracy > 15 ? circle(p.me.lat, p.me.lng, p.me.accuracy, 48) : EMPTY),
       );
+      const rf = routeFeatures(p.route);
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route')).setData(/** @type {any} */ (rf.line));
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route-stops')).setData(/** @type {any} */ (rf.stops));
     }
 
-    const { pujas, lit, priority, selectedId, centre, me, crowd } = props;
-    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd]);
+    const { pujas, lit, priority, selectedId, centre, me, crowd, route } = props;
+    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

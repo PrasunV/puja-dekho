@@ -408,8 +408,12 @@ function RankCardEarned({ stats, cur, onShare }) {
   );
 }
 
-/** Settings, opened from the profile card: celebration sound, privacy notice, sign out. */
-export function SettingsSheet({ open, pending, track, onTrack, onClose, onSignOut }) {
+/**
+ * Settings, opened from the profile card: celebration sound, counting visits, local or visitor, privacy notice, sign out.
+ * @param {{ open: boolean, pending: number, track: boolean, onTrack: (on: boolean) => void, local: boolean,
+ *   onLocal: (on: boolean) => void, onClose: () => void, onSignOut: () => void }} props
+ */
+export function SettingsSheet({ open, pending, track, onTrack, local, onLocal, onClose, onSignOut }) {
   const [sound, setSound] = useState(() => storage.get('jg_sound', true));
   useBackClose(open, onClose);
   return (
@@ -434,6 +438,13 @@ export function SettingsSheet({ open, pending, track, onTrack, onClose, onSignOu
         <span className="jg-choice-text">
           <span className="jg-choice-label">Count visits with location</span>
           <span className="jg-choice-count">Asks when you spend 2 minutes at a puja</span>
+        </span>
+        <span className="jg-switch" aria-hidden="true" />
+      </button>
+      <button type="button" role="switch" aria-checked={local} className="jg-choice jg-switch-row" onClick={() => onLocal(!local)}>
+        <span className="jg-choice-text">
+          <span className="jg-choice-label">I live in town</span>
+          <span className="jg-choice-count">Chandannagar, Mankundu or Bhadreswar</span>
         </span>
         <span className="jg-switch" aria-hidden="true" />
       </button>

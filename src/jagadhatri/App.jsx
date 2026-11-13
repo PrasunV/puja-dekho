@@ -11,6 +11,7 @@ import {
   APPROX_ACCURACY_M,
   CATEGORIES,
   FAR_FROM_TOWN_M,
+  PLAN_POINTS,
   POPULAR_ORDER,
   RADIUS_STEPS,
   STATION_RADIUS_M,
@@ -38,9 +39,11 @@ import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile
 import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
-import { VisitBar } from './VisitBar.jsx';
+import { VisitBar, WhoBar } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
+import { makePlan } from './plan.js';
+import { PlanView, RouteView } from './plan.jsx';
 import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
@@ -59,7 +62,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string } | { kind: 'whatsnew' } | { kind: 'traffic' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' } | { kind: 'plan' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
  */
 
 export default function App() {
@@ -95,6 +98,19 @@ function Loaded({ data }) {
   const { pujas, stations } = data;
   const byId = useMemo(() => new Map(pujas.map((p) => [p.id, p])), [pujas]);
   const stById = useMemo(() => new Map(stations.map((s) => [s.id, s])), [stations]);
+  /** Stations and ghats as plan start and end points. */
+  const planPoints = useMemo(
+    () =>
+      new Map(
+        stations.map((s) => [
+          s.id,
+          /** @type {import('./plan.js').PlanPoint} */ ({ id: s.id, name: s.name, kind: s.kind, la: s.la, lo: s.lo }),
+        ]),
+      ),
+    [stations],
+  );
+  const [planForm, setPlanForm] = useState({ start: 'chandannagar-station', end: 'chandannagar-station', hours: 2 });
+  const [activePlan, setActivePlan] = useState(/** @type {import('./plan.js').Plan | null} */ (null));
   const defaultOrder = useMemo(() => visibleList(pujas, NO_FILTERS, null).map((r) => r.puja), [pujas]);
   const pujaIndex = useMemo(() => makeIndex(defaultOrder, (p) => ({ main: p.n, extra: [p.t, p.bn || ''] })), [defaultOrder]);
   const stationIndex = useMemo(
@@ -306,7 +322,8 @@ function Loaded({ data }) {
   );
   const toList = useCallback(() => setView({ kind: 'list' }), []);
   const closePuja = useCallback(() => {
-    setView({ kind: 'list' });
+    // A puja opened from a plan goes back to the plan.
+    setView((v) => (v.kind === 'puja' && v.from === 'route' ? { kind: 'route' } : { kind: 'list' }));
     if (picked?.kind === 'puja') setPicked(null);
   }, [picked]);
 
@@ -342,7 +359,63 @@ function Loaded({ data }) {
   useBackClose(choosing != null, () => setChoosing(null));
   useBackClose(view.kind !== 'list', () => (view.kind === 'puja' ? closePuja() : toList()));
   // An event or the traffic notice sits on top of What's new: Back returns there first, like the on-screen back arrow.
-  useBackClose(view.kind === 'event' || view.kind === 'traffic', () => setView({ kind: 'whatsnew' }));
+  useBackClose(view.kind === 'event' || view.kind === 'traffic', () =>
+    setView((v) => (v.kind === 'traffic' && v.from ? { kind: v.from } : { kind: 'whatsnew' })),
+  );
+  // A plan sits on Plan my route, and a puja opened from a plan sits on the plan.
+  useBackClose(view.kind === 'route' || (view.kind === 'puja' && view.from === 'route'), () => setView({ kind: 'plan' }));
+  useBackClose(view.kind === 'puja' && view.from === 'route', () => setView({ kind: 'route' }));
+
+  // ---------- Plan my route ----------
+  /** Frame a plan on the map: start, every puja, end. */
+  const fitPlan = useCallback((/** @type {import('./plan.js').Plan} */ plan) => {
+    mapRef.current?.fitPoints([plan.start, ...plan.stops, plan.end]);
+  }, []);
+  const showPlan = useCallback(
+    (/** @type {import('./plan.js').Plan} */ plan) => {
+      setActivePlan(plan);
+      setView({ kind: 'route' });
+      setSheet('half');
+      fitPlan(plan);
+    },
+    [fitPlan],
+  );
+  const openPlanner = useCallback((/** @type {string} */ from = '') => {
+    if (from && PLAN_POINTS.includes(from)) setPlanForm((f) => ({ ...f, start: from }));
+    setView({ kind: 'plan' });
+    setSheet('half');
+  }, []);
+  const makeMyPlan = () => {
+    const end = planPoints.get(planForm.end);
+    if (!end) return;
+    /** @type {import('./plan.js').PlanPoint | undefined} */
+    let start = planPoints.get(planForm.start);
+    if (planForm.start === 'me') {
+      if (!pos) {
+        show('Turn on location to start from where you are, or pick a station or ghat');
+        askLocation('locate');
+        return;
+      }
+      if (farM != null) {
+        show(`You are ${formatDistance(farM)} away. Pick the station or ghat you will arrive at`);
+        return;
+      }
+      start = { id: 'me', name: 'where you are', kind: 'me', la: pos.lat, lo: pos.lng };
+    }
+    if (!start) return;
+    const plan = makePlan(pujas, start, end, planForm.hours, Date.now());
+    if (planForm.start === 'me') plan.title = `From where you are to ${end.name}`;
+    showPlan(plan);
+  };
+  /** The planned walk on the map while a plan, or a puja opened from it, is showing. */
+  const routeOnMap = useMemo(() => {
+    if (!activePlan || !(view.kind === 'route' || (view.kind === 'puja' && view.from === 'route'))) return null;
+    return [
+      { la: activePlan.start.la, lo: activePlan.start.lo, end: true },
+      ...activePlan.stops.map((p, i) => ({ la: p.la, lo: p.lo, n: i + 1 })),
+      { la: activePlan.end.la, lo: activePlan.end.lo, end: true },
+    ];
+  }, [activePlan, view]);
 
   // ---------- Account: wish list, visited, sign-in ----------
   const { change: accountChange } = account;
@@ -472,6 +545,45 @@ function Loaded({ data }) {
     storage.set('jg_seen_rank', seen);
   }, [seen]);
   const [shareRank, setShareRank] = useState(/** @type {number | null} */ (null));
+
+  // ---- Local or visitor (asked once, never on first load) ----
+  /** `answer` once given; `skips` and the day of the last skip, so a skip asks once more on a later day, then never. */
+  const [who, setWhoState] = useState(
+    () =>
+      /** @type {{ answer: 'local' | 'visitor' | null, skips: number, day: string }} */ (
+        storage.get('jg_who', { answer: null, skips: 0, day: '' })
+      ),
+  );
+  const setWho = useCallback((/** @type {typeof who} */ v) => {
+    setWhoState(v);
+    storage.set('jg_who', v);
+  }, []);
+  const [whoReady, setWhoReady] = useState(false);
+  const [whoDismissed, setWhoDismissed] = useState(false);
+  const todayIst = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+  const whoDue = !who.answer && who.skips < 2 && who.day !== todayIst && !whoDismissed;
+  // Ready 30 s after the first touch, or as soon as the first puja sheet closes, whichever comes first.
+  useEffect(() => {
+    if (!whoDue || whoReady) return undefined;
+    let timer = 0;
+    const first = () => {
+      window.removeEventListener('pointerdown', first);
+      window.removeEventListener('keydown', first);
+      timer = window.setTimeout(() => setWhoReady(true), 30_000);
+    };
+    window.addEventListener('pointerdown', first, { passive: true });
+    window.addEventListener('keydown', first);
+    return () => {
+      window.removeEventListener('pointerdown', first);
+      window.removeEventListener('keydown', first);
+      clearTimeout(timer);
+    };
+  }, [whoDue, whoReady]);
+  const lastKind = useRef(view.kind);
+  useEffect(() => {
+    if (lastKind.current === 'puja' && view.kind === 'list') setWhoReady(true);
+    lastKind.current = view.kind;
+  }, [view.kind]);
   const markSeen = () => userKey && setSeen({ u: userKey, r: curRank });
   const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
   const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
@@ -595,7 +707,48 @@ function Loaded({ data }) {
   let body;
   let footer = null;
   let peek;
-  if (view.kind === 'puja') {
+  if (view.kind === 'plan') {
+    body = (
+      <PlanView
+        points={planPoints}
+        byId={byId}
+        form={planForm}
+        onForm={setPlanForm}
+        onMake={makeMyPlan}
+        onBest={(plan) => showPlan(plan)}
+        onClose={toList}
+        onTraffic={() => setView({ kind: 'traffic', from: 'plan' })}
+      />
+    );
+    peek = 'Plan my route';
+  } else if (view.kind === 'route' && activePlan) {
+    body = (
+      <RouteView
+        plan={activePlan}
+        visited={mine.visited}
+        onBack={() => setView({ kind: 'plan' })}
+        onClose={toList}
+        onTick={(id, on) => {
+          // A visit counted in person stays; only a ticked one can be unticked.
+          if (!on && account.visited.some((v) => v.puja === id && v.mode === 'person')) {
+            show('Counted when you were there');
+            return;
+          }
+          ask({ action: 'visited', puja: id, on });
+        }}
+        onOpenPuja={(id) => {
+          openPuja(id);
+          setView({ kind: 'puja', id, from: 'route' });
+        }}
+        onShowMap={() => {
+          setSheet('initial');
+          fitPlan(activePlan);
+        }}
+        onTraffic={() => setView({ kind: 'traffic', from: 'route' })}
+      />
+    );
+    peek = activePlan.title;
+  } else if (view.kind === 'puja') {
     const p = /** @type {import('./lib.js').JgPuja} */ (byId.get(view.id));
     body = (
       <PujaDetail
@@ -629,7 +782,8 @@ function Loaded({ data }) {
     footer = <EventActions puja={evPuja} place={ev.place} />;
     peek = ev.title;
   } else if (view.kind === 'traffic') {
-    body = <TrafficDetail onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} />;
+    const back = view.from;
+    body = <TrafficDetail onBack={() => setView(back ? { kind: back } : { kind: 'whatsnew' })} onClose={toList} />;
     peek = 'Traffic and road closures';
   } else if (view.kind === 'about') {
     body = <About onClose={toList} onWelcome={() => setWelcome(true)} />;
@@ -660,6 +814,7 @@ function Loaded({ data }) {
         }}
         onPickStation={() => setChoosing('stations')}
         onClearFilters={() => setFilters(NO_FILTERS)}
+        onPlanFrom={(id) => openPlanner(id)}
       />
     );
     peek = centre
@@ -670,6 +825,23 @@ function Loaded({ data }) {
   const toolsBottom = 'calc(var(--sheet-h, 35%) + 16px)';
   // The bar takes the space above the sheet: chips, the counter pill and the location button step aside meanwhile.
   const barShown = visitStep != null && !searchOpen && sheet !== 'full';
+  // The local-or-visitor bar waits for anything else on screen: the welcome card, a sheet, search, the visiting bar.
+  const celebrating = account.signedIn && seen != null && curRank > seen.r;
+  const whoShown =
+    whoReady && whoDue && !barShown && !visitBlocked && !celebrating && shareRank == null && view.kind === 'list' && sheet !== 'full';
+  /** Either grey bar is up: chips, the counter pill and the map buttons step aside. */
+  const floatBar = barShown || whoShown;
+  // Like the visiting bar: a half-open sheet drops to a third while the question shows, and comes back after.
+  const whoLowered = useRef(false);
+  useEffect(() => {
+    if (whoShown && sheet === 'half') {
+      whoLowered.current = true;
+      setSheet('initial');
+    } else if (!whoShown && whoLowered.current) {
+      whoLowered.current = false;
+      if (view.kind === 'list') setSheet('half');
+    }
+  }, [whoShown, sheet, view.kind]);
   const pillBottom = 'min(calc(var(--sheet-h, 35%) + 16px), calc(100% - 38px))';
 
   return (
@@ -703,7 +875,7 @@ function Loaded({ data }) {
             setSheet('half');
           }}
         />
-        {!searchOpen && sheet !== 'full' && !barShown && (
+        {!searchOpen && sheet !== 'full' && !floatBar && (
           <nav className="jg-chips" aria-label="Filters">
             <div className="jg-chip-scroll">
               {appliedChips.map((c) => (
@@ -720,12 +892,21 @@ function Loaded({ data }) {
                 </button>
               ))}
               <WhatsNewChip
-                open={view.kind === 'whatsnew' || view.kind === 'traffic' || view.kind === 'event'}
+                open={view.kind === 'whatsnew' || (view.kind === 'traffic' && !view.from) || view.kind === 'event'}
                 onOpen={() => {
                   setView({ kind: 'whatsnew' });
                   setSheet('half');
                 }}
               />
+              <button
+                type="button"
+                className="chip compact jg-chip"
+                aria-pressed={view.kind === 'plan' || view.kind === 'route'}
+                onClick={() => openPlanner()}
+              >
+                <Icon name="route" size={16} />
+                Plan my route
+              </button>
               <button type="button" className="chip compact jg-chip" aria-pressed={near.on} onClick={toggleNear}>
                 <Icon name="locate" size={16} />
                 {nearLabel}
@@ -812,6 +993,7 @@ function Loaded({ data }) {
                   crowd={crowd.crowd}
                   centre={centre}
                   me={pos && farM == null ? pos : null}
+                  route={routeOnMap}
                   onPuja={(id) => openPuja(id, false)}
                   onStation={chooseStation}
                   onBlank={() => {
@@ -825,7 +1007,7 @@ function Loaded({ data }) {
           )}
         </div>
 
-        {!barShown && <ViewCount visits={visits} live={live} bottom={pillBottom} full={sheet === 'full'} />}
+        {!floatBar && <ViewCount visits={visits} live={live} bottom={pillBottom} full={sheet === 'full'} />}
         <VisitBar
           step={barShown ? visitStep : null}
           busy={visitBusy}
@@ -841,7 +1023,23 @@ function Loaded({ data }) {
             setBar(null);
           }}
         />
-        <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={barShown}>
+        <WhoBar
+          show={whoShown}
+          bottom="calc(var(--sheet-h, 35%) + 12px)"
+          onLocal={() => {
+            setWho({ ...who, answer: 'local' });
+            show('Thanks. More for locals is coming soon');
+          }}
+          onVisitor={() => {
+            setWho({ ...who, answer: 'visitor' });
+            openPlanner();
+          }}
+          onSkip={() => {
+            setWho({ ...who, skips: who.skips + 1, day: todayIst });
+            setWhoDismissed(true);
+          }}
+        />
+        <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={floatBar}>
           <button
             type="button"
             className="jg-locate"
@@ -1018,6 +1216,8 @@ function Loaded({ data }) {
         open={settingsOpen}
         pending={account.pending}
         track={track === true}
+        local={who.answer === 'local'}
+        onLocal={(on) => setWho({ ...who, answer: on ? 'local' : 'visitor' })}
         onTrack={(on) => {
           setTrack(on);
           if (on) geoStart();
@@ -1099,7 +1299,7 @@ function Loaded({ data }) {
       <Welcome open={welcome} onClose={closeWelcome} />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
-      <div className="jg-toast-zone" aria-live="polite" style={barShown ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>
+      <div className="jg-toast-zone" aria-live="polite" style={floatBar ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>
         {toast && (
           <div key={toast.id} className="jg-toast" data-action={toast.action ? '' : undefined}>
             <span>{toast.text}</span>
@@ -1164,6 +1364,7 @@ function ListBody({
   onRetryLocation,
   onPickStation,
   onClearFilters,
+  onPlanFrom,
 }) {
   // A new list starts again at the first 60 rows.
   const [shown, setShown] = useState(60);
@@ -1254,6 +1455,12 @@ function ListBody({
               )}
             </p>
             {approx && centre.kind === 'me' && <p className="jg-note">Your location is approximate, so distances may be off.</p>}
+            {centre.kind === 'station' && centre.stationId && PLAN_POINTS.includes(centre.stationId) && (
+              <button type="button" className="btn small jg-btn-outline jg-plan-from-btn" onClick={() => onPlanFrom(centre.stationId)}>
+                <Icon name="route" size={16} />
+                Plan a route from here
+              </button>
+            )}
           </>
         ) : (
           <>

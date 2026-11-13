@@ -171,3 +171,80 @@ export const AGE_GROUPS = Object.freeze([
   ['unknown', 'Year not known', -1, -1],
 ]);
 export const PUJA_YEAR = 2026;
+
+/**
+ * Plan my route. Visitors start at a station, a ghat or where they are, and end at a station or ghat.
+ * Chuchura is left out on purpose: the plans use the 3 stations and 3 ghats of Chandannagar, Mankundu and Bhadreswar.
+ */
+export const PLAN_POINTS = Object.freeze([
+  'chandannagar-station',
+  'mankundu-station',
+  'bhadreswar-station',
+  'rani-ghat',
+  'gondalpara-ghat',
+  'telinipara-ghat',
+]);
+/** Last way home, in minutes after midnight India time: last train 12:00 AM (all 3 stations), last ferry 10:00 PM. */
+export const LAST_TRAIN_MIN = 24 * 60;
+export const LAST_FERRY_MIN = 22 * 60;
+/** Plan lengths on offer, in hours. */
+export const PLAN_HOURS = Object.freeze([2, 5]);
+/** Time spent at each puja, in minutes (queues at the famous ones), and walking pace through festival crowds. */
+export const STAY_MIN = Object.freeze({ must: 15, jubilee: 10, other: 8 });
+export const WALK_KMH = 3;
+/** Straight lines are shorter than streets: walking distance is about 1.3 times the straight-line distance. */
+export const DETOUR = 1.3;
+
+/**
+ * Hand-picked routes (drafted from the puja list, approved by Prasun). Replaced by his own routes later.
+ * @type {readonly { id: string, title: string, blurb: string, start: string, end: string, stops: readonly string[] }[]}
+ */
+export const BEST_ROUTES = Object.freeze([
+  {
+    id: 'jubilee-chandannagar',
+    title: 'Jubilee trail, Chandannagar',
+    blurb: 'Six Jubilee and Pre-Jubilee pujas, from Laxmigunj Chowmatha in its 124th year to Khalisani Kalpukurdhar in its 60th.',
+    start: 'chandannagar-station',
+    end: 'rani-ghat',
+    stops: [
+      'boubazar-sitalatala',
+      'boubazar-jagadhatri-puja-committee',
+      'khalisani-kalpukurdhar-sarbojonin',
+      'fatakgora-sarbojonin',
+      'kalupukur-jagadhatri-puja-committee',
+      'laxmigunj-chowmatha',
+      'urdibazar-sarbojanin',
+    ],
+  },
+  {
+    id: 'jubilee-mankundu-bhadreswar',
+    title: 'Jubilee trail, Mankundu to Bhadreswar',
+    blurb: 'Starts at Mankundu Sporting Club in its 60th year and ends a short walk from Bhadreswar station.',
+    start: 'mankundu-station',
+    end: 'bhadreswar-station',
+    stops: [
+      'mankundu-sarbojanin-sporting-club',
+      'barasat-banerjee-para-madhyanchal',
+      'bhadreswar-krishnapatti-sasthitala-dakshinanchal',
+      'bhadreswar-yubak-samiti',
+      'haritakitala',
+      'lichutala-jagadhatri-temple',
+      'bibeknagar-amratala',
+    ],
+  },
+  {
+    id: 'jubilee-south-ferry',
+    title: 'Jubilee trail, south by ferry',
+    blurb: 'Off the ferry at Gondalpara, through Satghata and Lalbagan, to the train at Chandannagar.',
+    start: 'gondalpara-ghat',
+    end: 'chandannagar-station',
+    stops: [
+      'satghata-jagadhatri-puja',
+      'natun-tilighat-jagadhatri-puja-samity',
+      'lalbagan-padripara',
+      'fatakgora-sarbojonin',
+      'khalisani',
+      'khalisani-kalpukurdhar-sarbojonin',
+    ],
+  },
+]);

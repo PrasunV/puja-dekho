@@ -71,3 +71,47 @@ export function VisitBar({ step, busy, bottom, onYes, onNo, onCrowd, onSkip }) {
     </AnimatePresence>
   );
 }
+
+/**
+ * The first-time question: local or visitor. Same grey bar as "Are you visiting?", floating above the sheet.
+ * @param {{ show: boolean, bottom: string, onLocal: () => void, onVisitor: () => void, onSkip: () => void }} props
+ */
+export function WhoBar({ show, bottom, onLocal, onVisitor, onSkip }) {
+  const reduce = useReducedMotion();
+  return (
+    <AnimatePresence>
+      {show && (
+        <motion.section
+          key="who"
+          className="jg-visit-bar jg-who-bar"
+          style={{ bottom }}
+          role="dialog"
+          aria-live="polite"
+          aria-label="Do you live in Chandannagar, Mankundu or Bhadreswar?"
+          initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
+          exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          transition={{ duration: 0.2 }}
+        >
+          <div className="jg-visit-head">
+            <div className="jg-who-q">
+              <p className="jg-visit-q">Do you live here?</p>
+              <p className="jg-meta">Chandannagar, Mankundu or Bhadreswar</p>
+            </div>
+            <button type="button" className="jg-visit-x" aria-label="Not now" onClick={onSkip}>
+              <Icon name="x" size={20} />
+            </button>
+          </div>
+          <div className="jg-visit-btns">
+            <button type="button" className="jg-visit-btn" onClick={onLocal}>
+              I live here
+            </button>
+            <button type="button" className="jg-visit-btn" onClick={onVisitor}>
+              I'm visiting
+            </button>
+          </div>
+        </motion.section>
+      )}
+    </AnimatePresence>
+  );
+}
