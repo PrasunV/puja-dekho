@@ -17,6 +17,8 @@ import { ageOf, haversine } from './lib.js';
  * @property {number} [left]      Minutes left before the last way home (Infinity earlier in the day)
  * @property {string} [blurb]
  * @property {string} [bestId]
+ * @property {{ title: string, note: string, from: number, count: number }[]} [stages]  Guide stages over `stops`
+ * @property {{ title: string, note: string, stops: JgPuja[], after: number }} [detour]  Optional stage, after stage `after`
  */
 
 const isJubilee = (/** @type {JgPuja} */ p) => p.c === 'Jubilee' || p.c === 'Pre-Jubilee';
@@ -32,11 +34,16 @@ const walkMin = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: n
 const worth = (/** @type {JgPuja} */ p) => (p.pop ? 5 : 0) + (isJubilee(p) ? 2.5 : 0) + (p.c === 'Adi Puja' ? 1.2 : 0) + 0.5;
 
 /** Total minutes for start → stops → end. */
-function total(/** @type {PlanPoint} */ start, /** @type {JgPuja[]} */ stops, /** @type {PlanPoint} */ end) {
+function total(
+  /** @type {PlanPoint} */ start,
+  /** @type {JgPuja[]} */ stops,
+  /** @type {PlanPoint} */ end,
+  /** @type {number | undefined} */ stay = undefined,
+) {
   let t = 0;
   let at = /** @type {{ la: number, lo: number }} */ (start);
   for (const p of stops) {
-    t += walkMin(at, p) + stayAt(p);
+    t += walkMin(at, p) + (stay ?? stayAt(p));
     at = p;
   }
   return t + walkMin(at, end);
@@ -136,8 +143,9 @@ export function makePlan(pujas, start, end, hours, now) {
 }
 
 /**
- * A Best route, with its numbers worked out the same way.
- * @param {{ id: string, title: string, blurb: string, start: string, end: string, stops: readonly string[] }} r
+ * A Best route, with its numbers worked out the same way. A staged route keeps its stages (title, walking note and the
+ * range of stops); an optional stage is kept aside as `detour`, outside the totals and the map line.
+ * @param {(typeof import('./config.js').BEST_ROUTES)[number]} r
  * @param {Map<string, JgPuja>} byId
  * @param {Map<string, PlanPoint>} points
  * @returns {Plan | null}
@@ -145,18 +153,37 @@ export function makePlan(pujas, start, end, hours, now) {
 export function bestPlan(r, byId, points) {
   const start = points.get(r.start);
   const end = points.get(r.end);
-  const stops = r.stops.map((id) => byId.get(id)).filter((p) => !!p);
-  if (!start || !end || stops.length === 0) return null;
-  const s = /** @type {JgPuja[]} */ (stops);
+  if (!start || !end) return null;
+  const pick = (/** @type {readonly string[]} */ ids) => /** @type {JgPuja[]} */ (ids.map((id) => byId.get(id)).filter((p) => !!p));
+  /** @type {JgPuja[]} */
+  const stops = [];
+  /** @type {NonNullable<Plan['stages']>} */
+  const stages = [];
+  /** @type {Plan['detour']} */
+  let detour;
+  if (r.stages) {
+    for (const st of r.stages) {
+      const list = pick(st.stops);
+      if (st.optional) {
+        detour = { title: st.title, note: st.note, stops: list, after: stages.length };
+        continue;
+      }
+      stages.push({ title: st.title, note: st.note, from: stops.length, count: list.length });
+      stops.push(...list);
+    }
+  } else stops.push(...pick(r.stops ?? []));
+  if (stops.length === 0) return null;
   return {
     title: r.title,
     blurb: r.blurb,
     bestId: r.id,
     start,
     end,
-    stops: s,
-    km: walkKm(start, s, end),
-    minutes: total(start, s, end),
+    stops,
+    stages: stages.length ? stages : undefined,
+    detour,
+    km: walkKm(start, stops, end),
+    minutes: total(start, stops, end, r.stay),
     asked: 0,
     trimmed: false,
   };

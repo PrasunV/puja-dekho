@@ -3199,3 +3199,17 @@ button.jg-ladder-row {
 .jg-who-q .jg-meta {
   margin: 0;
 }
+/* Guide stages on a plan */
+.jg-plan-stage {
+  margin-top: 8px;
+}
+.jg-plan-note {
+  margin: 0 0 4px;
+}
+.jg-plan-num.extra {
+  border-style: dashed;
+}
+.jg-plan-stage + .jg-plan-end,
+.jg-plan-detour + .jg-plan-end {
+  list-style: none;
+}

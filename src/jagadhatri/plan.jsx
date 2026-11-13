@@ -1,3 +1,4 @@
+import { Fragment, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
 import { BEST_ROUTES, PLAN_HOURS, PLAN_POINTS } from './config.js';
 import { bestPlan, durationText, lastWayHome, planStats, stopTag, walkUrl } from './plan.js';
@@ -123,7 +124,7 @@ export function PlanView({ points, byId, form, onForm, onMake, onBest, onClose, 
                         <b>{s.must}</b> Must visit
                       </span>
                     </span>
-                    <span className="jg-ev-meta">{`${short(p.start.name)} to ${short(p.end.name)}`}</span>
+                    <span className="jg-ev-meta">{`${p.start.name} to ${p.end.name}`}</span>
                   </button>
                 </li>
               );
@@ -136,11 +137,65 @@ export function PlanView({ points, byId, form, onForm, onMake, onBest, onClose, 
 }
 
 /**
+ * One puja on a plan: number (a tick once visited), name and tag, View. A detour stop has no number.
+ * @param {{ p: import('./lib.js').JgPuja, n: number | null, visited: Set<string>, onTick: (id: string, on: boolean) => void,
+ *   onOpenPuja: (id: string) => void }} props
+ */
+function StopRow({ p, n, visited, onTick, onOpenPuja }) {
+  const on = visited.has(p.id);
+  const tag = [stopTag(p) || null, p.pop ? 'Must visit' : null].filter(Boolean).join(' · ');
+  return (
+    <li className="jg-prow jg-plan-row" data-seen={on || undefined}>
+      <button
+        type="button"
+        className={`jg-plan-tick${on ? ' on' : ''}`}
+        aria-pressed={on}
+        aria-label={`${on ? 'Visited' : 'Mark as visited'}: ${p.n}`}
+        onClick={() => onTick(p.id, !on)}
+      >
+        <span className={`jg-plan-num${n == null ? ' extra' : ''}`} aria-hidden="true">
+          {on ? <Icon name="check" size={16} /> : (n ?? <Icon name="plus" size={14} />)}
+        </span>
+      </button>
+      <button type="button" className="jg-row" onClick={() => onOpenPuja(p.id)}>
+        <span className="jg-row-text">
+          <span className="jg-row-title">{p.n}</span>
+          <span className="jg-row-meta">
+            <span>{tag || p.t}</span>
+          </span>
+        </span>
+      </button>
+      <ViewCue onClick={() => onOpenPuja(p.id)} />
+    </li>
+  );
+}
+
+/** The last row: where the plan ends. */
+function EndRow({ end }) {
+  return (
+    <li className="jg-plan-end">
+      <span className="jg-plan-num end" aria-hidden="true">
+        <Icon name={end.kind === 'ghat' ? 'boat' : 'train'} size={16} />
+      </span>
+      <span>{`End: ${end.name}`}</span>
+    </li>
+  );
+}
+
+/**
  * A plan: numbered pujas in walking order, ticks as you go (ticking marks the puja visited), Show on map, Walk.
  * @param {{ plan: Plan, visited: Set<string>, onBack: () => void, onClose: () => void, onTick: (id: string, on: boolean) => void,
  *   onOpenPuja: (id: string) => void, onShowMap: () => void, onTraffic: () => void }} props
  */
 export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, onShowMap, onTraffic }) {
+  const [isOpen, toggle] = useCollapse(plan);
+  const [detourOpen, setDetourOpen] = useState(false);
+  const [detourFor, setDetourFor] = useState(plan);
+  if (detourFor !== plan) {
+    setDetourFor(plan);
+    setDetourOpen(false);
+  }
+  const rowProps = { visited, onTick, onOpenPuja };
   const seen = plan.stops.filter((p) => visited.has(p.id)).length;
   const next = plan.stops.find((p) => !visited.has(p.id)) ?? plan.end;
   const s = planStats(plan);
@@ -199,42 +254,54 @@ export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, 
             </a>
           </div>
           <p className="jg-caption jg-plan-from">{`In walking order from ${plan.start.name}`}</p>
-          <ol className="jg-list jg-plan-list">
-            {plan.stops.map((p, i) => {
-              const on = visited.has(p.id);
-              const tag = [stopTag(p) || null, p.pop ? 'Must visit' : null].filter(Boolean).join(' · ');
-              return (
-                <li key={p.id} className="jg-prow jg-plan-row" data-seen={on || undefined}>
-                  <button
-                    type="button"
-                    className={`jg-plan-tick${on ? ' on' : ''}`}
-                    aria-pressed={on}
-                    aria-label={`${on ? 'Visited' : 'Mark as visited'}: ${p.n}`}
-                    onClick={() => onTick(p.id, !on)}
+          {plan.stages ? (
+            <>
+              {plan.stages.map((st, si) => (
+                <Fragment key={st.title}>
+                  <Section
+                    title={`${si + 1}. ${st.title}`}
+                    count={st.count}
+                    open={isOpen(st.title)}
+                    onToggle={() => toggle(st.title)}
+                    className="jg-plan-stage"
                   >
-                    <span className="jg-plan-num" aria-hidden="true">
-                      {on ? <Icon name="check" size={16} /> : i + 1}
-                    </span>
-                  </button>
-                  <button type="button" className="jg-row" onClick={() => onOpenPuja(p.id)}>
-                    <span className="jg-row-text">
-                      <span className="jg-row-title">{p.n}</span>
-                      <span className="jg-row-meta">
-                        <span>{tag || p.t}</span>
-                      </span>
-                    </span>
-                  </button>
-                  <ViewCue onClick={() => onOpenPuja(p.id)} />
-                </li>
-              );
-            })}
-            <li className="jg-plan-end">
-              <span className="jg-plan-num end" aria-hidden="true">
-                <Icon name={plan.end.kind === 'ghat' ? 'boat' : 'train'} size={16} />
-              </span>
-              <span>{`End: ${plan.end.name}`}</span>
-            </li>
-          </ol>
+                    <p className="jg-caption jg-plan-note">{st.note}</p>
+                    <ol className="jg-list jg-plan-list" start={st.from + 1}>
+                      {plan.stops.slice(st.from, st.from + st.count).map((p, k) => (
+                        <StopRow key={p.id} p={p} n={st.from + k + 1} {...rowProps} />
+                      ))}
+                    </ol>
+                  </Section>
+                  {plan.detour && plan.detour.after === si + 1 && (
+                    <Section
+                      title={plan.detour.title}
+                      count={plan.detour.stops.length}
+                      open={detourOpen}
+                      onToggle={() => setDetourOpen((o) => !o)}
+                      className="jg-plan-stage jg-plan-detour"
+                    >
+                      <p className="jg-caption jg-plan-note">{plan.detour.note}</p>
+                      <ul className="jg-list jg-plan-list">
+                        {plan.detour.stops.map((p) => (
+                          <StopRow key={p.id} p={p} n={null} {...rowProps} />
+                        ))}
+                      </ul>
+                    </Section>
+                  )}
+                </Fragment>
+              ))}
+              <ul className="jg-list jg-plan-list">
+                <EndRow end={plan.end} />
+              </ul>
+            </>
+          ) : (
+            <ol className="jg-list jg-plan-list">
+              {plan.stops.map((p, i) => (
+                <StopRow key={p.id} p={p} n={i + 1} {...rowProps} />
+              ))}
+              <EndRow end={plan.end} />
+            </ol>
+          )}
         </>
       )}
     </div>

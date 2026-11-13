@@ -196,10 +196,150 @@ export const WALK_KMH = 3;
 export const DETOUR = 1.3;
 
 /**
- * Hand-picked routes (drafted from the puja list, approved by Prasun). Replaced by his own routes later.
- * @type {readonly { id: string, title: string, blurb: string, start: string, end: string, stops: readonly string[] }[]}
+ * Hand-picked routes. The guide trail (Prasun's Chandannagar Jagadhatri Puja guide map) comes first, in 14 stages with
+ * walking instructions; `stay` overrides minutes at each puja (3 = seen from the road). An `optional` stage is a detour,
+ * left out of the totals and the map line. The Jubilee trails were drafted from the puja list.
+ * @typedef {{ title: string, note: string, optional?: boolean, stops: readonly string[] }} BestStage
+ * @type {readonly { id: string, title: string, blurb: string, start: string, end: string, stay?: number,
+ *   stops?: readonly string[], stages?: readonly BestStage[] }[]}
  */
 export const BEST_ROUTES = Object.freeze([
+  {
+    id: 'guide-mankundu-chandannagar',
+    title: 'The full trail, Mankundu to Chandannagar',
+    blurb:
+      'The local guide route: off the train at Mankundu, through Jyoti More, Gondalpara, the Strand, Boro and Bagbazar, to the train at Chandannagar. A long night; pick up where you like.',
+    start: 'mankundu-station',
+    end: 'chandannagar-station',
+    stay: 3,
+    stages: [
+      {
+        title: 'Mankundu Station Road',
+        note: 'Get down at Mankundu Station and walk along Station Road.',
+        stops: [
+          'mankundu-sarbojanin-sporting-club',
+          'natunpara-sarbojonin-mankundu',
+          'neogi-bagan-mankundu',
+          'adi-mahadanga',
+          'charabagan-balak-samiti',
+          'kanailal-pally',
+        ],
+      },
+      {
+        title: 'Jyoti More and G.T. Road (right side)',
+        note: 'Pass Circus Math to reach Jyoti More. Turn right onto G.T. Road.',
+        stops: ['aurobinda-sangha', 'barasat-chakraborti-para', 'barasat-banerjee-para', 'barasat-gate'],
+      },
+      {
+        title: 'Beyond Jyoti More, the return loop',
+        note: 'After Barasat Gate, turn back and cross Jyoti More.',
+        stops: [
+          'gopalbag-sarbojonin',
+          'lichu-tala',
+          'mahila-samiti-sarbojonin',
+          'kapalipara-sahebbagan-jagadhatri-puja-samiti',
+          'rather-sarak-sambala-shibtala',
+        ],
+      },
+      {
+        title: 'West side detour',
+        note: 'Walk west from the main junction.',
+        stops: ['duplexpatty', 'ashwatthatala-suksanatantala', 'duplexpatti-kultala'],
+      },
+      {
+        title: 'Jyoti More (left side)',
+        note: 'Back at Jyoti More, look to the left side for Rani Ma.',
+        stops: ['tematha'],
+      },
+      {
+        title: 'Gondalpara stretch',
+        note: 'Take the straight road towards Gondalpara.',
+        stops: [
+          'ambika-athletic-club',
+          'moran-road-sarbojonin',
+          'kadamtala-r-n-sikdar-road',
+          'a-c-chatterjee-lane',
+          'satghata-jagadhatri-puja',
+          'binodtala-sarbojonin',
+          'charmandirtala-jagadhatri-puja',
+          'kacharighat-sarbojonin',
+          'natun-tilighat-jagadhatri-puja-samity',
+          'besohata',
+        ],
+      },
+      {
+        title: 'Strand Road, south stretch',
+        note: 'Turn right onto Strand Road and walk along the river.',
+        stops: ['hatkhola-daibak-para', 'hatkhola-bhubaneswari-tala', 'hatkhola-monsatala', 'hatkhola-nonatala', 'barabazar-sarbojonin'],
+      },
+      {
+        title: 'Strand Road to Laxmiganj',
+        note: 'Carry on along Strand Road through the market.',
+        stops: ['urdi-bazar-chunagali', 'urdibazar-sarbojanin', 'laxmigunj-chowmatha', 'adi-maa-chaulpatti', 'laxmigunj-bazar'],
+      },
+      {
+        title: 'Ghat lanes and Boro',
+        note: 'Follow the ghat lanes into the Boro neighbourhood.',
+        stops: ['bindubasini-para', 'pilkhana-kuthirghat', 'kundughat-dalan', 'goswami-ghat', 'boro-sarbojanin-sarat-sangha'],
+      },
+      {
+        title: 'Boro and Ganj',
+        note: 'Cover inner Boro and Ganj before heading to G.T. Road.',
+        stops: [
+          'boro-panchanantala',
+          'boro-kalitala-jagadhatri-puja-committee',
+          'boro-taldanga',
+          'sarishapara-sarbojonin',
+          'boro-dighir-dhar',
+          'tantir-bagan',
+          'tantirbagan-charthakurtala',
+        ],
+      },
+      {
+        title: 'G.T. Road crossing and Bidyalanka',
+        note: 'Climb up to G.T. Road, cross over and walk past Chandannagar Hospital to Bidyalanka.',
+        stops: ['kaporepotti', 'bidyalankar-jagadhatri-puja-committee'],
+      },
+      {
+        title: 'Helapukur and Palpara (optional)',
+        note: 'If you have time and energy, take a slight right before Bidyalanka, then come back.',
+        optional: true,
+        stops: [
+          'helapukur-dhar',
+          'palpara-jagadhatri-puja-committee',
+          'uttaranchal-santan-sangha',
+          'surer-pukur',
+          'kantapukur-sarbojanin-jagadhatri-puja-committee',
+        ],
+      },
+      {
+        title: 'Bagbazar and Chandannagar Station Road',
+        note: 'From Bidyalanka, head to Bagbazar Talpukur (famous for its pond lighting), then along Station Road.',
+        stops: [
+          'bagbazar-talpukurdhar',
+          'bagbazar-babu-pukurdhar',
+          'bagbazar-choumatha',
+          'bagbazar-sarbojonin',
+          'madhyanchal-sarbojonin',
+          'chandni-benepukur-sarbojonin',
+          'fatakgora-sarbojonin',
+          'apanjan',
+          'khalisani',
+        ],
+      },
+      {
+        title: 'Across Chandannagar Station',
+        note: 'Cross to the other side of Chandannagar Station for the last cluster, then catch your train.',
+        stops: [
+          'khalisani-kalpukurdhar-sarbojonin',
+          'brahmanpara-jagarani',
+          'boubazar-jagadhatri-puja-committee',
+          'boubazar-sitalatala',
+          'subhaspally-sarbojanin',
+        ],
+      },
+    ],
+  },
   {
     id: 'jubilee-chandannagar',
     title: 'Jubilee trail, Chandannagar',
