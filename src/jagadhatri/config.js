@@ -36,18 +36,18 @@ export const EVENTS = Object.freeze([
   {
     id: 'inauguration-2026',
     section: 'highlight',
-    title: 'Puja Inauguration by Mr. Suvendu Adhikari (C.M)',
+    title: 'Jagadhatri Puja Inauguration by Mr. Suvendu Adhikari (C.M)',
     day: '2026-11-13',
     start: '2026-11-13T14:00:00+05:30',
     when: '13 Nov, 2:00 PM',
-    place: 'Marie Math, Chandannagar',
+    place: 'Circus Math, Chandannagar',
     by: 'Chandannagar Municipal Corporation and Chandannagar Subdivision',
     body: 'The formal opening of Chandannagar’s Jagadhatri Puja festival, on Shukla Chaturthi (13 Kartik 1433). Everyone is invited.',
     photos: [
       {
         src: '/jagadhatripuja/events/inauguration-stage.jpg',
         thumb: '/jagadhatripuja/events/inauguration-stage-thumb.jpg',
-        alt: 'The stage at Marie Math lit up, with the Jagadhatri Puja 2026 banner in front',
+        alt: 'The stage at Circus Math lit up, with the Jagadhatri Puja 2026 banner in front',
       },
       {
         src: '/jagadhatripuja/events/inauguration-screen.jpg',
