@@ -107,7 +107,23 @@ export const EVENTS = Object.freeze([
     pujaId: 'adi-maa-chaulpatti',
     by: 'চাউলপট্টি সার্বজনীন',
     body: 'মায়ের এই অপরূপ সাজ দর্শন করতে আপনারা সপরিবারে আসুন, মায়ের আশীর্বাদ গ্রহণ করুন। 🌺',
-    photos: [],
+    photos: [
+      {
+        src: '/jagadhatripuja/events/adima-gohona-1.jpg',
+        thumb: '/jagadhatripuja/events/adima-gohona-1-thumb.jpg',
+        alt: 'Adima in her jewellery and flower garlands, with priests on bamboo scaffolding finishing her adornment and devotees below',
+      },
+      {
+        src: '/jagadhatripuja/events/adima-gohona-2.jpg',
+        thumb: '/jagadhatripuja/events/adima-gohona-2-thumb.jpg',
+        alt: 'Close-up of Adima’s face, silver crown and the white shola work with Krishna playing the flute above',
+      },
+      {
+        src: '/jagadhatripuja/events/adima-gohona-3.jpg',
+        thumb: '/jagadhatripuja/events/adima-gohona-3-thumb.jpg',
+        alt: 'The Adima pandal at night, framed by arches of red and white flowers and a crystal chandelier',
+      },
+    ],
   },
   {
     id: 'chokkhudaan-burima',
