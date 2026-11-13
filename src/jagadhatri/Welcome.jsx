@@ -9,17 +9,17 @@ import { useBackClose } from './hooks.js';
  * @type {{ icon: import('../components/ui/Icon.jsx').IconName, title: string, text: string }[]}
  */
 const ROWS = [
-  { icon: 'pin', title: 'Find pujas near you', text: 'The closest pandals, one tap away.' },
-  { icon: 'award', title: 'Save pujas, earn badges', text: 'Turn your puja hopping into badges worth showing off.' },
+  { icon: 'route', title: 'Plan your route', text: 'Pick where you start and end. We fit the pujas into your time.' },
+  { icon: 'award', title: 'Tick pujas, earn badges', text: 'Turn your puja hopping into badges worth showing off.' },
   { icon: 'users', title: 'See the crowd live', text: 'Skip the queues. Go where it’s free right now.' },
 ];
 
 /**
- * The first-visit card (like the Durga Celebfie intro): logo, welcome, three feature rows, Start exploring.
- * Shown once per phone; About opens it again.
- * @param {{ open: boolean, onClose: () => void }} props
+ * The daily card: shown on the first open of each day (India time); About opens it again. Signed-out people get logo,
+ * welcome, three feature rows and Start exploring. Signed-in people get a short greeting with Plan my route first.
+ * @param {{ open: boolean, name?: string | null, onClose: () => void, onPlan?: () => void }} props
  */
-export function Welcome({ open, onClose }) {
+export function Welcome({ open, name, onClose, onPlan }) {
   const reduce = useReducedMotion();
   const button = useRef(/** @type {HTMLButtonElement | null} */ (null));
   useBackClose(open, onClose);
@@ -57,26 +57,52 @@ export function Welcome({ open, onClose }) {
             transition={{ duration: 0.28, ease: [0.25, 1, 0.5, 1] }}
           >
             <img className="jg-welcome-logo" src="/icon.svg" width="56" height="56" alt="Puja Dekho" />
-            <h2 id="jg-welcome-title" className="jg-welcome-title">
-              Welcome to Jagadhatri Puja Dekho
-            </h2>
-            <p className="jg-welcome-sub">Your guide to Chandannagar’s nights of lights.</p>
-            <ul className="jg-welcome-rows">
-              {ROWS.map((r) => (
-                <li key={r.icon}>
-                  <span className="jg-benefit-ic" aria-hidden="true">
-                    <Icon name={r.icon} size={20} />
-                  </span>
-                  <span className="jg-welcome-text">
-                    <b>{r.title}</b>
-                    <span>{r.text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <button ref={button} type="button" className="btn dark block jg-welcome-go" onClick={onClose}>
-              Start exploring
-            </button>
+            {name ? (
+              <>
+                <h2 id="jg-welcome-title" className="jg-welcome-title">
+                  {`Welcome back, ${name}`}
+                </h2>
+                <p className="jg-welcome-sub">Plan tonight’s route, or just see what’s near you.</p>
+                <button
+                  ref={button}
+                  type="button"
+                  className="btn dark block jg-welcome-go"
+                  onClick={() => {
+                    onClose();
+                    onPlan?.();
+                  }}
+                >
+                  <Icon name="route" size={20} />
+                  Plan my route
+                </button>
+                <button type="button" className="jg-notnow" onClick={onClose}>
+                  Start exploring
+                </button>
+              </>
+            ) : (
+              <>
+                <h2 id="jg-welcome-title" className="jg-welcome-title">
+                  Welcome to Jagadhatri Puja Dekho
+                </h2>
+                <p className="jg-welcome-sub">Your guide to Chandannagar’s nights of lights.</p>
+                <ul className="jg-welcome-rows">
+                  {ROWS.map((r) => (
+                    <li key={r.icon}>
+                      <span className="jg-benefit-ic" aria-hidden="true">
+                        <Icon name={r.icon} size={20} />
+                      </span>
+                      <span className="jg-welcome-text">
+                        <b>{r.title}</b>
+                        <span>{r.text}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <button ref={button} type="button" className="btn dark block jg-welcome-go" onClick={onClose}>
+                  Start exploring
+                </button>
+              </>
+            )}
           </motion.section>
         </motion.div>
       )}

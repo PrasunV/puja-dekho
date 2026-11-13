@@ -8,7 +8,8 @@ import { Avatar, ModalSheet, ViewCue } from './ui.jsx';
 
 /** One message per reason the sign-in sheet opens (copy approved in the prototype). */
 const SIGN_IN_COPY = {
-  start: ['Start your puja tour', 'One tap with your Google account, and Puja Dekho keeps track for you.'],
+  start: ['Walk your route, earn badges', 'One tap with Google. Tick off each stop as you go, and we keep count on any phone.'],
+  plan: ['Tick off your route as you walk', 'One tap with Google. Tick off each stop and we keep count, even if you close the app.'],
   wish: ['Save pujas for later', 'Sign in to keep your wish list on any phone.'],
   visited: ['Keep track of your pujas', 'Sign in to mark pujas visited and see them on your profile.'],
   here: ['Count this puja', 'Sign in to count the pujas you visit and unlock badges as you go.'],
@@ -17,9 +18,9 @@ const SIGN_IN_COPY = {
 /** What signing in gives, shown on every sign-in sheet. */
 /** @type {{ icon: import('../components/ui/Icon.jsx').IconName, text: string }[]} */
 const BENEFITS = [
+  { icon: 'route', text: 'Tick off every stop on your route' },
   { icon: 'award', text: 'Earn badges as you visit pujas' },
   { icon: 'heart', text: 'Keep your wish list on any phone' },
-  { icon: 'share', text: 'Share your badges with friends' },
 ];
 
 /** Why sign-in failed, in words the person can act on. */
@@ -33,7 +34,7 @@ export function signInError(/** @type {unknown} */ e) {
 
 /**
  * The sign-in sheet: one title, one line, Google's button, Later.
- * @param {{ reason: 'start' | 'wish' | 'visited' | 'here' | null, busy: boolean, error: string | null, onCredential: (c: string) => void, onClose: () => void }} props
+ * @param {{ reason: 'start' | 'plan' | 'wish' | 'visited' | 'here' | null, busy: boolean, error: string | null, onCredential: (c: string) => void, onClose: () => void }} props
  */
 export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   const open = reason != null;

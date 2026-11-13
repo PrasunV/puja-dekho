@@ -52,7 +52,13 @@ const JgMap = React.lazy(() => import('./JgMap.jsx'));
 /** Near me re-centres only after the person has walked this far, so the list never jumps under a finger. */
 const RECENTRE_M = 40;
 /** The sign-in sheet opens once a session, after this much time on screen (design 7.14). */
-const NUDGE_AFTER_S = 300;
+const AUTO_SIGNIN_MS = 5000;
+/** If nobody has touched anything this long after the welcome card, the sign-in sheet shows anyway. */
+const AUTO_SIGNIN_CAP_MS = 20_000;
+/** The sign-in sheet shows this long after a plan appears, so they see their route first. */
+const PLAN_ASK_MS = 1500;
+/** Today's date in India, YYYY-MM-DD. */
+const istToday = () => new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
 /** Past tense, 1 to 5 words (design 7.18). */
 const TOAST_TEXT = {
   'wish:true': 'Added to wish list',
@@ -172,7 +178,7 @@ function Loaded({ data }) {
   );
   /** Why the sign-in sheet is open, and the change to make once signed in. */
   const [signIn, setSignIn] = useState(
-    /** @type {{ reason: 'start' | 'wish' | 'visited' | 'here', change?: import('./account.js').Change } | null} */ (null),
+    /** @type {{ reason: 'start' | 'plan' | 'wish' | 'visited' | 'here', change?: import('./account.js').Change } | null} */ (null),
   );
   const [signInBusy, setSignInBusy] = useState(false);
   const [signInErr, setSignInErr] = useState(/** @type {string | null} */ (null));
@@ -180,11 +186,11 @@ function Loaded({ data }) {
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile' | 'track'} */ (null));
   const [stationOpen, stationToggle] = useCollapse(choosing === 'stations');
   const [searchOpen, setSearchOpen] = useState(false);
-  // First-visit card: once per phone (About opens it again). Until it is closed, nothing else asks for anything.
-  const [welcome, setWelcome] = useState(() => !storage.get('jg_welcome_seen', false));
+  // Welcome card: on the first open of each day, India time (About opens it again). Until it is closed, nothing else asks for anything.
+  const [welcome, setWelcome] = useState(() => storage.get('jg_welcome_day', '') !== istToday());
   const closeWelcome = useCallback(() => {
     setWelcome(false);
-    storage.set('jg_welcome_seen', true);
+    storage.set('jg_welcome_day', istToday());
   }, []);
   const [picked, setPicked] = useState(/** @type {{ kind: 'puja' | 'station', id: string, name: string } | null} */ (null));
   const [stationCentre, setStationCentre] = useState(/** @type {{ id: string, radius: number } | null} */ (null));
@@ -371,12 +377,26 @@ function Loaded({ data }) {
   const fitPlan = useCallback((/** @type {import('./plan.js').Plan} */ plan) => {
     mapRef.current?.fitPoints([plan.start, ...plan.stops, plan.end]);
   }, []);
+  // Signed-out people are asked to sign in at two moments, each at most once per page load: when they have built a
+  // plan (here), and a little after they start using the app (further down). A plan ask also stops the later one.
+  const signedInNow = useRef(account.signedIn);
+  const autoAsked = useRef(false);
+  const planAsked = useRef(false);
   const showPlan = useCallback(
     (/** @type {import('./plan.js').Plan} */ plan) => {
       setActivePlan(plan);
       setView({ kind: 'route' });
       setSheet('half');
       fitPlan(plan);
+      if (!planAsked.current && !signedInNow.current) {
+        planAsked.current = true;
+        autoAsked.current = true;
+        window.setTimeout(() => {
+          if (signedInNow.current) return;
+          setSignInErr(null);
+          setSignIn((cur) => cur ?? { reason: 'plan' });
+        }, PLAN_ASK_MS);
+      }
     },
     [fitPlan],
   );
@@ -489,33 +509,75 @@ function Loaded({ data }) {
     setSignIn({ reason: 'start' });
   };
 
-  // Once a session, after 5 minutes on screen, signed-out people are asked to start their tour, but never over
-  // another sheet, the search panel or a puja.
-  const nudgeBlocked = useRef(true);
-  const blocked = account.signedIn || choosing != null || searchOpen || view.kind !== 'list' || signIn != null || welcome;
+  // ---------- "Are you visiting?" (2 minutes within 100 m), then the crowd ----------
+  const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
+
+  // Every open, signed-out people get the sign-in sheet: 5 s after their first tap or scroll once the welcome card is
+  // gone, or 20 s after it if they touch nothing. It waits for a calm moment (never over another sheet, search, a puja
+  // or the planner) and shows once per page load.
+  const calm = !(
+    account.signedIn ||
+    choosing != null ||
+    searchOpen ||
+    view.kind !== 'list' ||
+    signIn != null ||
+    welcome ||
+    settingsOpen ||
+    visitStep != null
+  );
+  const calmNow = useRef(calm);
+  const welcomeNow = useRef(welcome);
+  const readyAt = useRef(Date.now());
+  const firstAction = useRef(/** @type {number | null} */ (null));
+  const calmSince = useRef(/** @type {number | null} */ (null));
   useEffect(() => {
-    nudgeBlocked.current = blocked;
-  }, [blocked]);
+    calmNow.current = calm;
+    welcomeNow.current = welcome;
+    signedInNow.current = account.signedIn;
+  }, [calm, welcome, account.signedIn]);
   useEffect(() => {
-    let seen = 0;
+    if (!welcome) {
+      readyAt.current = Date.now();
+      firstAction.current = null;
+    }
+  }, [welcome]);
+  useEffect(() => {
+    // Their first tap, key press or scroll once the welcome card is gone.
+    const touch = () => {
+      if (welcomeNow.current) return;
+      firstAction.current ??= Date.now();
+    };
+    const opts = { passive: true, capture: true };
+    window.addEventListener('pointerdown', touch, opts);
+    window.addEventListener('scroll', touch, opts);
+    window.addEventListener('keydown', touch, opts);
+    return () => {
+      window.removeEventListener('pointerdown', touch, opts);
+      window.removeEventListener('scroll', touch, opts);
+      window.removeEventListener('keydown', touch, opts);
+    };
+  }, []);
+  useEffect(() => {
     const id = window.setInterval(() => {
-      if (document.visibilityState !== 'visible') return;
-      seen += 5;
-      if (seen < NUDGE_AFTER_S || nudgeBlocked.current) return;
-      window.clearInterval(id);
-      try {
-        if (sessionStorage.getItem('pd_jg_nudged')) return;
-        sessionStorage.setItem('pd_jg_nudged', '1');
-      } catch {
-        /* storage blocked: still ask only once, this page load */
+      if (signedInNow.current || autoAsked.current) {
+        if (autoAsked.current) window.clearInterval(id);
+        return;
       }
+      const now = Date.now();
+      calmSince.current = calmNow.current ? (calmSince.current ?? now) : null;
+      if (document.visibilityState !== 'visible' || calmSince.current == null) return;
+      if (now - calmSince.current < 1000) return;
+      const byAction = firstAction.current != null && now - Math.max(firstAction.current, readyAt.current) >= AUTO_SIGNIN_MS;
+      const byCap = now - readyAt.current >= AUTO_SIGNIN_CAP_MS;
+      if (!byAction && !byCap) return;
+      window.clearInterval(id);
+      autoAsked.current = true;
+      setSignInErr(null);
       setSignIn({ reason: 'start' });
-    }, 5000);
+    }, 500);
     return () => window.clearInterval(id);
   }, []);
 
-  // ---------- "Are you visiting?" (2 minutes within 100 m), then the crowd ----------
-  const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
   const [visitBusy, setVisitBusy] = useState(false);
   // While the bar shows, the sheet drops to its resting third so the map stays visible, then goes back (design 7.9).
   const sheetBeforeBar = useRef(/** @type {null | 'peek' | 'initial' | 'half' | 'full'} */ (null));
@@ -559,7 +621,7 @@ function Loaded({ data }) {
     storage.set('jg_who', v);
   }, []);
   const [whoDismissed, setWhoDismissed] = useState(false);
-  const todayIst = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10);
+  const todayIst = istToday();
   // A card at the top of the puja list from the first open until answered; a skip brings it back once on a later day.
   const whoDue = !who.answer && who.skips < 2 && who.day !== todayIst && !whoDismissed;
   const markSeen = () => userKey && setSeen({ u: userKey, r: curRank });
@@ -1261,7 +1323,7 @@ function Loaded({ data }) {
         onClose={() => setShareRank(null)}
         toast={show}
       />
-      <Welcome open={welcome} onClose={closeWelcome} />
+      <Welcome open={welcome} name={account.user?.name?.split(' ')[0] ?? null} onClose={closeWelcome} onPlan={() => openPlanner()} />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={floatBar ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>
