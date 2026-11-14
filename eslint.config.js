@@ -51,8 +51,8 @@ export default [
   },
   {
     // Playwright's page.evaluate() callbacks run in the browser.
-    files: ['e2e/**/*.js'],
-    languageOptions: { globals: { ...globals.node, ...globals.browser } },
+    files: ['e2e/**/*.js', 'scripts/**/*.mjs'],
+    languageOptions: { ecmaVersion: 2025, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
   },
   { files: ['public/sw.js', 'public/jagadhatripuja-sw.js'], languageOptions: { globals: globals.serviceworker } },
   // The first-paint splash is a plain script (the CSP blocks inline ones), not a module.

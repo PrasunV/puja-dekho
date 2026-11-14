@@ -50,13 +50,14 @@ const TITLE_MAX_PX = 260;
  * @param {object} props
  * @param {'peek' | 'initial' | 'half' | 'full'} props.sheet
  * @param {(s: 'peek' | 'initial' | 'half' | 'full') => void} props.onSheetChange
+ * @param {(moving: boolean) => void} [props.onMovingChange]  True while a drag or the settling spring runs
  * @param {boolean} props.desktop
  * @param {React.ReactNode} props.peek  The one line shown at the peek
  * @param {React.ReactNode} [props.footer]  Buttons pinned at the bottom
  * @param {React.ReactNode} props.children
  * @param {number} [props.topInset]  Stop the full sheet this many px below the top (default: 93% of the stage)
  */
-export default function BottomSheet({ sheet, onSheetChange, desktop, peek, footer, children, topInset = 0 }) {
+export default function BottomSheet({ sheet, onSheetChange, onMovingChange, desktop, peek, footer, children, topInset = 0 }) {
   if (desktop) {
     return (
       <section className="panel" data-sheet={sheet}>
@@ -69,7 +70,7 @@ export default function BottomSheet({ sheet, onSheetChange, desktop, peek, foote
     );
   }
   return (
-    <PhoneSheet sheet={sheet} onSheetChange={onSheetChange} peek={peek} footer={footer} topInset={topInset}>
+    <PhoneSheet sheet={sheet} onSheetChange={onSheetChange} onMovingChange={onMovingChange} peek={peek} footer={footer} topInset={topInset}>
       {children}
     </PhoneSheet>
   );
@@ -92,7 +93,7 @@ export default function BottomSheet({ sheet, onSheetChange, desktop, peek, foote
  * so they follow it without React re-rendering. `data-sheet` on the
  * panel is the committed state and changes the moment a drag is released.
  */
-function PhoneSheet({ sheet, onSheetChange, peek, footer, children, topInset = 0 }) {
+function PhoneSheet({ sheet, onSheetChange, onMovingChange, peek, footer, children, topInset = 0 }) {
   const panelRef = useRef(/** @type {HTMLElement | null} */ (null));
   const bodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const height = useMotionValue(0);
@@ -103,6 +104,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children, topInset = 0
   const live = useRef({
     sheet,
     onSheetChange,
+    onMovingChange,
     stage: 0,
     floor: 0,
     topInset,
@@ -116,6 +118,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children, topInset = 0
   useEffect(() => {
     live.current.sheet = sheet;
     live.current.onSheetChange = onSheetChange;
+    live.current.onMovingChange = onMovingChange;
     live.current.topInset = topInset;
   });
 
@@ -162,6 +165,7 @@ function PhoneSheet({ sheet, onSheetChange, peek, footer, children, topInset = 0
     const setMoving = (/** @type {boolean} */ on) => {
       L.moving = on;
       setMovingState(on);
+      L.onMovingChange?.(on);
       panel.toggleAttribute('data-moving', on);
       stage.toggleAttribute('data-sheet-full', !on && L.target === 'full');
     };

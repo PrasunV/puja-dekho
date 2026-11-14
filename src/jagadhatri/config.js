@@ -7,6 +7,8 @@
 export const BASE = '/jagadhatripuja';
 export const DATA_URL = `${BASE}/data/pujas.json`;
 export const SITE_URL = 'https://puja-dekho.vercel.app/jagadhatripuja';
+/** What the share button sends (the link goes after it). */
+export const SHARE_MESSAGE = 'I am using this guide map to visit Jagadhatri Puja’26';
 
 /**
  * The 5 popular pujas shown in search before typing, in this order (puja ids from the sheet).

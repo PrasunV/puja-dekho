@@ -41,6 +41,7 @@ import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
 import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
+import { ShareFab, ShareSheet, useAnyModalOpen, useShareReveal, useSplashGone } from './share.jsx';
 import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
 import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
@@ -202,6 +203,8 @@ function Loaded({ data }) {
   const [near, setNear] = useState({ on: false, radius: RADIUS_STEPS[0] });
   const [meCentre, setMeCentre] = useState(/** @type {{ lat: number, lng: number } | null} */ (null));
   const [panning, setPanning] = useState(false);
+  const [sheetMoving, setSheetMoving] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [mapFailed, setMapFailed] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   /** Bumped by Try again on the map loader: the map starts over. */
@@ -903,6 +906,10 @@ function Loaded({ data }) {
       : pujaCount(list.length);
   }
 
+  // The share button steps aside while the person works the map, the sheet, search or another sheet, then comes back.
+  const modalOpen = useAnyModalOpen();
+  const splashGone = useSplashGone();
+  const shareReveal = useShareReveal(splashGone, panning || sheetMoving || searchOpen || modalOpen || welcome);
   const toolsBottom = 'calc(var(--sheet-h, 35%) + 16px)';
   // The bar takes the space above the sheet: chips, the counter pill and the location button step aside meanwhile.
   const barShown = visitStep != null && !searchOpen && sheet !== 'full';
@@ -1105,6 +1112,7 @@ function Loaded({ data }) {
           }}
         />
         <div className="map-tools jg-tools" style={{ bottom: toolsBottom }} hidden={floatBar}>
+          <ShareFab reveal={shareReveal} onOpen={() => setShareOpen(true)} />
           <button
             type="button"
             className="jg-locate"
@@ -1122,7 +1130,15 @@ function Loaded({ data }) {
           </button>
         </div>
 
-        <BottomSheet sheet={sheet} onSheetChange={setSheet} desktop={false} peek={peek} footer={footer} topInset={topInset}>
+        <BottomSheet
+          sheet={sheet}
+          onSheetChange={setSheet}
+          onMovingChange={setSheetMoving}
+          desktop={false}
+          peek={peek}
+          footer={footer}
+          topInset={topInset}
+        >
           {body}
         </BottomSheet>
       </main>
@@ -1366,6 +1382,7 @@ function Loaded({ data }) {
         onClose={() => setShareRank(null)}
         toast={show}
       />
+      <ShareSheet open={shareOpen} online={online} onClose={() => setShareOpen(false)} toast={show} />
       <Welcome open={welcome} name={account.user?.name?.split(' ')[0] ?? null} onClose={closeWelcome} onPlan={() => openPlanner()} />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 

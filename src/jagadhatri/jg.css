@@ -3417,3 +3417,133 @@ button.jg-ladder-row {
 .jg-plan-detour + .jg-plan-end {
   list-style: none;
 }
+
+/* ---- Share button and sheet (design 7.22) ---- */
+/* The map buttons stack with a 12 px gap and line up on the right edge, so the share button's words grow leftwards. */
+.jg-tools {
+  gap: 12px;
+  align-items: flex-end;
+}
+.jg-sharefab {
+  display: inline-flex;
+  align-items: center;
+  height: 48px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--float-shadow);
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
+  white-space: nowrap;
+  /* Away: out within 100 ms. */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 0.1s ease-out,
+    visibility 0s linear 0.1s;
+}
+.jg-sharefab[data-shown] {
+  /* Back: in over 200 ms. */
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 0.2s ease-out;
+}
+.jg-sharefab:active {
+  background: var(--surface-2);
+}
+.jg-sharefab-ic {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+}
+/* The words open from the icon by animating the width of a 0fr to 1fr grid track, so no width is measured. */
+.jg-sharefab-label {
+  display: grid;
+  grid-template-columns: 0fr;
+  transition: grid-template-columns 0.26s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.jg-sharefab[data-expanded] .jg-sharefab-label {
+  grid-template-columns: 1fr;
+}
+.jg-sharefab-label > span {
+  min-width: 0;
+  overflow: hidden;
+}
+.jg-sharefab-label > span > span {
+  display: block;
+  padding-left: 16px;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+.jg-sharefab[data-expanded] .jg-sharefab-label > span > span {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-sharefab,
+  .jg-sharefab[data-shown],
+  .jg-sharefab-label,
+  .jg-sharefab-label > span > span {
+    transition: none;
+  }
+}
+.jg-share-sheet .jg-modal-body > * {
+  flex-shrink: 0;
+}
+.jg-sharesheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+}
+.jg-sharecard {
+  aspect-ratio: 1200 / 630;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.jg-share-msg {
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: var(--surface-2);
+}
+.jg-share-msg p {
+  margin: 0;
+}
+.jg-share-msg .jg-caption {
+  margin-top: 4px;
+}
+.jg-share-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.jg-share-tile {
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 4px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+.jg-share-tile:active:not([disabled]) {
+  background: var(--jg-tonal-pressed);
+}
+.jg-share-tile[disabled] {
+  opacity: 0.4;
+}
