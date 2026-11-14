@@ -167,12 +167,28 @@ const SHEET_EASE = /** @type {const} */ ([0.25, 1, 0.5, 1]);
 /**
  * A choosing sheet (Puja type, Stations & ghats, More, the location question): a bottom sheet over a dimmed screen,
  * one level deep. Drag down, the handle, the close button, Escape or a tap on the dim closes it.
- * @param {{ open: boolean, title: string, onClose: () => void, footer?: import('react').ReactNode, children: import('react').ReactNode, strong?: boolean, label?: string, className?: string, onBodyScroll?: (e: import('react').UIEvent<HTMLDivElement>) => void }} props
+ * `compactTitle` (with `collapsed`) swaps the heading for a compact one while the content is scrolled; tapping it scrolls
+ * back to the top, and a hairline shows under the header whenever content has scrolled beneath it.
+ * @param {{ open: boolean, title: string, onClose: () => void, footer?: import('react').ReactNode, children: import('react').ReactNode, strong?: boolean, label?: string, className?: string, onBodyScroll?: (e: import('react').UIEvent<HTMLDivElement>) => void, compactTitle?: import('react').ReactNode, collapsed?: boolean }} props
  */
-export function ModalSheet({ open, title, onClose, footer, children, strong = false, label, className = '', onBodyScroll }) {
+export function ModalSheet({
+  open,
+  title,
+  onClose,
+  footer,
+  children,
+  strong = false,
+  label,
+  className = '',
+  onBodyScroll,
+  compactTitle,
+  collapsed = false,
+}) {
   const reduce = useReducedMotion();
   const controls = useDragControls();
   const titleId = useId();
+  const bodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const [scrolled, setScrolled] = useState(false);
   const ref = useRef(/** @type {HTMLDivElement | null} */ (null));
   useEffect(() => {
     if (!open) return undefined;
@@ -222,15 +238,39 @@ export function ModalSheet({ open, title, onClose, footer, children, strong = fa
             }}
           >
             <DragHandle onClose={onClose} onPointerDown={(e) => controls.start(e)} />
-            <div className="jg-modal-head">
-              <h2 id={titleId} className="jg-title">
-                {title}
-              </h2>
+            <div
+              className="jg-modal-head"
+              data-swap={compactTitle ? '' : undefined}
+              data-compact={compactTitle && collapsed ? '' : undefined}
+              data-scrolled={scrolled || undefined}
+            >
+              {/* A tap on the compact heading is a convenience for touch; the page is already reachable by keyboard. */}
+              <div
+                className="jg-head-left"
+                role="presentation"
+                onClick={() => compactTitle && collapsed && bodyRef.current?.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' })}
+              >
+                <h2 id={titleId} className="jg-title">
+                  {title}
+                </h2>
+                {compactTitle && (
+                  <span className="jg-title-compact" aria-hidden="true">
+                    {compactTitle}
+                  </span>
+                )}
+              </div>
               <button type="button" className="jg-icon-btn" aria-label="Close" onClick={onClose}>
                 <Icon name="x" />
               </button>
             </div>
-            <div className="jg-modal-body" onScroll={onBodyScroll}>
+            <div
+              className="jg-modal-body"
+              ref={bodyRef}
+              onScroll={(e) => {
+                setScrolled(e.currentTarget.scrollTop > 0);
+                onBodyScroll?.(e);
+              }}
+            >
               {children}
             </div>
             {footer && <div className="jg-modal-foot">{footer}</div>}
@@ -369,6 +409,7 @@ export function RadiusTrigger({ radius, steps, counts, onChange }) {
  * @param {() => void} props.onProfile
  * @param {() => void} props.onSeePopular
  * @param {{ name: string, picture: string | null } | null} [props.user]  Signed-in person, shown as their photo
+ * @param {boolean} [props.dot]  Show the "something new" dot on the avatar
  * @param {import('react').Ref<HTMLDivElement>} [props.rowRef]  Measured so the full sheet can stop under it
  */
 export function SearchBar({
@@ -385,6 +426,7 @@ export function SearchBar({
   onProfile,
   onSeePopular,
   user = null,
+  dot = false,
   rowRef,
 }) {
   const [text, setText] = useState('');
@@ -467,8 +509,14 @@ export function SearchBar({
             </span>
           )}
         </div>
-        <button type="button" className="jg-avatar" aria-label={user ? 'Your profile' : 'Sign in'} onClick={onProfile}>
-          {user ? <Avatar user={user} size={40} /> : <Icon name="user" />}
+        <button
+          type="button"
+          className="jg-avatar"
+          aria-label={user ? (dot ? 'Your profile, new' : 'Your profile') : 'Sign in'}
+          onClick={onProfile}
+        >
+          {user ? <Avatar user={user} size={42} /> : <Icon name="user" />}
+          {dot && <span className="jg-avatar-dot" aria-hidden="true" />}
         </button>
       </div>
 

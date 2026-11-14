@@ -511,8 +511,16 @@ function Loaded({ data }) {
       setSignInBusy(false);
     }
   };
+  /** The person whose profile has been opened on this phone; until then the avatar carries the "new" dot. */
+  const [profileSeen, setProfileSeen] = useState(() => /** @type {string | null} */ (storage.get('jg_profile_seen', null)));
   const openProfile = () => {
-    if (account.signedIn) return setChoosing('profile');
+    if (account.signedIn) {
+      if (userKey && profileSeen !== userKey) {
+        setProfileSeen(userKey);
+        storage.set('jg_profile_seen', userKey);
+      }
+      return setChoosing('profile');
+    }
     setSignInErr(null);
     setSignIn({ reason: 'start' });
   };
@@ -927,6 +935,7 @@ function Loaded({ data }) {
           }}
           onProfile={openProfile}
           user={account.user}
+          dot={account.signedIn && (profileSeen !== userKey || (seen != null && curRank > seen.r))}
           onSeePopular={() => {
             setSearchOpen(false);
             setView({ kind: 'popular' });
@@ -1259,6 +1268,11 @@ function Loaded({ data }) {
         open={choosing === 'profile'}
         account={account}
         byId={byId}
+        who={who.answer}
+        onPlan={() => {
+          setChoosing(null);
+          openPlanner();
+        }}
         onClose={() => setChoosing(null)}
         onOpenPuja={(id) => {
           setChoosing(null);

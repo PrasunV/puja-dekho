@@ -225,7 +225,7 @@ const USERS_PATH =
 /** How long "N people viewed" stays before it rolls over to "exploring now", and how long "exploring now" stays. */
 const HOLD_MS = 9000;
 /** Tests shorten the hold with window.__PD_PILL_HOLD_MS__. */
-const holdMs = () => Number(/** @type {any} */ (globalThis).__PD_PILL_HOLD_MS__) || HOLD_MS;
+export const holdMs = () => Number(/** @type {any} */ (globalThis).__PD_PILL_HOLD_MS__) || HOLD_MS;
 
 /**
  * Small pill at the top-left corner of the list sheet. It opens on how many people have viewed the app, rolls over

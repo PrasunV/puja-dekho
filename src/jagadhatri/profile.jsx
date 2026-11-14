@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'motion/react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
 import { storage } from '../lib/storage.js';
 import { renderGoogleButton } from './account.js';
 import { IN_APP_BROWSER, useBackClose } from './hooks.js';
+import { CountRoll } from '../components/ui/CountRoll.jsx';
+import { PhraseSwap } from '../components/ui/PhraseSwap.jsx';
+import { holdMs } from '../features/layout/MapOverlays.jsx';
 import EmptyState from './loader/EmptyState.jsx';
 import { badgeSvg, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
 import { Avatar, ModalSheet, ViewCue } from './ui.jsx';
@@ -138,7 +142,7 @@ export function BadgeArt({ i, locked = false, size = 48, label = false }) {
       <span className="jg-badge-svg" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { locked, label, size }) }} />
       {locked && (
         <span className="jg-badge-lock">
-          <Icon name="lock" size={14} />
+          <Icon name="lock" size={20} />
         </span>
       )}
     </span>
@@ -146,15 +150,30 @@ export function BadgeArt({ i, locked = false, size = 48, label = false }) {
 }
 
 /** Before any badge: the first one and today's progress towards it. */
-function FirstBadgeCard({ stats }) {
+function FirstBadgeCard({ stats, onPlan }) {
   const p = progressTo(stats, 0);
+  // Nothing visited yet: one line, one action. The badge's name and the progress bar appear with the first visit.
+  if (stats.today === 0 && stats.total === 0) {
+    return (
+      <section className="jg-card jg-first" aria-label="Your first badge">
+        <div className="jg-first-row">
+          <BadgeArt i={0} locked size={40} />
+          <div className="jg-rank-text">
+            <p className="jg-first-title">Earn your first badge</p>
+            <p className="jg-meta">Visit 5 pujas in a day</p>
+          </div>
+        </div>
+        <button type="button" className="btn dark small block" onClick={onPlan}>
+          Plan my route
+        </button>
+      </section>
+    );
+  }
   return (
     <section className="jg-card jg-rank-card" aria-label="Your first badge">
-      <BadgeArt i={0} locked size={56} />
+      <BadgeArt i={0} locked size={40} />
       <div className="jg-rank-text">
-        <p className="jg-label">Your first badge</p>
-        <p className="jg-rank-name">{RANKS[0].name}</p>
-        <p className="jg-meta">Visit 5 pujas in one day to unlock it</p>
+        <p className="jg-first-title">{RANKS[0].name}</p>
         <Bar pct={p.pct} label={`${stats.today} of 5 today`} />
       </div>
     </section>
@@ -190,11 +209,79 @@ function Bar({ pct, label }) {
   );
 }
 
+/** The first word of a name that has a letter in it, or "You". */
+export function firstName(/** @type {string} */ name) {
+  return name.split(/\s+/).find((w) => /\p{L}/u.test(w)) ?? 'You';
+}
+
+/**
+ * The compact heading shown while the profile is scrolled: "Pronab · 12 visited", which rolls over to "Pronab · 3 today"
+ * and back, like the people-viewed pill. Only the name is allowed to fade out when it is long; the numbers never are.
+ * With no visits yet it is the name alone, and with reduced motion it stays on the total.
+ * @param {{ name: string, total: number, today: number, active: boolean }} props
+ */
+function CompactTitle({ name, total, today, active }) {
+  const reduce = useReducedMotion();
+  const [showToday, setShowToday] = useState(false);
+  // Each time the heading appears it starts on the total.
+  const [wasActive, setWasActive] = useState(active);
+  if (wasActive !== active) {
+    setWasActive(active);
+    if (!active) setShowToday(false);
+  }
+  useEffect(() => {
+    if (!active || total === 0 || reduce) return undefined;
+    const t = setTimeout(() => setShowToday((v) => !v), holdMs());
+    return () => {
+      clearTimeout(t);
+    };
+  }, [active, total, reduce, showToday]);
+  const nameRef = useRef(/** @type {HTMLSpanElement | null} */ (null));
+  const [clipped, setClipped] = useState(false);
+  useLayoutEffect(() => {
+    const el = nameRef.current;
+    if (!el) return undefined;
+    const check = () => setClipped(el.scrollWidth > el.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [name]);
+  const showT = showToday && total > 0;
+  return (
+    <span className="jg-ct">
+      <span ref={nameRef} className="jg-ct-name" data-fade={clipped || undefined}>
+        {firstName(name)}
+      </span>
+      {total > 0 && (
+        <>
+          <span className="jg-ct-dot">·</span>
+          <span className="jg-ct-count">
+            <CountRoll value={showT ? today : total} />
+            <PhraseSwap text={showT ? 'today' : 'visited'} />
+          </span>
+        </>
+      )}
+    </span>
+  );
+}
+
 /**
  * The profile (design D): profile card, two stat cards, the rank card, the next badge, then Visited, Wish list and
  * Badges tabs. Only the tabs pin while the list scrolls.
  */
-export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemoveWish, onSettings, onShare }) {
+export function ProfileSheet({
+  open,
+  account,
+  byId,
+  who = /** @type {'local' | 'visitor' | null} */ (null),
+  onClose,
+  onOpenPuja,
+  onRemoveWish,
+  onSettings,
+  onShare,
+  onPlan,
+}) {
   const [tab, setTab] = useState(/** @type {'visited' | 'wish' | 'badges'} */ ('visited'));
   const [tall, setTall] = useState(false);
   const [wasOpen, setWasOpen] = useState(open);
@@ -203,6 +290,25 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
     if (open) setTall(false);
   }
   const tabsRef = useRef(/** @type {HTMLDivElement | null} */ (null));
+  // The heading becomes "name · count" once the profile card has scrolled away, and back when it is half in view again.
+  const [meEl, setMeEl] = useState(/** @type {HTMLButtonElement | null} */ (null));
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    if (!meEl) return undefined;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[entries.length - 1];
+        if (e.intersectionRatio === 0) setCollapsed(true);
+        else if (e.intersectionRatio >= 0.5) setCollapsed(false);
+      },
+      { threshold: [0, 0.5] },
+    );
+    io.observe(meEl);
+    return () => {
+      io.disconnect();
+      setCollapsed(false);
+    };
+  }, [meEl]);
   const user = account.user;
   const [now] = useState(Date.now);
   const stats = statsOf(account.visited, now);
@@ -222,34 +328,36 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
       title="Your profile"
       onClose={onClose}
       className={`jg-profile${tall ? ' tall' : ''}`}
+      collapsed={collapsed}
+      compactTitle={user && <CompactTitle name={user.name} total={stats.total} today={stats.today} active={collapsed} />}
       onBodyScroll={(e) => !tall && e.currentTarget.scrollTop > 4 && setTall(true)}
     >
       {user && (
         <>
-          <button type="button" className="jg-card jg-me" onClick={onSettings} aria-label={`${user.name}. Open settings`}>
-            <Avatar user={user} size={48} />
+          <button type="button" className="jg-card jg-me" ref={setMeEl} onClick={onSettings} aria-label={`${user.name}. Open settings`}>
+            <Avatar user={user} size={40} />
             <span className="jg-me-text">
               <span className="jg-me-name">{user.name}</span>
-              <span className="jg-meta">Signed in with Google</span>
+              {who && <span className="jg-meta">{who === 'local' ? 'Local' : 'Visitor'}</span>}
             </span>
             <span className="jg-me-gear" aria-hidden="true">
               <Icon name="gear" />
             </span>
           </button>
 
-          <div className="jg-stats">
-            <div className="jg-card jg-stat">
+          <div className="jg-card jg-stats">
+            <div className="jg-stat">
               <span className="jg-stat-n">{stats.today}</span>
-              <span className="jg-stat-l">Pujas completed today</span>
+              <span className="jg-stat-l">Visited today</span>
             </div>
-            <div className="jg-card jg-stat">
+            <div className="jg-stat">
               <span className="jg-stat-n">{stats.total}</span>
-              <span className="jg-stat-l">Total pujas completed</span>
+              <span className="jg-stat-l">Total visited</span>
             </div>
           </div>
 
           {cur < 0 ? (
-            <FirstBadgeCard stats={stats} />
+            <FirstBadgeCard stats={stats} onPlan={onPlan} />
           ) : (
             <>
               <RankCardEarned stats={stats} cur={cur} onShare={() => onShare(cur)} />
@@ -383,6 +491,8 @@ export function ProfileSheet({ open, account, byId, onClose, onOpenPuja, onRemov
               </ul>
             )}
           </div>
+          {/* Softens the cut-off edge so the list reads as continuing below. It sits in the body's bottom padding at the end. */}
+          <div className="jg-peek-fade" aria-hidden="true" />
         </>
       )}
     </ModalSheet>

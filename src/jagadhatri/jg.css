@@ -212,10 +212,12 @@
   color: var(--muted);
 }
 .jg-avatar {
+  position: relative;
   flex: none;
   width: 44px;
   height: 44px;
   margin: 2px;
+  padding: 0; /* a button's own padding squeezed the photo and pushed it off centre */
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -910,8 +912,97 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  /* Space between the heading and the close button's tap area: 12 px, 16 px from 390 px wide. */
+  gap: 12px;
   padding: 0 4px 0 16px;
+}
+@media (min-width: 390px) {
+  .jg-modal-head {
+    gap: 16px;
+  }
+}
+.jg-head-left {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+}
+.jg-head-left > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+/* Sheets with a compact heading (the profile): the two headings cross-fade, and a hairline marks content scrolling under. */
+.jg-modal-head[data-swap] {
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.jg-modal-head[data-swap][data-scrolled] {
+  border-bottom-color: var(--line);
+}
+.jg-modal-head[data-swap] .jg-title,
+.jg-title-compact {
+  transition:
+    opacity 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+    transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.jg-title-compact {
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(4px);
+  pointer-events: none;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-modal-head[data-compact] .jg-title {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+.jg-modal-head[data-compact] .jg-title-compact {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  cursor: pointer;
+}
+/* "Pronab · 12 visited": the name has a fixed room and fades when longer; the count has its own fixed room and never clips. */
+.jg-ct {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.jg-ct-name {
+  flex: 0 1 auto;
+  max-width: 120px;
+  overflow: hidden;
+  white-space: nowrap;
+  font-weight: 500;
+  color: var(--ink);
+}
+.jg-ct-name[data-fade] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 20px), transparent);
+}
+.jg-ct-dot {
+  flex: none;
+  padding: 0 8px;
+  color: var(--muted);
+}
+.jg-ct-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: 88px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-modal-head[data-swap],
+  .jg-modal-head[data-swap] .jg-title,
+  .jg-title-compact {
+    transition: none;
+  }
 }
 .jg-modal-body {
   flex: 1;
@@ -1120,6 +1211,41 @@
 }
 .jg-avatar .jg-face {
   pointer-events: none;
+}
+/* "Something new" dot: pulses three times, then rests. It clears when the profile is opened. */
+.jg-avatar-dot {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.jg-avatar-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 0;
+  animation: jg-dot-pulse 1.6s ease-out 0.6s 3;
+}
+@keyframes jg-dot-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-avatar-dot::after {
+    animation: none;
+  }
 }
 .jg-toast[data-action] {
   display: flex;
@@ -1338,7 +1464,7 @@ button.jg-card:active {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding-bottom: 24px;
+  padding-bottom: 32px;
 }
 .jg-me {
   border-color: var(--color-border-control);
@@ -1349,10 +1475,17 @@ button.jg-card:active {
   display: flex;
   flex-direction: column;
 }
+/* The body is a fixed-height column, so without this every card squeezed down to its content (the cramped profile row). */
+.jg-profile .jg-modal-body > * {
+  flex-shrink: 0;
+}
+.jg-me {
+  padding: 12px 16px;
+}
 .jg-me-name {
-  font-size: 1.0625rem;
-  line-height: 1.375rem;
-  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1372,23 +1505,56 @@ button.jg-card:active {
 .jg-stats {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 0;
+  padding: 12px 0;
 }
 .jg-stat {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 2px;
+  gap: 0;
+  padding: 0 16px;
+}
+.jg-stat + .jg-stat {
+  border-left: 1px solid var(--line);
 }
 .jg-stat-n {
-  font-size: 1.75rem;
-  line-height: 2rem;
-  font-weight: 800;
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .jg-stat-l {
   font-size: 0.8125rem;
-  line-height: 1.125rem;
+  line-height: 1rem;
   color: var(--muted);
+}
+.jg-first {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px 16px;
+}
+.jg-first-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.jg-first-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.jg-peek-fade {
+  position: sticky;
+  bottom: 0;
+  flex: none;
+  height: 32px;
+  margin-top: -32px;
+  background: linear-gradient(to bottom, transparent, var(--surface));
+  pointer-events: none;
 }
 .jg-rank-card {
   align-items: flex-start;
@@ -1482,10 +1648,10 @@ button.jg-card:active {
 }
 .jg-badge-lock {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
-  width: 22px;
-  height: 22px;
+  right: -4px;
+  bottom: -4px;
+  width: 24px;
+  height: 24px;
   display: grid;
   place-items: center;
   border-radius: 50%;
