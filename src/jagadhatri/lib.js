@@ -77,6 +77,19 @@ export function formatRadius(m) {
 /** "1 puja", "2 pujas". */
 export const pujas = (n) => `${n.toLocaleString('en-IN')} ${n === 1 ? 'puja' : 'pujas'}`;
 
+/** The thing being counted, named by the puja type filter: "Adi Puja", "Jubilee pujas", "other pujas". */
+export function typeNoun(/** @type {string | null | undefined} */ type, /** @type {number} */ n) {
+  const one = n === 1;
+  if (!type) return one ? 'puja' : 'pujas';
+  if (type === 'Adi Puja') return one ? 'Adi Puja' : 'Adi Pujas';
+  if (type === 'Other') return one ? 'other puja' : 'other pujas';
+  return `${type} ${one ? 'puja' : 'pujas'}`;
+}
+
+/** "4 Adi Pujas", "1 Jubilee puja", "20 pujas". */
+export const pujasOf = (/** @type {number} */ n, /** @type {string | null | undefined} */ type) =>
+  `${n.toLocaleString('en-IN')} ${typeNoun(type, n)}`;
+
 /** Age counting the founding year as year 1, as the sheet does (founded 1966 → 61 in 2026). */
 export const ageOf = (/** @type {JgPuja} */ p) => (p.y ? PUJA_YEAR - p.y + 1 : null);
 

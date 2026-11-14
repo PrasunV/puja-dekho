@@ -11,7 +11,6 @@ import {
   APPROX_ACCURACY_M,
   CATEGORIES,
   FAR_FROM_TOWN_M,
-  PLAN_POINTS,
   POPULAR_ORDER,
   RADIUS_STEPS,
   STATION_RADIUS_M,
@@ -35,6 +34,8 @@ import {
   NO_FILTERS,
   passes,
   pujas as pujaCount,
+  pujasOf,
+  typeNoun,
   visibleList,
 } from './lib.js';
 import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
@@ -170,6 +171,11 @@ function Loaded({ data }) {
     };
   }, []);
   const [filtersRaw, setFilters] = useState(NO_FILTERS);
+  // A filter chip is pinned first in the row; bring the row back to its start so it is on screen when one is set.
+  const chipRow = useRef(/** @type {HTMLDivElement | null} */ (null));
+  useEffect(() => {
+    chipRow.current?.scrollTo({ left: 0 });
+  }, [filtersRaw.type]);
   // The two "Your pujas" filters read the wish list and visited pujas; signed out, they are off.
   const mine = useMemo(
     () => ({ wish: new Set(account.wish.map((w) => w.puja)), visited: new Set(account.visited.map((v) => v.puja)) }),
@@ -276,6 +282,11 @@ function Loaded({ data }) {
   const radiusCounts = useMemo(
     () => (centre ? countsByRadius(pujas, filters, centre.lat, centre.lng, RADIUS_STEPS) : {}),
     [centre, pujas, filters],
+  );
+  /** How many pujas of any type are inside the radius, for the empty state's "Show all pujas". */
+  const allInRange = useMemo(
+    () => (centre ? countsByRadius(pujas, NO_FILTERS, centre.lat, centre.lng, [centre.radius])[centre.radius] : 0),
+    [centre, pujas],
   );
 
   const turnNearOff = useCallback(() => {
@@ -411,8 +422,7 @@ function Loaded({ data }) {
     },
     [fitPlan],
   );
-  const openPlanner = useCallback((/** @type {string} */ from = '') => {
-    if (from && PLAN_POINTS.includes(from)) setPlanForm((f) => ({ ...f, start: from }));
+  const openPlanner = useCallback(() => {
     setView({ kind: 'plan' });
     setSheet('half');
   }, []);
@@ -880,7 +890,7 @@ function Loaded({ data }) {
         }}
         onPickStation={() => setChoosing('stations')}
         onClearFilters={() => setFilters(NO_FILTERS)}
-        onPlanFrom={(id) => openPlanner(id)}
+        allCount={allInRange}
         ask={
           whoDue && !(account.signedIn && seen != null && curRank > seen.r) ? (
             <WhoCard
@@ -902,8 +912,8 @@ function Loaded({ data }) {
       />
     );
     peek = centre
-      ? `${pujaCount(list.length)} within ${centre.radius < 1000 ? `${centre.radius} m` : `${centre.radius / 1000} km`}`
-      : pujaCount(list.length);
+      ? `${pujasOf(list.length, filters.type)} within ${centre.radius < 1000 ? `${centre.radius} m` : `${centre.radius / 1000} km`}`
+      : pujasOf(list.length, filters.type);
   }
 
   // The share button steps aside while the person works the map, the sheet, search or another sheet, then comes back.
@@ -951,7 +961,22 @@ function Loaded({ data }) {
         />
         {!searchOpen && sheet !== 'full' && !floatBar && (
           <nav className="jg-chips" aria-label="Filters">
-            <div className="jg-chip-scroll">
+            <div className="jg-chip-scroll" ref={chipRow}>
+              {filters.type && (
+                <button
+                  type="button"
+                  className="chip compact jg-chip jg-applied jg-pinned"
+                  aria-pressed="true"
+                  aria-label={`Remove filter: ${filters.type}`}
+                  onClick={() => {
+                    setFilters((f) => ({ ...f, type: null }));
+                    setView({ kind: 'list' });
+                  }}
+                >
+                  {filters.type}
+                  <Icon name="x" size={16} />
+                </button>
+              )}
               {appliedChips.map((c) => (
                 <button
                   key={c.key}
@@ -1007,16 +1032,18 @@ function Loaded({ data }) {
                 <Icon name="star" size={16} />
                 Must visit
               </button>
-              <button
-                type="button"
-                className="chip compact jg-chip"
-                aria-pressed={!!filters.type}
-                aria-haspopup="dialog"
-                onClick={() => setChoosing('type')}
-              >
-                {filters.type || 'Puja type'}
-                <Icon name="chevron" size={16} />
-              </button>
+              {!filters.type && (
+                <button
+                  type="button"
+                  className="chip compact jg-chip"
+                  aria-pressed="false"
+                  aria-haspopup="dialog"
+                  onClick={() => setChoosing('type')}
+                >
+                  Puja type
+                  <Icon name="chevron" size={16} />
+                </button>
+              )}
               <button
                 type="button"
                 className="chip compact jg-chip"
@@ -1451,7 +1478,7 @@ function ListBody({
   onRetryLocation,
   onPickStation,
   onClearFilters,
-  onPlanFrom,
+  allCount,
   ask,
 }) {
   // A new list starts again at the first 60 rows.
@@ -1462,10 +1489,9 @@ function ListBody({
     setShown(60);
   }
   const filtered = filters.mustVisit || filters.type || moreCount(filters) > 0;
-  // Name every filter that is on, so the summary reads "Must visit · Jubilee · Bhadreswar", never "1 more".
-  const chips = [
+  // The type is in the title. Every other filter that is on is named here ("Must visit · Bhadreswar"), never "1 more".
+  const others = [
     filters.mustVisit && 'Must visit',
-    filters.type,
     ...filters.towns,
     ...filters.ages.map((a) => AGE_GROUPS.find((g) => g[0] === a)?.[1] ?? a),
     filters.procession && 'Procession',
@@ -1530,44 +1556,42 @@ function ListBody({
       <div className="jg-list-head" data-sheet-head>
         {centre ? (
           <>
+            <p className="jg-lead">{centre.kind === 'me' ? 'Near you' : `Near ${station?.name}`}</p>
             <div className="jg-within">
-              <h2 className="jg-title">{`${pujaCount(list.length)} within`}</h2>
-              <RadiusTrigger radius={centre.radius} steps={RADIUS_STEPS} counts={radiusCounts} onChange={onRadius} />
-              <button type="button" className="btn text jg-clear" onClick={onClear}>
-                Clear
-              </button>
+              <h2 className="jg-title">{`${pujasOf(list.length, filters.type)} within ${centre.radius < 1000 ? `${centre.radius} m` : `${centre.radius / 1000} km`}`}</h2>
+              <div className="jg-head-acts">
+                <RadiusTrigger radius={centre.radius} steps={RADIUS_STEPS} counts={radiusCounts} onChange={onRadius} />
+                {filtered && <ClearFilters onClick={onClearFilters} />}
+              </div>
             </div>
-            <p className="jg-meta">
-              {[centre.kind === 'me' ? 'Straight-line distance from you' : `Straight-line distance from ${station?.name}`, ...chips].join(
-                ' · ',
-              )}
-            </p>
+            {others.length > 0 && <p className="jg-meta">{others.join(' · ')}</p>}
             {approx && centre.kind === 'me' && <p className="jg-note">Your location is approximate, so distances may be off.</p>}
-            {centre.kind === 'station' && centre.stationId && PLAN_POINTS.includes(centre.stationId) && (
-              <button type="button" className="btn small jg-btn-outline jg-plan-from-btn" onClick={() => onPlanFrom(centre.stationId)}>
-                <Icon name="route" size={16} />
-                Plan a route from here
-              </button>
-            )}
           </>
         ) : (
           <>
             <div className="jg-within">
-              <h2 className="jg-title">{filtered ? pujaCount(list.length) : `All ${pujaCount(list.length)}`}</h2>
+              <h2 className="jg-title">{filtered ? pujasOf(list.length, filters.type) : `All ${pujaCount(list.length)}`}</h2>
               {filtered && (
-                <button type="button" className="btn text jg-clear" onClick={onClearFilters}>
-                  Clear
-                </button>
+                <div className="jg-head-acts">
+                  <ClearFilters onClick={onClearFilters} />
+                </div>
               )}
             </div>
-            {filtered && <p className="jg-meta">{chips.join(' · ')}</p>}
+            {others.length > 0 && <p className="jg-meta">{others.join(' · ')}</p>}
           </>
         )}
       </div>
       {!centre && !filtered && ask}
       {list.length === 0 ? (
         centre ? (
-          <EmptyRadius centre={centre} counts={radiusCounts} onRadius={onRadius} />
+          <EmptyRadius
+            centre={centre}
+            counts={radiusCounts}
+            filters={filters}
+            allCount={allCount}
+            onRadius={onRadius}
+            onClearFilters={onClearFilters}
+          />
         ) : (
           <EmptyState
             title={
@@ -1624,16 +1648,54 @@ function ListRows({ list, sectioned, onOpen, total, crowd }) {
   );
 }
 
-/** "No pujas within 500 m. 4 within 1 km." with "Show 1 km". */
-function EmptyRadius({ centre, counts, onRadius }) {
-  const next = RADIUS_STEPS.find((m) => m > centre.radius && (counts[m] ?? 0) > 0);
-  const r = (m) => (m < 1000 ? `${m} m` : `${m / 1000} km`);
+/** The grey "Clear" with the filter icon. It clears the filters and leaves the station and the distance as they are. */
+function ClearFilters({ onClick }) {
   return (
-    <EmptyState
-      title={`No pujas within ${r(centre.radius)}`}
-      text={next ? `${counts[next]} within ${r(next)}.` : undefined}
-      action={next ? { label: `Show ${r(next)}`, onClick: () => onRadius(next) } : undefined}
-    />
+    <button type="button" className="jg-clearf" onClick={onClick}>
+      <Icon name="filterx" size={16} />
+      Clear
+    </button>
+  );
+}
+
+/**
+ * Nothing inside the radius.
+ * With a filter on: "Show all pujas" (the same place and distance, filters off) and "Show nearest Adi Pujas" (the next
+ * distance that has any). With no filter: "No pujas within 500 m. 4 within 1 km." and "Show 1 km".
+ */
+function EmptyRadius({ centre, counts, filters, allCount, onRadius, onClearFilters }) {
+  const r = (/** @type {number} */ m) => (m < 1000 ? `${m} m` : `${m / 1000} km`);
+  const next = RADIUS_STEPS.find((m) => m > centre.radius && (counts[m] ?? 0) > 0);
+  const filtered = !!(filters.mustVisit || filters.type || moreCount(filters) > 0);
+  if (!filtered) {
+    return (
+      <EmptyState
+        title={`No pujas within ${r(centre.radius)}`}
+        text={next ? `${counts[next]} within ${r(next)}.` : undefined}
+        action={next ? { label: `Show ${r(next)}`, onClick: () => onRadius(next) } : undefined}
+      />
+    );
+  }
+  const onlyType = !!filters.type && !filters.mustVisit && moreCount(filters) === 0;
+  const title = onlyType ? `No ${typeNoun(filters.type, 1)} this close` : 'No matches this close';
+  const text =
+    allCount > 0 ? `${pujaCount(allCount)} ${onlyType ? 'of other types are' : allCount === 1 ? 'is' : 'are'} in range` : undefined;
+  const nearest = next ? (
+    <button type="button" className={`btn block ${allCount > 0 ? 'jg-btn-outline' : 'primary'}`} onClick={() => onRadius(next)}>
+      {`Show nearest ${onlyType ? typeNoun(filters.type, counts[next]) : counts[next] === 1 ? 'match' : 'matches'}`}
+    </button>
+  ) : null;
+  return (
+    <EmptyState title={title} text={text}>
+      <div className="jg-empty-actions">
+        {allCount > 0 && (
+          <button type="button" className="btn block primary" onClick={onClearFilters}>
+            Show all pujas
+          </button>
+        )}
+        {nearest}
+      </div>
+    </EmptyState>
   );
 }
 

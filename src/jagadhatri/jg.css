@@ -522,11 +522,60 @@
   flex-wrap: wrap;
   min-height: 48px;
 }
-.jg-within .jg-title {
-  margin-right: 4px;
+.jg-within {
+  gap: 8px;
 }
-.jg-clear {
+.jg-within .jg-title {
+  flex: 1 1 10.5rem;
+  min-width: 0;
+}
+/* "Near Chandannagar Station": the place, small and grey, above the count. Caption 13/16. */
+.jg-lead {
+  margin: 0 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-head-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-left: auto;
+}
+/* Clear filters: grey in light, white in dark. It sits beside the radius trigger and is only there while a filter is on. */
+.jg-clearf {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--jg-clear-bg);
+  color: var(--jg-clear-ink);
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+.jg-clearf::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+}
+.jg-clearf:active {
+  transform: scale(0.98);
+}
+/* Empty state with a filter on: the one red button, then the outlined one. */
+.pd-empty .jg-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-top: 12px;
+}
+.pd-empty .jg-empty-actions .btn {
+  margin-top: 0;
 }
 :is(.jg, .jg-modal, .jg-welcome, .jg-cel) .btn.text {
   min-height: 48px;
@@ -1171,6 +1220,12 @@
 /* Applied filters from More sit first in the chip row, each with a cross. */
 .jg .chip.jg-applied {
   flex: none;
+}
+/* The puja type filter stays at the left edge of the row while the other chips scroll under it, so it is never off screen. */
+.jg .chip.jg-chip.jg-pinned {
+  position: sticky;
+  left: 4px;
+  z-index: 1;
 }
 /* List rows: the tag comes after the name. */
 .jg-row-head {
@@ -1835,16 +1890,23 @@ button.jg-card:active {
   /* Grey fill for buttons inside the grey bar: one step darker than the card. */
   --jg-tonal: #e9e9e9;
   --jg-tonal-pressed: #dcdcdc;
+  /* Clear filters: grey fill in light, white fill with a dark label in dark. */
+  --jg-clear-bg: #e9e9e9;
+  --jg-clear-ink: var(--ink);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     --jg-tonal: #363636;
     --jg-tonal-pressed: #444444;
+    --jg-clear-bg: #f2f2f2;
+    --jg-clear-ink: #1c1c1c;
   }
 }
 :root[data-theme='dark'] {
   --jg-tonal: #363636;
   --jg-tonal-pressed: #444444;
+  --jg-clear-bg: #f2f2f2;
+  --jg-clear-ink: #1c1c1c;
 }
 .jg-visit-bar {
   position: absolute;
@@ -3371,9 +3433,6 @@ button.jg-ladder-row {
 .jg-plan-num.end {
   border-color: var(--line);
   color: var(--muted);
-}
-.jg-plan-from-btn {
-  margin-top: 8px;
 }
 .jg-who-card {
   margin: 4px 0 12px;

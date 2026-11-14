@@ -1,7 +1,18 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import { countsByRadius, formatDistance, makeIndex, NO_FILTERS, normalise, passes, search, visibleList } from '../../src/jagadhatri/lib.js';
+import {
+  countsByRadius,
+  formatDistance,
+  makeIndex,
+  NO_FILTERS,
+  normalise,
+  passes,
+  pujasOf,
+  search,
+  typeNoun,
+  visibleList,
+} from '../../src/jagadhatri/lib.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../../public/jagadhatripuja/data/pujas.json', import.meta.url), 'utf8'));
 // The app indexes Must visit pujas first, so ties go to the better-known puja.
@@ -121,4 +132,37 @@ test('traffic status follows the police hours (India time)', () => {
   assert.equal(trafficStatus(ist(14, 10)).line, 'Roads open now · closes at 2:00 PM');
   assert.equal(trafficStatus(ist(19, 8)).line, 'Vehicles stopped now · until immersion ends');
   assert.equal(trafficStatus(ist(21, 1)).state, 'ended');
+});
+
+test('type filter at a station: the 0-result case from the field, and the numbers behind the empty state', () => {
+  const station = (/** @type {string} */ id) => data.stations.find((/** @type {any} */ x) => x.id === id);
+  const adi = { ...NO_FILTERS, type: 'Adi Puja' };
+  const chan = station('chandannagar-station');
+  const centre = (/** @type {any} */ s, /** @type {number} */ radius) => ({
+    kind: /** @type {'station'} */ ('station'),
+    lat: s.la,
+    lng: s.lo,
+    radius,
+  });
+  // Adi Puja is 7 of 207 pujas and none is within 1 km of Chandannagar Station: "0" is correct, so the sheet must say why.
+  assert.equal(visibleList(data.pujas, adi, centre(chan, 1000)).length, 0);
+  assert.equal(visibleList(data.pujas, NO_FILTERS, centre(chan, 500)).length, 8);
+  assert.equal(visibleList(data.pujas, NO_FILTERS, centre(chan, 1000)).length, 20);
+  // The empty state: "Show all pujas" has 20 in range, and "Show nearest Adi Pujas" lands on the next distance that has one.
+  const counts = countsByRadius(data.pujas, adi, chan.la, chan.lo, [500, 1000, 2000, 5000]);
+  assert.deepEqual([counts[500], counts[1000]], [0, 0]);
+  assert.ok(counts[2000] > 0);
+  const mank = station('mankundu-station');
+  assert.equal(visibleList(data.pujas, NO_FILTERS, centre(mank, 500)).length, 3);
+  assert.equal(visibleList(data.pujas, adi, centre(mank, 500)).length, 0);
+});
+
+test('type names in counts: Adi Puja, Jubilee puja, other pujas', () => {
+  assert.equal(pujasOf(4, 'Adi Puja'), '4 Adi Pujas');
+  assert.equal(pujasOf(1, 'Adi Puja'), '1 Adi Puja');
+  assert.equal(pujasOf(1, 'Jubilee'), '1 Jubilee puja');
+  assert.equal(pujasOf(15, 'Pre-Jubilee'), '15 Pre-Jubilee pujas');
+  assert.equal(pujasOf(166, 'Other'), '166 other pujas');
+  assert.equal(pujasOf(207, null), '207 pujas');
+  assert.equal(typeNoun('Adi Puja', 1), 'Adi Puja');
 });

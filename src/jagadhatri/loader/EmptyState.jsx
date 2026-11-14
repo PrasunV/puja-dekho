@@ -7,10 +7,11 @@ import './loader.css';
  *   title: string,
  *   text?: string,
  *   action?: { label: string, onClick: () => void },
+ *   children?: import('react').ReactNode,
  *   role?: 'status',
  * }} props
  */
-export default function EmptyState({ title, text, action, role }) {
+export default function EmptyState({ title, text, action, children, role }) {
   return (
     <div className="pd-empty" role={role}>
       <span className="pd-empty-eye" aria-hidden="true" dangerouslySetInnerHTML={{ __html: eyeSvg }} />
@@ -21,6 +22,7 @@ export default function EmptyState({ title, text, action, role }) {
           {action.label}
         </button>
       )}
+      {children}
     </div>
   );
 }

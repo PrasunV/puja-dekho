@@ -24,7 +24,7 @@ const THEME = {
  * @typedef {object} MapProps
  * @property {import('./lib.js').JgPuja[]} pujas
  * @property {import('./lib.js').JgStation[]} stations
- * @property {Set<string> | null} lit       Ids shown at full strength; the rest fade to 35%. Null means all.
+ * @property {Set<string> | null} lit       Ids shown at full strength; the rest fade to 10% and ignore taps. Null means all.
  * @property {Set<string>} priority          Ids whose labels win when labels compete (Must visit, active filter)
  * @property {string | null} selectedId
  * @property {Record<string, { level: string }>} [crowd]  Live crowd status: a teal (free) or orange (crowded) dot
@@ -95,8 +95,8 @@ function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}) {
   return {
     type: 'FeatureCollection',
     features: pujas.map((p) => {
-      const on = !lit || lit.has(p.id);
       const sel = p.id === selectedId;
+      const on = sel || !lit || lit.has(p.id);
       return {
         type: 'Feature',
         id: p.id,
@@ -224,8 +224,8 @@ const JgMap = forwardRef(
             'circle-color': ['case', ['get', 'sel'], primary, surface],
             'circle-stroke-color': primary,
             'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1.25, 14.5, 2],
-            'circle-opacity': ['case', ['get', 'on'], 1, 0.35],
-            'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.35],
+            'circle-opacity': ['case', ['get', 'on'], 1, 0.1],
+            'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.1],
           },
         });
         map.addLayer({
@@ -237,7 +237,7 @@ const JgMap = forwardRef(
           paint: {
             'circle-radius': pinRadius(0.36),
             'circle-color': ['case', ['get', 'sel'], surface, primary],
-            'circle-opacity': ['case', ['get', 'on'], 1, 0.35],
+            'circle-opacity': ['case', ['get', 'on'], 1, 0.1],
           },
         });
         // Crowd dot at the pin's top-right edge, from street level up.
@@ -253,8 +253,8 @@ const JgMap = forwardRef(
             'circle-color': ['match', ['get', 'crowd'], 'free', free, crowded],
             'circle-stroke-color': surface,
             'circle-stroke-width': 1.5,
-            'circle-opacity': ['case', ['get', 'on'], 1, 0.35],
-            'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.35],
+            'circle-opacity': ['case', ['get', 'on'], 1, 0.1],
+            'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.1],
           },
         });
         map.addLayer({
@@ -389,20 +389,23 @@ const JgMap = forwardRef(
       map.on('click', (e) => {
         if (!ready.current) return;
         const { x, y } = e.point;
-        const hits = map.queryRenderedFeatures(
-          [
-            [x - 20, y - 20],
-            [x + 20, y + 20],
-          ],
-          { layers: ['jg-pins'] },
-        );
+        // Pins the filters have faded to 10% are not tappable.
+        const hits = map
+          .queryRenderedFeatures(
+            [
+              [x - 20, y - 20],
+              [x + 20, y + 20],
+            ],
+            { layers: ['jg-pins'] },
+          )
+          .filter((f) => f.properties.on);
         if (!hits.length) return latest.current.onBlank();
         let best = hits[0];
         let bestD = Infinity;
         for (const f of hits) {
           const [lng, lat] = /** @type {any} */ (f.geometry).coordinates;
           const pt = map.project([lng, lat]);
-          const d = (pt.x - x) ** 2 + (pt.y - y) ** 2 - (f.properties.on ? 400 : 0);
+          const d = (pt.x - x) ** 2 + (pt.y - y) ** 2;
           if (d < bestD) {
             bestD = d;
             best = f;
@@ -412,7 +415,7 @@ const JgMap = forwardRef(
       });
       map.on('mousemove', (e) => {
         if (!ready.current) return;
-        const hit = map.queryRenderedFeatures(e.point, { layers: ['jg-pins'] }).length > 0;
+        const hit = map.queryRenderedFeatures(e.point, { layers: ['jg-pins'] }).some((f) => f.properties.on);
         map.getCanvas().style.cursor = hit ? 'pointer' : '';
       });
       // The chip row fades while a person pans or zooms, and comes back 200 ms after the map stops (design section 6).
