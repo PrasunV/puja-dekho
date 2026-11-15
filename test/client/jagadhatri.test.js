@@ -228,3 +228,51 @@ test('About credits the map data to jagadhatri.in', async () => {
   assert.equal(ABOUT.mapCredit.name, 'Nirjan Munshi and friends');
   assert.equal(new URL(ABOUT.mapCredit.url).hostname, ABOUT.mapCredit.site);
 });
+
+test('ready-made walks: one short name each, no places in it, Express second, the 16 hour trail last', async () => {
+  const { BEST_ROUTES } = await import('../../src/jagadhatri/config.js');
+  assert.deepEqual(
+    BEST_ROUTES.map((r) => r.label),
+    ['Top suggestion', 'Express route', 'Jubilee route', 'Ferry route', 'All-night trail'],
+  );
+  const places = /chandannagar|mankundu|bhadreswar|gondalpara|telinipara|rani|station|ghat/i;
+  for (const r of BEST_ROUTES) {
+    assert.ok(r.label.split(' ').length <= 3, `${r.label} is 3 words at most`);
+    assert.ok(!places.test(r.label), `${r.label} names no place`);
+  }
+  assert.equal(new Set(BEST_ROUTES.map((r) => r.label)).size, BEST_ROUTES.length, 'names are distinct');
+  assert.equal(BEST_ROUTES.at(-1)?.id, 'guide-mankundu-chandannagar');
+});
+
+test('every ready-made walk starts and ends at a plan point and carries its card name', async () => {
+  const { BEST_ROUTES, PLAN_POINTS } = await import('../../src/jagadhatri/config.js');
+  const { bestPlan } = await import('../../src/jagadhatri/plan.js');
+  const byId = new Map(data.pujas.map((/** @type {any} */ p) => [p.id, p]));
+  const points = new Map(data.stations.map((/** @type {any} */ s) => [s.id, { id: s.id, name: s.name, kind: s.kind, la: s.la, lo: s.lo }]));
+  for (const r of BEST_ROUTES) {
+    assert.ok(PLAN_POINTS.includes(r.start) && PLAN_POINTS.includes(r.end), `${r.id} uses plan points`);
+    const plan = bestPlan(r, byId, points);
+    assert.equal(plan?.label, r.label);
+    assert.equal(plan?.title, r.title, 'the plan screen keeps the full title');
+  }
+});
+
+test('Express route: 17 matched pujas in the guide order, from Mankundu Station to Chandannagar Station', async () => {
+  const { BEST_ROUTES } = await import('../../src/jagadhatri/config.js');
+  const { bestPlan } = await import('../../src/jagadhatri/plan.js');
+  const r = BEST_ROUTES.find((x) => x.id === 'express-mankundu-chandannagar');
+  assert.ok(r?.stages);
+  const ids = r.stages.flatMap((st) => st.stops);
+  const byId = new Map(data.pujas.map((/** @type {any} */ p) => [p.id, p]));
+  assert.deepEqual(
+    ids.filter((id) => !byId.has(id)),
+    [],
+    'every puja exists',
+  );
+  assert.equal(new Set(ids).size, ids.length, 'no puja twice');
+  assert.equal(r.stages.length, 4);
+  const points = new Map(data.stations.map((/** @type {any} */ s) => [s.id, { id: s.id, name: s.name, kind: s.kind, la: s.la, lo: s.lo }]));
+  const plan = bestPlan(r, byId, points);
+  assert.equal(plan?.stops.length, 17);
+  assert.ok(plan && plan.minutes > 6 * 60 && plan.minutes < 9 * 60, 'about 7 to 8 hours');
+});

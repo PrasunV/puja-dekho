@@ -6,6 +6,7 @@ import { ageOf, haversine } from './lib.js';
 /**
  * @typedef {object} Plan
  * @property {string} title
+ * @property {string} [label]    Short card name of a Best route ("Top suggestion")
  * @property {PlanPoint} start
  * @property {PlanPoint} end
  * @property {JgPuja[]} stops     In walking order
@@ -175,6 +176,7 @@ export function bestPlan(r, byId, points) {
   if (stops.length === 0) return null;
   return {
     title: r.title,
+    label: r.label,
     blurb: r.blurb,
     bestId: r.id,
     start,

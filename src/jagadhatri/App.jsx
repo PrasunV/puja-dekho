@@ -122,7 +122,7 @@ function Loaded({ data }) {
       ),
     [stations],
   );
-  const [planForm, setPlanForm] = useState({ start: 'chandannagar-station', end: 'chandannagar-station', hours: 2 });
+  const [planForm, setPlanForm] = useState({ start: 'me', end: 'chandannagar-station', hours: 2 });
   const [activePlan, setActivePlan] = useState(/** @type {import('./plan.js').Plan | null} */ (null));
   const defaultOrder = useMemo(() => visibleList(pujas, NO_FILTERS, null).map((r) => r.puja), [pujas]);
   const pujaIndex = useMemo(() => makeIndex(defaultOrder, (p) => ({ main: p.n, extra: [p.t, p.bn || ''] })), [defaultOrder]);
@@ -426,12 +426,17 @@ function Loaded({ data }) {
     setView({ kind: 'plan' });
     setSheet('half');
   }, []);
+  /** Why "Where I am" can't start a plan right now: location is off, or you are far from the town. */
+  const meOff =
+    geo.status === 'denied' || geo.status === 'unavailable' ? 'location off' : farM != null ? `${formatDistance(farM)} away` : null;
+  /** The form as shown: when "Where I am" can't be used, the plan starts at Chandannagar Station. */
+  const shownForm = planForm.start === 'me' && meOff ? { ...planForm, start: 'chandannagar-station' } : planForm;
   const makeMyPlan = () => {
-    const end = planPoints.get(planForm.end);
+    const end = planPoints.get(shownForm.end);
     if (!end) return;
     /** @type {import('./plan.js').PlanPoint | undefined} */
-    let start = planPoints.get(planForm.start);
-    if (planForm.start === 'me') {
+    let start = planPoints.get(shownForm.start);
+    if (shownForm.start === 'me') {
       if (!pos) {
         show('Turn on location to start from where you are, or pick a station or ghat');
         askLocation('locate');
@@ -444,8 +449,8 @@ function Loaded({ data }) {
       start = { id: 'me', name: 'where you are', kind: 'me', la: pos.lat, lo: pos.lng };
     }
     if (!start) return;
-    const plan = makePlan(pujas, start, end, planForm.hours, Date.now());
-    if (planForm.start === 'me') plan.title = `From where you are to ${end.name}`;
+    const plan = makePlan(pujas, start, end, shownForm.hours, Date.now());
+    if (shownForm.start === 'me') plan.title = `From where you are to ${end.name}`;
     showPlan(plan);
   };
   /** The planned walk on the map while a plan, or a puja opened from it, is showing. */
@@ -789,12 +794,12 @@ function Loaded({ data }) {
       <PlanView
         points={planPoints}
         byId={byId}
-        form={planForm}
+        form={shownForm}
         onForm={setPlanForm}
+        meOff={meOff}
         onMake={makeMyPlan}
         onBest={(plan) => showPlan(plan)}
         onClose={toList}
-        onTraffic={() => setView({ kind: 'traffic', from: 'plan' })}
       />
     );
     peek = 'Plan my route';
@@ -821,7 +826,6 @@ function Loaded({ data }) {
           setSheet('initial');
           fitPlan(activePlan);
         }}
-        onTraffic={() => setView({ kind: 'traffic', from: 'route' })}
       />
     );
     peek = activePlan.title;

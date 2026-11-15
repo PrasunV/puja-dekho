@@ -3296,31 +3296,6 @@ button.jg-ladder-row {
 .jg-plan-intro {
   margin: 4px 0 0;
 }
-.jg-plan-roads {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: transparent;
-  color: var(--ink);
-  font: inherit;
-  font-size: 0.875rem; /* meta 14/20 */
-  line-height: 1.25rem;
-  text-align: left;
-  cursor: pointer;
-}
-.jg-plan-roads > span {
-  flex: 1;
-  min-width: 0;
-}
-.jg-plan-roads .ic {
-  flex: none;
-  color: var(--muted);
-}
 .jg-plan-field {
   margin: 16px 0 0;
   padding: 0;
@@ -3334,27 +3309,6 @@ button.jg-ladder-row {
   line-height: 1rem;
   font-weight: 500;
   color: var(--muted);
-}
-.jg-plan-chips {
-  display: flex;
-  gap: 8px;
-  margin: 0 -16px;
-  padding: 0 16px 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.jg-plan-chips::-webkit-scrollbar {
-  display: none;
-}
-.jg .jg-plan-chips .chip.jg-chip {
-  flex: none;
-  box-shadow: none;
-  border: 1px solid var(--line);
-  padding: 0 16px;
-}
-.jg .jg-plan-chips .chip.jg-chip[aria-pressed='true'] {
-  border: 2px solid var(--maroon);
-  padding: 0 15px; /* token-ok: selected chip border is 2px, so 15px keeps the width */
 }
 .jg-seg {
   display: grid;
@@ -3385,20 +3339,236 @@ button.jg-ladder-row {
 .jg-plan-go {
   margin-top: 16px;
 }
-.jg-plan .jg-sec {
-  margin-top: 16px;
-}
-.jg-best-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 16px;
-  margin-top: 4px;
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+.jg-plan-h {
+  margin: 24px 0 8px;
+  font-size: 1.0625rem; /* title 17/22 */
+  line-height: 1.375rem;
+  font-weight: 700;
   color: var(--ink);
 }
-.jg-best-stats b {
-  font-weight: 700;
+.jg-plan-card {
+  padding: 0 12px 12px;
+  border-radius: 12px; /* radius-md */
+  background: var(--tile);
+}
+/* Anchored picker (design 7.22): the trigger row, and the floating menu in a portal. */
+.jg-pick {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.jg-pick + .jg-pick {
+  border-top: 1px solid var(--line);
+}
+.jg-pick:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+.jg-pick-label {
+  flex: none;
+  width: 48px; /* token-ok: From and To values line up */
+  font-size: 0.875rem; /* label 14/16 */
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.jg-pick-value {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9375rem; /* control 15/20 */
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+.jg-pick-value .ic {
+  flex: none;
+}
+.jg-pick-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--muted);
+  text-decoration-thickness: 1px; /* token-ok: hairline dotted underline marks a tappable value */
+  text-underline-offset: 4px;
+}
+.jg-pick[aria-expanded='true'] .jg-pick-text {
+  margin: -4px -8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+}
+.jg-pick > .ic:last-child {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s ease-out;
+}
+.jg-pick[aria-expanded='true'] > .ic:last-child {
+  transform: rotate(180deg);
+}
+.jg-pick-menu {
+  --jg-pick-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  position: fixed;
+  z-index: 1300;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--jg-pick-shadow);
+  animation: jg-pick-in 0.14s ease-out;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .jg-pick-menu {
+    --jg-pick-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+}
+:root[data-theme='dark'] .jg-pick-menu {
+  --jg-pick-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+@keyframes jg-pick-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-pick-menu {
+    animation: none;
+  }
+  .jg-pick > .ic:last-child {
+    transition: none;
+  }
+}
+.jg-pick-q {
+  margin: 0;
+  padding: 8px 12px 4px;
+  font-size: 0.875rem; /* label 14/16 */
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.jg-pick-list {
+  position: relative;
+  max-height: 220px; /* token-ok: 4 rows of 48 and a 28 peek of the 5th, so the cut-off row says there is more */
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  overscroll-behavior: contain; /* scrolling the menu never scrolls the sheet behind it */
+  scrollbar-width: none;
+}
+.jg-pick-list::-webkit-scrollbar {
+  display: none;
+}
+.jg-pick-list[data-more-below] {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+}
+.jg-pick-list[data-more-above] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px);
+  mask-image: linear-gradient(to bottom, transparent, #000 14px);
+}
+.jg-pick-list[data-more-above][data-more-below] {
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+.jg-pick-list button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 2px solid transparent; /* token-ok: the pressed fill is 44 high inside the 48 hit */
+  border-width: 2px 0;
+  border-radius: 12px;
+  background: transparent;
+  background-clip: padding-box;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.jg-pick-list button:active {
+  background-color: var(--surface-2);
+}
+.jg-pick-list button:focus-visible {
+  outline: 3px solid var(--maroon);
+  outline-offset: -3px;
+}
+.jg-pick-list button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.jg-pick-list [aria-selected='true'] .ic {
+  flex: none;
+  color: var(--maroon);
+}
+.jg-pick-row-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.jg-pick-note {
+  color: var(--muted);
+  font-weight: 400;
+}
+/* Ready-made walks: name, one line of facts, then where it starts and ends. */
+.jg-best-facts {
+  font-size: 0.875rem; /* meta 14/20 */
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.jg-ends {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.jg-ends-to {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.jg-end-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 4px; /* square cut: the start and end stand out from the card */
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.875rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+.jg-end-chip .ic {
+  flex: none;
 }
 /* A plan */
 .jg-plan-home {

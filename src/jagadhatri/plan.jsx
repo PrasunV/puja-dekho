@@ -2,71 +2,50 @@ import { Fragment, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
 import { BEST_ROUTES, PLAN_HOURS, PLAN_POINTS } from './config.js';
 import { bestPlan, durationText, lastWayHome, planStats, stopTag, walkUrl } from './plan.js';
-import { trafficStatus } from './traffic.js';
-import { useMinute } from './traffic.jsx';
+import { PickerField } from './picker.jsx';
 import { Section, useCollapse, ViewCue } from './ui.jsx';
 
 /** @typedef {import('./plan.js').Plan} Plan */
 /** @typedef {import('./plan.js').PlanPoint} PlanPoint */
 
-/**
- * Roads note on every plan: closures are for vehicles, walking is always allowed. Opens the police notice.
- * @param {{ onTraffic: () => void }} props
- */
-function RoadsNote({ onTraffic }) {
-  const status = trafficStatus(useMinute());
-  if (status.state === 'ended') return null;
-  const line =
-    status.state === 'on'
-      ? 'Roads are closed to vehicles now · walking is allowed'
-      : `${status.line.replace(/^Starts/, 'Vehicle closures start')} · walking is always allowed`;
-  return (
-    <button type="button" className="jg-plan-roads" onClick={onTraffic}>
-      <Icon name="barrier" size={18} />
-      <span>{line}</span>
-      <Icon name="next" size={16} />
-    </button>
-  );
-}
+/** Distance on a card: 4.6 km, but 38 km (not 38.0) for a long walk. */
+const kmText = (/** @type {number} */ km) => (km >= 10 ? String(Math.round(km)) : km.toFixed(1));
 
-/**
- * A row of choice chips (start or end point).
- * @param {{ label: string, value: string, options: { id: string, name: string, icon: 'train' | 'boat' | 'locate' }[], onPick: (id: string) => void }} props
- */
-function PointChips({ label, value, options, onPick }) {
-  return (
-    <fieldset className="jg-plan-field">
-      <legend className="jg-plan-label">{label}</legend>
-      <div className="jg-plan-chips">
-        {options.map((o) => (
-          <button key={o.id} type="button" className="chip compact jg-chip" aria-pressed={value === o.id} onClick={() => onPick(o.id)}>
-            <Icon name={o.icon} size={16} />
-            {o.name}
-          </button>
-        ))}
-      </div>
-    </fieldset>
-  );
-}
-
-/** Short names for chips: "Chandannagar Station" → "Chandannagar". */
+/** Short names for chips and menus: "Chandannagar Station" → "Chandannagar". */
 const short = (/** @type {string} */ name) => name.replace(/ (Station|Ghat)$/, '');
 
 /**
- * Plan my route: start, end, 2 or 5 hours, Make my plan. Below, the Best routes.
+ * A start or end point on a ready-made walk: a square-cut chip with its train or boat icon and a short name.
+ * @param {{ point: PlanPoint }} props
+ */
+function EndChip({ point }) {
+  return (
+    <span className="jg-end-chip">
+      <Icon name={point.kind === 'ghat' ? 'boat' : 'train'} size={16} />
+      {short(point.name)}
+    </span>
+  );
+}
+
+/**
+ * Plan my route: your own walk first (From, To, 2 or 5 hours, Plan my walk), then the ready-made walks.
+ * `meOff` says why "Where I am" can't be used right now (location off, or far away); the plan then starts at a station.
  * @param {{ points: Map<string, PlanPoint>, byId: Map<string, import('./lib.js').JgPuja>,
  *   form: { start: string, end: string, hours: number }, onForm: (f: { start: string, end: string, hours: number }) => void,
- *   onMake: () => void, onBest: (plan: Plan) => void, onClose: () => void, onTraffic: () => void }} props
+ *   meOff: string | null, onMake: () => void, onBest: (plan: Plan) => void, onClose: () => void }} props
  */
-export function PlanView({ points, byId, form, onForm, onMake, onBest, onClose, onTraffic }) {
-  const [isOpen, toggle] = useCollapse(true);
-  const pts = PLAN_POINTS.map((id) => points.get(id)).filter((p) => !!p);
-  const opts = /** @type {PlanPoint[]} */ (pts).map((p) => ({
+export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, onClose }) {
+  const pts = /** @type {PlanPoint[]} */ (PLAN_POINTS.map((id) => points.get(id)).filter((p) => !!p));
+  const opts = pts.map((p) => ({
     id: p.id,
-    name: short(p.name),
+    name: p.name,
     icon: /** @type {'train' | 'boat'} */ (p.kind === 'ghat' ? 'boat' : 'train'),
   }));
-  const best = BEST_ROUTES.map((r) => bestPlan(r, byId, points)).filter((p) => !!p);
+  const startOpts = [
+    { id: 'me', name: 'Where I am', icon: /** @type {'locate'} */ ('locate'), note: meOff ?? undefined, disabled: meOff != null },
+    ...opts,
+  ];
+  const best = /** @type {Plan[]} */ (BEST_ROUTES.map((r) => bestPlan(r, byId, points)).filter((p) => !!p));
   return (
     <div className="jg-detail jg-plan">
       <div className="jg-detail-head" data-sheet-head>
@@ -75,63 +54,70 @@ export function PlanView({ points, byId, form, onForm, onMake, onBest, onClose, 
           <Icon name="x" />
         </button>
       </div>
-      <p className="jg-body jg-plan-intro">Walk the best pujas your time allows, and get back before the last train or ferry.</p>
-      <RoadsNote onTraffic={onTraffic} />
-      <PointChips
-        label="Start"
-        value={form.start}
-        options={[{ id: 'me', name: 'Where I am', icon: 'locate' }, ...opts]}
-        onPick={(id) => onForm({ ...form, start: id })}
-      />
-      <PointChips label="End" value={form.end} options={opts} onPick={(id) => onForm({ ...form, end: id })} />
-      <fieldset className="jg-plan-field">
-        <legend className="jg-plan-label">Time</legend>
-        <div className="jg-seg" role="radiogroup" aria-label="How long">
-          {PLAN_HOURS.map((h) => (
+      <p className="jg-body jg-plan-intro">Pick where you start and end. We plan the pujas in between.</p>
+      <h3 className="jg-plan-h">Plan your walk</h3>
+      <div className="jg-plan-card">
+        <PickerField
+          label="From"
+          question="Where do you start?"
+          value={form.start}
+          options={startOpts}
+          onPick={(id) => onForm({ ...form, start: id })}
+        />
+        <PickerField
+          label="To"
+          question="Where do you end?"
+          value={form.end}
+          options={opts}
+          onPick={(id) => onForm({ ...form, end: id })}
+        />
+        <fieldset className="jg-plan-field">
+          <legend className="jg-plan-label">How long?</legend>
+          <div className="jg-seg" role="radiogroup" aria-label="How long">
+            {PLAN_HOURS.map((h) => (
+              <button
+                key={h}
+                type="button"
+                role="radio"
+                aria-checked={form.hours === h}
+                className="jg-seg-btn"
+                onClick={() => onForm({ ...form, hours: h })}
+              >
+                {`${h} hours`}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <button type="button" className="btn primary block jg-plan-go" onClick={onMake}>
+          Plan my walk
+        </button>
+      </div>
+      <h3 className="jg-plan-h">Or pick a ready-made walk</h3>
+      <ul className="jg-ev-list">
+        {best.map((p) => (
+          <li key={p.bestId}>
             <button
-              key={h}
               type="button"
-              role="radio"
-              aria-checked={form.hours === h}
-              className="jg-seg-btn"
-              onClick={() => onForm({ ...form, hours: h })}
+              className="jg-ev jg-best"
+              aria-label={`${p.label}, ${p.stops.length} pujas, ${kmText(p.km)} km, ${durationText(p.minutes)}, from ${p.start.name} to ${p.end.name}`}
+              onClick={() => onBest(p)}
             >
-              {`${h} hours`}
+              <span className="jg-ev-head">
+                <span className="jg-ev-title">{p.label}</span>
+                <Icon name="next" size={16} />
+              </span>
+              <span className="jg-best-facts">{`${p.stops.length} pujas · ${kmText(p.km)} km · ${durationText(p.minutes)}`}</span>
+              <span className="jg-ends">
+                <EndChip point={p.start} />
+                <span className="jg-ends-to">
+                  <Icon name="arrow" size={16} />
+                  <EndChip point={p.end} />
+                </span>
+              </span>
             </button>
-          ))}
-        </div>
-      </fieldset>
-      <button type="button" className="btn dark block jg-plan-go" onClick={onMake}>
-        Make my plan
-      </button>
-      <Section title="Best routes" open={isOpen('best')} onToggle={() => toggle('best')}>
-        <ul className="jg-ev-list">
-          {
-            /** @type {Plan[]} */ (best).map((p) => {
-              const s = planStats(p);
-              return (
-                <li key={p.bestId}>
-                  <button type="button" className="jg-ev jg-best" onClick={() => onBest(p)}>
-                    <span className="jg-ev-title">{p.title}</span>
-                    <span className="jg-ev-meta">
-                      {`${p.stops.length} pujas · ${p.km.toFixed(1)} km · about ${durationText(p.minutes)}`}
-                    </span>
-                    <span className="jg-best-stats">
-                      <span>
-                        <b>{s.jubilee}</b> Jubilee or Pre-Jubilee
-                      </span>
-                      <span>
-                        <b>{s.must}</b> Must visit
-                      </span>
-                    </span>
-                    <span className="jg-ev-meta">{`${p.start.name} to ${p.end.name}`}</span>
-                  </button>
-                </li>
-              );
-            })
-          }
-        </ul>
-      </Section>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -185,9 +171,9 @@ function EndRow({ end }) {
 /**
  * A plan: numbered pujas in walking order, ticks as you go (ticking marks the puja visited), Show on map, Walk.
  * @param {{ plan: Plan, visited: Set<string>, onBack: () => void, onClose: () => void, onTick: (id: string, on: boolean) => void,
- *   onOpenPuja: (id: string) => void, onShowMap: () => void, onTraffic: () => void }} props
+ *   onOpenPuja: (id: string) => void, onShowMap: () => void }} props
  */
-export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, onShowMap, onTraffic }) {
+export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, onShowMap }) {
   const [isOpen, toggle] = useCollapse(plan);
   const [detourOpen, setDetourOpen] = useState(false);
   const [detourFor, setDetourFor] = useState(plan);
@@ -229,7 +215,6 @@ export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, 
         <Icon name={plan.end.kind === 'ghat' ? 'boat' : 'train'} size={18} />
         <span>{home}</span>
       </p>
-      <RoadsNote onTraffic={onTraffic} />
       {!empty && (
         <>
           <div className="jg-plan-progress">

@@ -130,6 +130,7 @@ const PATHS = {
   arrowNE: <path d="M7 17 17 7M9 7h8v8" />,
   check: <path d="m5 12 5 5 9-10" />,
   next: <path d="m9 6 6 6-6 6" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
   share: <path d="M12 3v12M7 8l5-5 5 5M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5" />,
   award: (
     <>
