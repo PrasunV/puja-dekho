@@ -134,12 +134,12 @@ export function SignInSheet({ reason, busy, error, onCredential, onClose }) {
   );
 }
 
-/** Badge art (placeholder until the final art arrives): grey with a lock until earned. */
-export function BadgeArt({ i, locked = false, size = 48, label = false }) {
+/** Badge art: the coin in its tier colours, ghosted with a lock chip until earned. */
+export function BadgeArt({ i, locked = false, size = 48 }) {
   return (
     <span className="jg-badge-art" style={{ width: size, height: size }} data-locked={locked || undefined}>
       {/* Markup built from constants in ranks.js, never from user input. */}
-      <span className="jg-badge-svg" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { locked, label, size }) }} />
+      <span className="jg-badge-svg" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { locked, size }) }} />
       {locked && (
         <span className="jg-badge-lock">
           <Icon name="lock" size={20} />

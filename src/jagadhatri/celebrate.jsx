@@ -155,7 +155,7 @@ function synth() {
 
 /** Badge markup from constants in ranks.js (never user input). */
 function Badge({ i, size }) {
-  return <span className="jg-cel-badge" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { label: true, size }) }} />;
+  return <span className="jg-cel-badge" dangerouslySetInnerHTML={{ __html: badgeSvg(i, { size }) }} />;
 }
 
 /** Keeps focus inside a full-screen layer and closes it with Escape. */
@@ -328,7 +328,7 @@ function loadBadge(/** @type {number} */ i, /** @type {number} */ size) {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = reject;
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(badgeSvg(i, { label: true, size }))}`;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(badgeSvg(i, { size }))}`;
   });
 }
 

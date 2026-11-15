@@ -113,7 +113,7 @@ test('crowd filters and time text', () => {
 });
 
 // ---- v0.2 badge sharing ----
-import { rareLine } from '../../src/jagadhatri/ranks.js';
+import { badgeSvg, RANKS, rareLine } from '../../src/jagadhatri/ranks.js';
 
 test('share lines say what earned the badge', () => {
   assert.equal(rareLine(0, 3), '5 pujas in one day');
@@ -188,4 +188,37 @@ test('themes and artists: 46 pujas have them, the "by" name is split off, and th
     );
   }
   assert.equal(data.pujas.filter((/** @type {any} */ p) => !p.th && !p.ar).length, 161, 'no cards for the rest');
+});
+
+// ---- badge art (badge design system) ----
+const lum = (/** @type {string} */ h) => {
+  const f = (/** @type {number} */ c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [1, 3, 5].map((i) => f(parseInt(h.slice(i, i + 2), 16) / 255));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const contrast = (/** @type {string} */ a, /** @type {string} */ b) =>
+  (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+
+test('every rank wears its own coin tier, Platinum skipped', () => {
+  assert.deepEqual(
+    RANKS.map((r) => r.tier),
+    ['bronze', 'silver', 'gold', 'emerald', 'diamond', 'legendary'],
+  );
+});
+
+test('badge art is plain SVG with literal colours (the share image draws it through an image)', () => {
+  RANKS.forEach((_, i) => {
+    for (const locked of [false, true]) {
+      const svg = badgeSvg(i, { locked, size: 48 });
+      assert.match(svg, /^<svg [^>]*viewBox="10 9 80 80"/);
+      assert.ok(!svg.includes('var('), 'no CSS variables');
+      assert.ok(!svg.includes('<text'), 'no text; the rank letter sits beside the coin');
+    }
+    assert.notEqual(badgeSvg(i, { locked: true }), badgeSvg(i), 'locked looks different');
+  });
+  assert.equal(new Set(RANKS.map((_, i) => badgeSvg(i))).size, 6, 'six distinct badges');
+});
+
+test('rank accent colours read on the cream celebration ground (4.5:1)', () => {
+  RANKS.forEach((r) => assert.ok(contrast(r.c1, '#FFF8F0') >= 4.5, `${r.id} ${r.c1}`));
 });

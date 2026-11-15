@@ -7,13 +7,18 @@
 
 /** @typedef {{ puja: string, mode: string, at: number, day: string }} Visit */
 
+/**
+ * `tier` is the coin the rank wears (badge design system: Bronze to Legendary; Platinum is skipped, it is too close to
+ * Silver). `c1` is the rank's accent for text and the burst on the cream celebration ground, the tier's rim darkened
+ * to 4.5:1 or better on it.
+ */
 export const RANKS = Object.freeze([
-  { id: 'E', name: 'Lantern Rookie', need: 5, rule: '5 pujas in one day', c1: '#7A3A00', c2: '#FFF1E0', rays: 4 },
-  { id: 'D', name: 'Pandal Seeker', need: 10, rule: '10 pujas', c1: '#B31D24', c2: '#FDE9DC', rays: 6 },
-  { id: 'C', name: 'Light Chaser', need: 25, rule: '25 pujas', c1: '#0B7A75', c2: '#E3F4F2', rays: 8 },
-  { id: 'B', name: 'Night Hunter', need: 50, rule: '50 pujas', c1: '#4A0E14', c2: '#F0D3D6', rays: 10 },
-  { id: 'A', name: 'Procession Ranger', need: 75, rule: '75 pujas', c1: '#C2410C', c2: '#FFF1E0', rays: 12 },
-  { id: 'S', name: 'Monarch of Lights', need: 100, rule: '100 pujas', c1: '#8A5A00', c2: '#FFE7A8', rays: 16 },
+  { id: 'E', name: 'Lantern Rookie', need: 5, rule: '5 pujas in one day', tier: 'bronze', c1: '#843C0C' },
+  { id: 'D', name: 'Pandal Seeker', need: 10, rule: '10 pujas', tier: 'silver', c1: '#5E6573' },
+  { id: 'C', name: 'Light Chaser', need: 25, rule: '25 pujas', tier: 'gold', c1: '#8A4F00' },
+  { id: 'B', name: 'Night Hunter', need: 50, rule: '50 pujas', tier: 'emerald', c1: '#0C6B45' },
+  { id: 'A', name: 'Procession Ranger', need: 75, rule: '75 pujas', tier: 'diamond', c1: '#1F6A8F' },
+  { id: 'S', name: 'Monarch of Lights', need: 100, rule: '100 pujas', tier: 'legendary', c1: '#6A3FC4' },
 ]);
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
@@ -61,44 +66,44 @@ export function unlockLine(/** @type {{ left: number, today: boolean }} */ p) {
   return `Complete ${p.left} more ${p.left === 1 ? 'puja' : 'pujas'}${p.today ? ' today' : ''} to unlock it`;
 }
 
-/** The art for a badge (placeholder until the final art arrives): rays path and colours. */
-export function badgeArt(/** @type {number} */ i, /** @type {boolean} */ locked) {
-  const r = RANKS[i];
-  const parts = [];
-  for (let k = 0; k < r.rays; k++) {
-    const a = (k / r.rays) * Math.PI * 2 - Math.PI / 2;
-    const p = (/** @type {number} */ rad) => `${(60 + rad * Math.cos(a)).toFixed(1)} ${(58 + rad * Math.sin(a)).toFixed(1)}`;
-    parts.push(`M${p(47)}L${p(56)}`);
-  }
-  return {
-    rays: parts.join(''),
-    c1: locked ? '#9A9A9A' : r.c1,
-    c2: locked ? '#EFEFEF' : r.c2,
-    flame: locked ? '#C8C8C8' : '#FC8105',
-    label: `${r.id}-RANK`,
-  };
-}
+/**
+ * Coin colours from the badge design system: highlight ring, face and rim. Hex values on purpose (one source in code):
+ * the share image draws the badge through an image, where CSS variables do not resolve.
+ */
+const TIERS = Object.freeze({
+  bronze: { hi: '#E8A560', face: '#B05F20', rim: '#843C0C' },
+  silver: { hi: '#E4E7EC', face: '#A8AFBA', rim: '#838B98' },
+  gold: { hi: '#FCCC54', face: '#F3A931', rim: '#E4840C' },
+  emerald: { hi: '#54E49C', face: '#45B786', rim: '#0C8454' },
+  diamond: { hi: '#9CE4FC', face: '#4CBDE8', rim: '#3C9CCC' },
+  legendary: { hi: '#E4CCFC', face: '#B088EF', rim: '#8454E4' },
+  locked: { hi: '#E4E6EE', face: '#CBCEDC', rim: '#B4AFC5' },
+});
+const GLYPH_LOCKED = '#8E92A8';
+
+// The Puja Dekho eye mark (same shapes as src/assets/loader/eye-lineart.svg), filled: the drop with the pupil cut out
+// and the bowl. White with a 1.5 px rim-colour edge on earned coins, grey on locked ones.
+const EYE_DROP = 'M496 97C420 170 359 245 359 328C359 420 420 490 496 524C572 490 634 420 634 328C634 245 572 170 496 97Z';
+const EYE_PUPIL = 'M417 331a80 80 0 1 0 160 0a80 80 0 1 0 -160 0Z';
+const EYE_BOWL = 'M189 248A311 311 0 1 0 810 248A311 311 0 0 1 189 248Z';
 
 /**
- * The badge as SVG markup (the prototype's lantern in a ring of rays). One source for the profile, the celebration
- * and the share image, which draws it on a canvas. `label` adds the "E-RANK" plate text (for large sizes).
+ * The badge as SVG markup: a round coin (rim, face, highlight ring) with the eye mark. One source for the profile,
+ * the celebration and the share image, which draws it on a canvas. The viewBox is cropped to the coin, so it fills
+ * its box at every size.
  * @param {number} i
- * @param {{ locked?: boolean, label?: boolean, size?: number }} [o]
+ * @param {{ locked?: boolean, size?: number }} [o]
  */
-export function badgeSvg(i, { locked = false, label = false, size = 120 } = {}) {
-  const a = badgeArt(i, locked);
-  const plate = label
-    ? `<text x="60" y="100" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="1" font-family="Plus Jakarta Sans Variable, Plus Jakarta Sans, sans-serif">${a.label}</text>`
-    : '';
+export function badgeSvg(i, { locked = false, size = 120 } = {}) {
+  const t = TIERS[locked ? 'locked' : RANKS[i].tier];
+  const eye = locked
+    ? `<g transform="translate(50 47) scale(0.05867) translate(-500 -325)" fill="${GLYPH_LOCKED}">`
+    : `<g transform="translate(50 47) scale(0.05867) translate(-500 -325)" fill="#FFFFFF" stroke="${t.rim}" stroke-width="26" stroke-linejoin="round" paint-order="stroke">`;
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 120 120" aria-hidden="true">` +
-    `<path d="${a.rays}" stroke="${a.c1}" stroke-width="4" stroke-linecap="round" fill="none"/>` +
-    `<circle cx="60" cy="58" r="42" fill="${a.c2}" stroke="${a.c1}" stroke-width="4"/>` +
-    `<path d="M60 26v8" stroke="${a.c1}" stroke-width="4" stroke-linecap="round"/>` +
-    `<path d="M50 36h20l7 10v20l-7 10H50l-7-10V46z" fill="${a.c1}"/>` +
-    `<rect x="51" y="44" width="18" height="26" rx="5" fill="${a.c2}"/>` +
-    `<path d="M60 48c4 5 6 8 6 12a6 6 0 0 1-12 0c0-4 2-7 6-12z" fill="${a.flame}"/>` +
-    `<rect x="28" y="86" width="64" height="20" rx="5" fill="${a.c1}"/>${plate}</svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="10 9 80 80" aria-hidden="true">` +
+    `<circle cx="50" cy="53" r="36" fill="${t.rim}"/><circle cx="50" cy="47" r="36" fill="${t.face}"/>` +
+    `<circle cx="50" cy="47" r="28" fill="none" stroke="${t.hi}" stroke-width="2.6"/>` +
+    `${eye}<path d="${EYE_DROP}${EYE_PUPIL}" fill-rule="evenodd"/><path d="${EYE_BOWL}"/></g></svg>`
   );
 }
 
