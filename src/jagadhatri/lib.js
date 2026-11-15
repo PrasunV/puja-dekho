@@ -22,7 +22,7 @@ import { AGE_GROUPS, PUJA_YEAR } from './config.js';
  * @property {string} [ad]     Address
  * @property {string} [ps]     Police station
  * @property {string} [th]     Puja theme
- * @property {string} [ar]     Artist
+ * @property {[string, string?][]} [ar]  Artists: [name, role], for example ["Gagan Das", "Construction"]
  *
  * @typedef {object} JgStation
  * @property {string} id

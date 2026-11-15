@@ -844,6 +844,35 @@
 .jg-bento-text.muted {
   color: var(--muted);
 }
+/* Artists, opened: one person or team per line with the role in grey. */
+.jg-artists {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.jg-artists li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--tile-head);
+}
+.jg-artist-name {
+  min-width: 0;
+}
+.jg-artist-role {
+  flex: none;
+  max-width: 50%;
+  text-align: right;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
 .jg-facts {
   margin: 0 0 12px;
 }

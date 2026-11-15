@@ -53,6 +53,48 @@ def haversine(lat1, lng1, lat2, lng2):
     return 2 * r * math.asin(math.sqrt(a))
 
 
+def sentence_case(text):
+    """"Idol Artist" and "IDOL ARTIST" both become "Idol artist"."""
+    text = text.strip()
+    return text[:1].upper() + text[1:].lower() if text else text
+
+
+def split_commas(text):
+    """Split on commas that are outside brackets, so "Dibyendu Biswas (Chiku) (Road, Procession Lighting)" stays whole."""
+    parts, depth, cur = [], 0, ''
+    for ch in text:
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth = max(0, depth - 1)
+        if ch == ',' and depth == 0:
+            parts.append(cur)
+            cur = ''
+        else:
+            cur += ch
+    parts.append(cur)
+    return [p.strip() for p in parts if p.strip()]
+
+
+def theme_and_artists(theme_cell, artist_cell):
+    """
+    "Ferikatha by Gagan Das" + "Debnarayan Pal (Idol Artist), Gagan Das (Construction)" becomes
+    ("Ferikatha", [["Gagan Das", "Construction"], ["Debnarayan Pal", "Idol artist"], ...]).
+    The name after "by" is the person (or team) behind the theme. They are listed with the role "Theme" unless the
+    Artist cell already names them. Each artist is [name, role]; the role is left out when the cell gives none.
+    """
+    theme, by = (theme_cell or '').strip(), None
+    if ' by ' in theme:
+        theme, by = (x.strip() for x in theme.rsplit(' by ', 1))
+    artists = []
+    for item in split_commas(artist_cell or ''):
+        m = re.match(r'^(.*?)\s*\(([^()]*)\)\s*$', item)
+        artists.append([m.group(1).strip(), sentence_case(m.group(2))] if m and m.group(1).strip() else [item])
+    if by and by.lower() not in (a[0].lower() for a in artists):
+        artists.insert(0, [by, 'Theme'])
+    return theme or None, artists
+
+
 def slug(text):
     text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode().lower()
     return re.sub(r'[^a-z0-9]+', '-', text).strip('-')
@@ -188,6 +230,9 @@ def main():
                 warnings.append(f'{where}: Address is cut short in the sheet ("{address}"); it is hidden until fixed')
                 address = None
         ccjpc = as_int(r.get('CCJPC No.'))
+        theme, artists = theme_and_artists(r.get('Puja Theme'), r.get('Artist'))
+        if artists and not theme:
+            warnings.append(f'{where}: has an Artist but no Puja Theme, so only the Artist card shows')
         puja = {
             'id': pid,
             'n': name,
@@ -204,8 +249,8 @@ def main():
             'st': dist[0],
             'ad': address,
             'ps': r.get('P.S.'),
-            'th': r.get('Puja Theme'),
-            'ar': r.get('Artist'),
+            'th': theme,
+            'ar': artists or None,
         }
         pujas.append({k: v for k, v in puja.items() if v is not None})
 

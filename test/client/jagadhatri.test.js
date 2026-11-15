@@ -166,3 +166,26 @@ test('type names in counts: Adi Puja, Jubilee puja, other pujas', () => {
   assert.equal(pujasOf(207, null), '207 pujas');
   assert.equal(typeNoun('Adi Puja', 1), 'Adi Puja');
 });
+
+test('themes and artists: 46 pujas have them, the "by" name is split off, and the shape is [name, role]', () => {
+  const withTheme = data.pujas.filter((/** @type {any} */ p) => p.th);
+  assert.equal(withTheme.length, 46);
+  assert.equal(data.pujas.filter((/** @type {any} */ p) => p.ar).length, 41);
+  assert.ok(
+    withTheme.every((/** @type {any} */ p) => !/ by /.test(p.th)),
+    'themes carry no "by" name',
+  );
+  const sil = data.pujas.find((/** @type {any} */ p) => p.id === 'silbagan-sarbojanin-sri-sri-jagadhatri-puja-committee');
+  assert.equal(sil.th, 'Ferikatha');
+  assert.deepEqual(sil.ar[2], ['Gagan Das', 'Construction'], 'already named in Artists, so not added a second time');
+  const satta = data.pujas.find((/** @type {any} */ p) => p.th === 'Satta');
+  assert.deepEqual(satta.ar[0], ['Tanmay Sikdar', 'Theme'], 'the person behind the theme comes first');
+  for (const p of data.pujas.filter((/** @type {any} */ x) => x.ar)) {
+    assert.ok(p.th, `${p.n}: artists with no theme`);
+    assert.ok(
+      p.ar.every((/** @type {any} */ a) => Array.isArray(a) && a.length >= 1 && a.length <= 2 && a[0]),
+      `${p.n}: artist shape`,
+    );
+  }
+  assert.equal(data.pujas.filter((/** @type {any} */ p) => !p.th && !p.ar).length, 161, 'no cards for the rest');
+});

@@ -31,26 +31,50 @@ export function PujaRow({ puja, d, onOpen, showTag = false, crowd }) {
   );
 }
 
-/** Theme and artist cards: two in one row, each grows in place to full width when tapped (design 7.7). */
+/**
+ * Theme and artist cards: two in one row, each grows in place to full width when tapped (design 7.7).
+ * A puja with no theme and no artists shows no cards; one with only a theme shows the theme card across the row.
+ */
 function ThemeArtist({ puja }) {
   const { open, toggle, stacked } = useBento({ theme: false, artist: false });
-  const card = (/** @type {'theme' | 'artist'} */ key, icon, title, value) => (
-    <BentoCard
-      id={`${key}-${puja.id}`}
-      icon={icon}
-      title={title}
-      open={open[key]}
-      full={stacked}
-      onToggle={() => toggle(key)}
-      preview={<span className={value ? 'jg-bento-preview' : 'jg-bento-preview muted'}>{value || 'Not updated yet'}</span>}
-    >
-      <p className={value ? 'jg-bento-text' : 'jg-bento-text muted'}>{value || 'Not updated yet. Check back soon.'}</p>
-    </BentoCard>
-  );
+  const artists = puja.ar ?? [];
+  if (!puja.th && artists.length === 0) return null;
+  const both = !!puja.th && artists.length > 0;
   return (
     <div className="bento jg-bento" data-stacked={stacked || undefined}>
-      {card('theme', 'palette', 'Puja theme', puja.th)}
-      {card('artist', 'brush', 'Artist', puja.ar)}
+      {puja.th && (
+        <BentoCard
+          id={`theme-${puja.id}`}
+          icon="palette"
+          title="Puja theme"
+          open={open.theme}
+          full={stacked || !both}
+          onToggle={() => toggle('theme')}
+          preview={<span className="jg-bento-preview">{puja.th}</span>}
+        >
+          <p className="jg-bento-text">{puja.th}</p>
+        </BentoCard>
+      )}
+      {artists.length > 0 && (
+        <BentoCard
+          id={`artist-${puja.id}`}
+          icon="brush"
+          title={artists.length === 1 ? 'Artist' : 'Artists'}
+          open={open.artist}
+          full={stacked || !both}
+          onToggle={() => toggle('artist')}
+          preview={<span className="jg-bento-preview">{artists.map(([name]) => name).join(', ')}</span>}
+        >
+          <ul className="jg-artists">
+            {artists.map(([name, role], i) => (
+              <li key={`${name}-${role ?? ''}-${i}`}>
+                <span className="jg-artist-name">{name}</span>
+                {role && <span className="jg-artist-role">{role}</span>}
+              </li>
+            ))}
+          </ul>
+        </BentoCard>
+      )}
     </div>
   );
 }
