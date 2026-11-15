@@ -197,6 +197,12 @@ export function About({ onClose, onWelcome }) {
       </p>
       <p className="jg-caption">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap. Distances are straight-line.</p>
       <p className="jg-caption">
+        Map data contributions: {ABOUT.mapCredit.name} from{' '}
+        <a href={ABOUT.mapCredit.url} target="_blank" rel="noopener noreferrer">
+          {ABOUT.mapCredit.site}
+        </a>
+      </p>
+      <p className="jg-caption">
         Fireworks sound:{' '}
         <a href="https://budgetpixel.com/sfx/firework-whistle-burst-b9184d6f" target="_blank" rel="noopener noreferrer">
           “Firework Whistle Burst”

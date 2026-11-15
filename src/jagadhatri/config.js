@@ -185,6 +185,7 @@ export const ABOUT = Object.freeze({
   makerUrl: 'https://www.linkedin.com/in/prasun-mondal-b25320214/',
   disclaimer: 'Not an official committee app',
   durgaUrl: '/',
+  mapCredit: { name: 'Nirjan Munshi and friends', site: 'jagadhatri.in', url: 'https://jagadhatri.in/' },
 });
 
 /** Map: the middle of the three towns, and how far the map may be panned. MapLibre zoom levels. */

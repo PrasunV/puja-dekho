@@ -222,3 +222,9 @@ test('badge art is plain SVG with literal colours (the share image draws it thro
 test('rank accent colours read on the cream celebration ground (4.5:1)', () => {
   RANKS.forEach((r) => assert.ok(contrast(r.c1, '#FFF8F0') >= 4.5, `${r.id} ${r.c1}`));
 });
+
+test('About credits the map data to jagadhatri.in', async () => {
+  const { ABOUT } = await import('../../src/jagadhatri/config.js');
+  assert.equal(ABOUT.mapCredit.name, 'Nirjan Munshi and friends');
+  assert.equal(new URL(ABOUT.mapCredit.url).hostname, ABOUT.mapCredit.site);
+});
