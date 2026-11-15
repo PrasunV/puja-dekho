@@ -2796,8 +2796,70 @@ button.jg-ladder-row {
   min-height: 52px;
   margin-top: 24px;
 }
-.jg-about-how {
-  margin: 4px 0 12px;
+.jg-about-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 16px;
+}
+/* Secondary filled button: grey fill, no outline. */
+:is(.jg, .jg-modal, .jg-welcome, .jg-cel) .btn.jg-btn-tonal {
+  border-color: transparent;
+  background: var(--jg-tonal);
+  color: var(--ink);
+}
+:is(.jg, .jg-modal, .jg-welcome, .jg-cel) .btn.jg-btn-tonal:active:not([disabled]) {
+  background: var(--jg-tonal-pressed);
+}
+/* About's pinned footer: a full-width contrast bar (the toast colours: near-black in light, near-white in dark),
+   flush with the bottom edge and running under the home indicator. No fade above it. */
+.panel-foot.contrast {
+  padding: 0 16px env(safe-area-inset-bottom, 0px);
+  background: var(--toast-bg);
+}
+.panel-foot.contrast::before {
+  display: none;
+}
+.panel-foot.contrast .jg-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 48px;
+  color: var(--toast-ink);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.panel-foot.contrast .jg-credit strong {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.panel-foot.contrast .jg-credit:focus-visible {
+  outline: 2px solid var(--toast-ink);
+  outline-offset: -4px;
+}
+.jg-credit-heart {
+  display: inline-flex;
+  color: var(--jg-credit-heart);
+}
+.jg-credit-heart .ic {
+  fill: currentColor;
+}
+:root {
+  /* Red that reads on the footer: light red on the near-black bar (light theme), deep red on the near-white bar (dark). */
+  --jg-credit-heart: #e0434b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --jg-credit-heart: #b31d24;
+  }
+}
+:root[data-theme='dark'] {
+  --jg-credit-heart: #b31d24;
 }
 @media (max-height: 640px) {
   .jg-welcome {

@@ -54,10 +54,21 @@ const TITLE_MAX_PX = 260;
  * @param {boolean} props.desktop
  * @param {React.ReactNode} props.peek  The one line shown at the peek
  * @param {React.ReactNode} [props.footer]  Buttons pinned at the bottom
+ * @param {string} [props.footerClass]  Extra class for the footer bar (e.g. 'contrast' for a full-width contrast bar)
  * @param {React.ReactNode} props.children
  * @param {number} [props.topInset]  Stop the full sheet this many px below the top (default: 93% of the stage)
  */
-export default function BottomSheet({ sheet, onSheetChange, onMovingChange, desktop, peek, footer, children, topInset = 0 }) {
+export default function BottomSheet({
+  sheet,
+  onSheetChange,
+  onMovingChange,
+  desktop,
+  peek,
+  footer,
+  footerClass = '',
+  children,
+  topInset = 0,
+}) {
   if (desktop) {
     return (
       <section className="panel" data-sheet={sheet}>
@@ -65,12 +76,20 @@ export default function BottomSheet({ sheet, onSheetChange, onMovingChange, desk
           <span />
         </button>
         <div className="panel-body">{children}</div>
-        {footer && <div className="panel-foot">{footer}</div>}
+        {footer && <div className={`panel-foot ${footerClass}`.trim()}>{footer}</div>}
       </section>
     );
   }
   return (
-    <PhoneSheet sheet={sheet} onSheetChange={onSheetChange} onMovingChange={onMovingChange} peek={peek} footer={footer} topInset={topInset}>
+    <PhoneSheet
+      sheet={sheet}
+      onSheetChange={onSheetChange}
+      onMovingChange={onMovingChange}
+      peek={peek}
+      footer={footer}
+      footerClass={footerClass}
+      topInset={topInset}
+    >
       {children}
     </PhoneSheet>
   );
@@ -93,7 +112,7 @@ export default function BottomSheet({ sheet, onSheetChange, onMovingChange, desk
  * so they follow it without React re-rendering. `data-sheet` on the
  * panel is the committed state and changes the moment a drag is released.
  */
-function PhoneSheet({ sheet, onSheetChange, onMovingChange, peek, footer, children, topInset = 0 }) {
+function PhoneSheet({ sheet, onSheetChange, onMovingChange, peek, footer, footerClass = '', children, topInset = 0 }) {
   const panelRef = useRef(/** @type {HTMLElement | null} */ (null));
   const bodyRef = useRef(/** @type {HTMLDivElement | null} */ (null));
   const height = useMotionValue(0);
@@ -489,7 +508,7 @@ function PhoneSheet({ sheet, onSheetChange, onMovingChange, peek, footer, childr
         {children}
       </div>
       {footer && (
-        <div className="panel-foot" {...(sheet === 'peek' && !moving ? { inert: '' } : {})}>
+        <div className={`panel-foot ${footerClass}`.trim()} {...(sheet === 'peek' && !moving ? { inert: '' } : {})}>
           {footer}
         </div>
       )}

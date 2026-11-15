@@ -49,7 +49,7 @@ import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
 import { makePlan } from './plan.js';
 import { PlanView, RouteView } from './plan.jsx';
-import { About, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
+import { About, AboutFooter, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
 const JgMap = React.lazy(() => import('./JgMap.jsx'));
@@ -782,6 +782,7 @@ function Loaded({ data }) {
   const selectedId = view.kind === 'puja' ? view.id : null;
   let body;
   let footer = null;
+  let footerClass = '';
   let peek;
   if (view.kind === 'plan') {
     body = (
@@ -863,6 +864,8 @@ function Loaded({ data }) {
     peek = 'Traffic and road closures';
   } else if (view.kind === 'about') {
     body = <About onClose={toList} onWelcome={() => setWelcome(true)} />;
+    footer = <AboutFooter />;
+    footerClass = 'contrast';
     peek = 'About Puja Dekho';
   } else if (view.kind === 'popular') {
     body = <PujaListSheet title="Popular pujas" rows={mustVisitRows} onOpen={(id) => openPuja(id)} onClose={toList} />;
@@ -1164,6 +1167,7 @@ function Loaded({ data }) {
           desktop={false}
           peek={peek}
           footer={footer}
+          footerClass={footerClass}
           topInset={topInset}
         >
           {body}

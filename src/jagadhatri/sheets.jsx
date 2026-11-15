@@ -171,7 +171,7 @@ export function PujaActions({ puja, wished, onWish }) {
   );
 }
 
-/** About (F12, F13): the short story, the maker, the map credit and the disclaimer. */
+/** About (F12, F13): the short story, the two buttons, the credits and the disclaimer. The maker line is the pinned AboutFooter. */
 export function About({ onClose, onWelcome }) {
   return (
     <div className="jg-detail">
@@ -182,19 +182,16 @@ export function About({ onClose, onWelcome }) {
         </button>
       </div>
       <p className="jg-body">{ABOUT.story}</p>
-      <button type="button" className="btn small jg-btn-outline jg-about-how" onClick={onWelcome}>
-        <Icon name="info" size={16} />
-        How Puja Dekho works
-      </button>
-      <p className="jg-body">
-        Made with love by{' '}
-        <a href={ABOUT.makerUrl} target="_blank" rel="noopener noreferrer">
-          {ABOUT.maker}
+      <div className="jg-about-btns">
+        <button type="button" className="btn block jg-btn-outline" onClick={onWelcome}>
+          <Icon name="info" size={16} />
+          How Puja Dekho works
+        </button>
+        <a className="btn block jg-btn-tonal" href={ABOUT.durgaUrl}>
+          Open Durga Puja Dekho
+          <Icon name="arrowNE" size={16} />
         </a>
-      </p>
-      <p className="jg-body">
-        <a href={ABOUT.durgaUrl}>Open Durga Puja Dekho</a>
-      </p>
+      </div>
       <p className="jg-caption">Map data © OpenStreetMap contributors. Map tiles by OpenFreeMap. Distances are straight-line.</p>
       <p className="jg-caption">
         Map data contributions: {ABOUT.mapCredit.name} from{' '}
@@ -211,6 +208,26 @@ export function About({ onClose, onWelcome }) {
       </p>
       <p className="jg-caption jg-disclaimer">{ABOUT.disclaimer}</p>
     </div>
+  );
+}
+
+/** The pinned bar at the bottom of About: a contrast fill (dark in light, light in dark), the whole line opens the maker's LinkedIn. */
+export function AboutFooter() {
+  return (
+    <a
+      className="jg-credit"
+      href={ABOUT.makerUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Made with love by ${ABOUT.maker}, opens LinkedIn in a new tab`}
+    >
+      Made with
+      <span className="jg-credit-heart">
+        <Icon name="heart" size={18} fill />
+      </span>
+      by <strong>{ABOUT.maker}</strong>
+      <Icon name="arrowNE" size={16} />
+    </a>
   );
 }
 
