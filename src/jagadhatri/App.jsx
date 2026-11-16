@@ -48,7 +48,7 @@ import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
 import { makePlan } from './plan.js';
-import { PlanView, RouteView } from './plan.jsx';
+import { PlanView, RouteView, TrainsView } from './plan.jsx';
 import { About, AboutFooter, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
@@ -73,7 +73,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' } | { kind: 'plan' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' } | { kind: 'plan' } | { kind: 'trains' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
  */
 
 export default function App() {
@@ -391,7 +391,9 @@ function Loaded({ data }) {
     setView((v) => (v.kind === 'traffic' && v.from ? { kind: v.from } : { kind: 'whatsnew' })),
   );
   // A plan sits on Plan my route, and a puja opened from a plan sits on the plan.
-  useBackClose(view.kind === 'route' || (view.kind === 'puja' && view.from === 'route'), () => setView({ kind: 'plan' }));
+  useBackClose(view.kind === 'route' || view.kind === 'trains' || (view.kind === 'puja' && view.from === 'route'), () =>
+    setView({ kind: 'plan' }),
+  );
   useBackClose(view.kind === 'puja' && view.from === 'route', () => setView({ kind: 'route' }));
 
   // ---------- Plan my route ----------
@@ -799,10 +801,14 @@ function Loaded({ data }) {
         meOff={meOff}
         onMake={makeMyPlan}
         onBest={(plan) => showPlan(plan)}
+        onTrains={() => setView({ kind: 'trains' })}
         onClose={toList}
       />
     );
     peek = 'Plan my route';
+  } else if (view.kind === 'trains') {
+    body = <TrainsView onBack={() => setView({ kind: 'plan' })} onClose={toList} />;
+    peek = 'Train timings';
   } else if (view.kind === 'route' && activePlan) {
     body = (
       <RouteView
@@ -1007,7 +1013,7 @@ function Loaded({ data }) {
               <button
                 type="button"
                 className="chip compact jg-chip"
-                aria-pressed={view.kind === 'plan' || view.kind === 'route'}
+                aria-pressed={view.kind === 'plan' || view.kind === 'route' || view.kind === 'trains'}
                 onClick={() => openPlanner()}
               >
                 <Icon name="route" size={16} />

@@ -243,7 +243,7 @@ export const PLAN_POINTS = Object.freeze([
 export const LAST_TRAIN_MIN = 24 * 60;
 export const LAST_FERRY_MIN = 22 * 60;
 /** Plan lengths on offer, in hours. */
-export const PLAN_HOURS = Object.freeze([2, 5]);
+export const PLAN_HOURS = Object.freeze([2, 3, 5]);
 /** Time spent at each puja, in minutes (queues at the famous ones), and walking pace through festival crowds. */
 export const STAY_MIN = Object.freeze({ must: 15, jubilee: 10, other: 8 });
 export const WALK_KMH = 3;

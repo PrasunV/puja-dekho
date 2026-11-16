@@ -11,7 +11,7 @@ export const DWELL_MS = 2 * 60_000;
 /** A fix less precise than this can't tell two neighbouring pujas apart, so it never starts or ends a stay. */
 export const MAX_ACCURACY_M = 75;
 
-/** @typedef {{ id: string | null, since: number }} Stay */
+/** A stay: the puja nearest now, when the stay began, and the spot it began at (so a wobble between close pujas doesn't restart it). @typedef {{ id: string | null, since: number, la?: number, lo?: number }} Stay */
 export const NO_STAY = Object.freeze({ id: null, since: 0 });
 
 /**
@@ -33,8 +33,9 @@ export function nearestHere(pos, pujas) {
 }
 
 /**
- * The next stay: same puja keeps its start time, a different one starts again, nothing near ends it. An imprecise fix
- * changes nothing.
+ * The next stay: the time keeps running while the person stays within 100 m of the spot the stay began at, even when the
+ * nearest puja flips between two close ones (pujas here are often 30 m apart and GPS wobbles). Walking off, or nothing
+ * near, ends it. An imprecise fix changes nothing.
  * @param {Stay} stay
  * @param {{ lat: number, lng: number, accuracy: number } | null} pos
  * @param {import('./lib.js').JgPuja[]} pujas
@@ -46,7 +47,10 @@ export function nextStay(stay, pos, pujas, now) {
   if (pos.accuracy > MAX_ACCURACY_M) return stay;
   const p = nearestHere(pos, pujas);
   if (!p) return NO_STAY;
-  return stay.id === p.id ? stay : { id: p.id, since: now };
+  if (stay.id === p.id) return stay;
+  const sameSpot = stay.id != null && stay.la != null && stay.lo != null && haversine(pos.lat, pos.lng, stay.la, stay.lo) <= HERE_RADIUS_M;
+  if (sameSpot) return { id: p.id, since: stay.since, la: stay.la, lo: stay.lo };
+  return { id: p.id, since: now, la: pos.lat, lo: pos.lng };
 }
 
 export const stayedLongEnough = (/** @type {Stay} */ stay, /** @type {number} */ now) => stay.id != null && now - stay.since >= DWELL_MS;

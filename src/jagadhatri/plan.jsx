@@ -1,8 +1,9 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
 import { BEST_ROUTES, PLAN_HOURS, PLAN_POINTS } from './config.js';
 import { bestPlan, durationText, lastWayHome, planStats, stopTag, walkUrl } from './plan.js';
 import { PickerField } from './picker.jsx';
+import { BANDEL_HOWRAH, BARDDHAMAN, clock12, HOWRAH_BANDEL, specialsActive } from './trains.js';
 import { Section, useCollapse, ViewCue } from './ui.jsx';
 
 /** @typedef {import('./plan.js').Plan} Plan */
@@ -13,6 +14,9 @@ const kmText = (/** @type {number} */ km) => (km >= 10 ? String(Math.round(km)) 
 
 /** Short names for chips and menus: "Chandannagar Station" → "Chandannagar". */
 const short = (/** @type {string} */ name) => name.replace(/ (Station|Ghat)$/, '');
+
+/** What a From or To row shows once picked: "Chandannagar Station" → "Chandannagar Stn". Ghats keep their word. */
+const abbr = (/** @type {string} */ name) => name.replace(/ Station$/, ' Stn');
 
 /**
  * A start or end point on a ready-made walk: a square-cut chip with its train or boat icon and a short name.
@@ -28,17 +32,20 @@ function EndChip({ point }) {
 }
 
 /**
- * Plan my route: your own walk first (From, To, 2 or 5 hours, Plan my walk), then the ready-made walks.
+ * Plan my route: your own walk first (From, To, 2, 3 or 5 hours, Plan my walk), the train timings while the specials run, then the ready-made walks.
  * `meOff` says why "Where I am" can't be used right now (location off, or far away); the plan then starts at a station.
  * @param {{ points: Map<string, PlanPoint>, byId: Map<string, import('./lib.js').JgPuja>,
  *   form: { start: string, end: string, hours: number }, onForm: (f: { start: string, end: string, hours: number }) => void,
- *   meOff: string | null, onMake: () => void, onBest: (plan: Plan) => void, onClose: () => void }} props
+ *   meOff: string | null, onMake: () => void, onBest: (plan: Plan) => void, onTrains: () => void, onClose: () => void }} props
  */
-export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, onClose }) {
+export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, onTrains, onClose }) {
+  // Checked when Plan my route opens; the timings row disappears once the specials are over.
+  const [specials] = useState(() => specialsActive(Date.now()));
   const pts = /** @type {PlanPoint[]} */ (PLAN_POINTS.map((id) => points.get(id)).filter((p) => !!p));
   const opts = pts.map((p) => ({
     id: p.id,
     name: p.name,
+    short: abbr(p.name),
     icon: /** @type {'train' | 'boat'} */ (p.kind === 'ghat' ? 'boat' : 'train'),
   }));
   const startOpts = [
@@ -92,6 +99,24 @@ export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, on
           Plan my walk
         </button>
       </div>
+      {specials && (
+        <ul className="jg-ev-list jg-plan-trains">
+          <li>
+            <button
+              type="button"
+              className="jg-ev jg-best"
+              aria-label="Train timings, Eastern Railway special trains, 14 to 21 November"
+              onClick={onTrains}
+            >
+              <span className="jg-ev-head">
+                <span className="jg-ev-title">Train timings</span>
+                <Icon name="next" size={16} />
+              </span>
+              <span className="jg-best-facts">Special trains, 14 to 21 Nov</span>
+            </button>
+          </li>
+        </ul>
+      )}
       <h3 className="jg-plan-h">Or pick a ready-made walk</h3>
       <ul className="jg-ev-list">
         {best.map((p) => (
@@ -118,6 +143,86 @@ export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, on
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * One table of special trains with the same two ends: when it leaves, when it arrives, and the train number.
+ * @param {{ title: string, from: string, to: string, rows: readonly import('./trains.js').Special[] }} props
+ */
+function TrainTable({ title, from, to, rows }) {
+  return (
+    <section>
+      <h3 className="jg-plan-h">{title}</h3>
+      <table className="jg-tt">
+        <thead>
+          <tr>
+            <th scope="col">{`Leaves ${from}`}</th>
+            <th scope="col">{`Reaches ${to}`}</th>
+            <th scope="col">Train</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.no}>
+              <td>{clock12(r.dep)}</td>
+              <td>{clock12(r.arr)}</td>
+              <td className="jg-tt-no">{r.no}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+/**
+ * Train timings: Eastern Railway's special trains for Jagadhatri Puja, as printed in its notice (times at the end
+ * stations only). Reached from Plan my route; Back returns there.
+ * @param {{ onBack: () => void, onClose: () => void }} props
+ */
+export function TrainsView({ onBack, onClose }) {
+  const top = useRef(/** @type {HTMLDivElement | null} */ (null));
+  // Plan my route was scrolled to reach the Train timings row; start the timings at the top.
+  useEffect(() => {
+    top.current?.closest('.panel-body')?.scrollTo({ top: 0 });
+  }, []);
+  return (
+    <div ref={top} className="jg-detail jg-trains">
+      <div className="jg-detail-head" data-sheet-head>
+        <button type="button" className="jg-icon-btn" aria-label="Back to Plan my route" onClick={onBack}>
+          <Icon name="back" />
+        </button>
+        <div className="jg-detail-titles">
+          <h2 className="jg-title">Train timings</h2>
+          <p className="jg-meta">Special trains, 14 to 21 Nov</p>
+        </div>
+        <button type="button" className="jg-icon-btn" aria-label="Close" onClick={onClose}>
+          <Icon name="x" />
+        </button>
+      </div>
+      <p className="jg-body jg-plan-intro">
+        Eastern Railway runs these special trains from the night of 14 Nov to the night of 20 Nov. They stop at all stations on the way.
+      </p>
+      <TrainTable title="Howrah to Bandel" from="Howrah" to="Bandel" rows={HOWRAH_BANDEL} />
+      <TrainTable title="Bandel to Howrah" from="Bandel" to="Howrah" rows={BANDEL_HOWRAH} />
+      <section>
+        <h3 className="jg-plan-h">Howrah and Barddhaman</h3>
+        <ul className="jg-tt-long">
+          {BARDDHAMAN.map((r) => (
+            <li key={r.no}>
+              <p className="jg-tt-route">{`${r.from} to ${r.to}`}</p>
+              <p className="jg-meta">{`Train ${r.no}${r.via ? ` · via ${r.via}` : ''}`}</p>
+              <p className="jg-best-facts">{`${clock12(r.dep)} → ${clock12(r.arr)}`}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <p className="jg-caption jg-tt-note">
+        Times are at Howrah, Bandel and Barddhaman. Times at Bhadreswar, Mankundu and Chandannagar stations are coming soon. A time after
+        12:00 AM is the next day. From the Eastern Railway notice.
+      </p>
     </div>
   );
 }
@@ -187,7 +292,7 @@ export function RouteView({ plan, visited, onBack, onClose, onTick, onOpenPuja, 
   const s = planStats(plan);
   const empty = plan.stops.length === 0;
   /** The line about getting home: trimmed, too late, or when to head back. */
-  let home = `${lastWayHome(plan.end)} from ${plan.end.name}.`;
+  let home = lastWayHome(plan.end);
   if (plan.late)
     home = `Too late for the ${plan.end.kind === 'ghat' ? 'last ferry' : 'last train'} from ${plan.end.name}. Pick another end point.`;
   else if (plan.trimmed && empty)

@@ -1,4 +1,5 @@
 import { DETOUR, LAST_FERRY_MIN, LAST_TRAIN_MIN, STAY_MIN, WALK_KMH } from './config.js';
+import { LAST_SPECIAL_MIN, specialsActive } from './trains.js';
 import { ageOf, haversine } from './lib.js';
 
 /** @typedef {import('./lib.js').JgPuja} JgPuja */
@@ -107,13 +108,19 @@ const istMinutes = (/** @type {number} */ now) => {
 export function minutesLeft(end, now) {
   const m = istMinutes(now);
   if (m < 14 * 60 && m > 4 * 60) return Infinity;
-  const last = end.kind === 'ghat' ? LAST_FERRY_MIN : LAST_TRAIN_MIN;
+  // While the Eastern Railway specials run (to 21 Nov), trains go on to 4:00 AM, not 12:00 AM. Ferries stop at 10:00 PM.
+  const last = end.kind === 'ghat' ? LAST_FERRY_MIN : specialsActive(now) ? LAST_SPECIAL_MIN : LAST_TRAIN_MIN;
   const left = (m <= 4 * 60 ? last - 24 * 60 : last) - m;
   return Math.max(0, left - 10); // 10 minutes to spare at the platform or the jetty
 }
 
-/** "Last train 12:00 AM" / "Last ferry 10:00 PM". */
-export const lastWayHome = (/** @type {PlanPoint} */ end) => (end.kind === 'ghat' ? 'Last ferry 10:00 PM' : 'Last train 12:00 AM');
+/** The line about getting home: "Last train 12:00 AM from X." / "Last ferry 10:00 PM from X." While the specials run, trains go on through the night. */
+export const lastWayHome = (/** @type {PlanPoint} */ end, /** @type {number} */ now = Date.now()) => {
+  if (end.kind === 'ghat') return `Last ferry 10:00 PM from ${end.name}.`;
+  return specialsActive(now)
+    ? 'Special trains run through the night. The last one leaves Bandel at 4:00 AM.'
+    : `Last train 12:00 AM from ${end.name}.`;
+};
 
 /**
  * A plan for `hours` from start to end, trimmed to make the last train or ferry.

@@ -3312,7 +3312,8 @@ button.jg-ladder-row {
 }
 .jg-seg {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   padding: 4px;
   border-radius: 12px;
@@ -3866,4 +3867,54 @@ button.jg-ladder-row {
 }
 .jg-share-tile[disabled] {
   opacity: 0.4;
+}
+
+/* Train timings (design 7.23): special trains in plain tables */
+.jg-plan-trains {
+  margin-top: 16px;
+}
+.jg-tt {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.jg-tt th {
+  padding: 0 0 8px;
+  text-align: left;
+  font-size: 0.8125rem; /* caption 13/16 */
+  line-height: 1rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+.jg-tt td {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem; /* meta 14/20 */
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.jg-tt .jg-tt-no {
+  color: var(--muted);
+}
+.jg-tt-long {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-tt-long li {
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.jg-tt-long p {
+  margin: 0;
+}
+.jg-tt-route {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.jg-tt-note {
+  margin: 16px 0 0;
 }

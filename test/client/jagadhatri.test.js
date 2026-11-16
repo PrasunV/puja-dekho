@@ -276,3 +276,66 @@ test('Express route: 17 matched pujas in the guide order, from Mankundu Station 
   assert.equal(plan?.stops.length, 17);
   assert.ok(plan && plan.minutes > 6 * 60 && plan.minutes < 9 * 60, 'about 7 to 8 hours');
 });
+
+test('the stay timer keeps running while the fix wobbles between two close pujas', () => {
+  const A = /** @type {any} */ ({ id: 'a', la: 22.865, lo: 88.37 });
+  const B = /** @type {any} */ ({ id: 'b', la: 22.865, lo: 88.37035 });
+  let stay = /** @type {import('../../src/jagadhatri/visit.js').Stay} */ (NO_STAY);
+  let t = 0;
+  for (let i = 0; i < 20; i++) {
+    stay = nextStay(stay, { lat: 22.865, lng: 88.37017 + (i % 2 ? 0.00008 : -0.00008), accuracy: 20 }, [A, B], t);
+    t += 10_000;
+  }
+  assert.equal(stayedLongEnough(stay, t), true);
+  // walking 300 m away ends it
+  assert.equal(nextStay(stay, { lat: 22.865, lng: 88.373, accuracy: 20 }, [A, B], t).id, null);
+});
+
+// ---- Eastern Railway specials ----
+import { BANDEL_HOWRAH, BARDDHAMAN, clock12, HOWRAH_BANDEL, SPECIALS_END, specialsActive } from '../../src/jagadhatri/trains.js';
+import { lastWayHome, minutesLeft } from '../../src/jagadhatri/plan.js';
+import { PLAN_HOURS } from '../../src/jagadhatri/config.js';
+
+test('special trains: 8 each way plus the two Barddhaman trains, as in the notice', () => {
+  assert.equal(HOWRAH_BANDEL.length, 8);
+  assert.equal(BANDEL_HOWRAH.length, 8);
+  assert.equal(BARDDHAMAN.length, 2);
+  const all = [...HOWRAH_BANDEL, ...BANDEL_HOWRAH, ...BARDDHAMAN];
+  assert.equal(new Set(all.map((t) => t.no)).size, 18, 'train numbers are unique');
+  for (const t of all) assert.match(`${t.dep} ${t.arr}`, /^\d\d:\d\d \d\d:\d\d$/);
+  assert.equal(HOWRAH_BANDEL[0].no, '03085');
+  assert.equal(BANDEL_HOWRAH[7].dep, '04:00');
+});
+
+test('clock12 writes the 12-hour style used in the app', () => {
+  assert.equal(clock12('17:20'), '5:20 PM');
+  assert.equal(clock12('00:30'), '12:30 AM');
+  assert.equal(clock12('12:05'), '12:05 PM');
+  assert.equal(clock12('04:00'), '4:00 AM');
+});
+
+test('the specials end after the last one reaches Howrah on 21 Nov, then the old last train comes back', () => {
+  assert.equal(specialsActive(Date.parse('2026-11-16T21:00:00+05:30')), true);
+  assert.equal(specialsActive(Date.parse(SPECIALS_END) - 1), true);
+  assert.equal(specialsActive(Date.parse(SPECIALS_END)), false);
+  const station = /** @type {any} */ ({ id: 's', name: 'Chandannagar Station', kind: 'station' });
+  const during = Date.parse('2026-11-17T22:00:00+05:30');
+  const after = Date.parse('2026-11-22T22:00:00+05:30');
+  // 10 PM: 6 h to 4:00 AM during the specials (minus 10 min to spare), 2 h to midnight after them.
+  assert.equal(minutesLeft(station, during), 6 * 60 - 10);
+  assert.equal(minutesLeft(station, after), 2 * 60 - 10);
+  assert.equal(minutesLeft(station, Date.parse('2026-11-17T01:00:00+05:30')), 3 * 60 - 10);
+  assert.match(lastWayHome(station, during), /run through the night/);
+  assert.equal(lastWayHome(station, after), 'Last train 12:00 AM from Chandannagar Station.');
+});
+
+test('ferries still stop at 10 PM during the specials', () => {
+  const ghat = /** @type {any} */ ({ id: 'g', name: 'Rani Ghat', kind: 'ghat' });
+  const during = Date.parse('2026-11-17T20:00:00+05:30');
+  assert.equal(minutesLeft(ghat, during), 2 * 60 - 10);
+  assert.equal(lastWayHome(ghat, during), 'Last ferry 10:00 PM from Rani Ghat.');
+});
+
+test('Plan my walk offers 2, 3 and 5 hours', () => {
+  assert.deepEqual([...PLAN_HOURS], [2, 3, 5]);
+});

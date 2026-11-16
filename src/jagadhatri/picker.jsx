@@ -2,7 +2,8 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 
-/** @typedef {{ id: string, name: string, icon: 'train' | 'boat' | 'locate', note?: string, disabled?: boolean }} PickOption */
+/** @typedef {{ id: string, name: string, short?: string, icon: 'train' | 'boat' | 'locate', note?: string, disabled?: boolean }} PickOption */
+/* `short` is what the row shows once picked ("Chandannagar Stn"); the open menu keeps the full `name`. */
 
 /** Rows are 48 high. The list (220 px in the CSS) shows four and a 28 px peek of the fifth, so the cut-off row says there is more. */
 const ROW = 48;
@@ -124,7 +125,7 @@ export function PickerField({ label, question, value, options, onPick }) {
         <span className="jg-pick-label">{label}</span>
         <span className="jg-pick-value">
           <Icon name={current.icon} size={18} />
-          <span className="jg-pick-text">{current.name}</span>
+          <span className="jg-pick-text">{current.short ?? current.name}</span>
         </span>
         <Icon name="chevron" size={20} />
       </button>
