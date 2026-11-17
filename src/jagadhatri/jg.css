@@ -7,6 +7,7 @@
   --color-border-control: #949494;
   --color-free: #0b7a75;
   --color-crowded: #c2410c;
+  --color-visited: #2e7d32; /* the green pin, tick and Visited chip: apart from the teal crowd dot */
   --scrim: rgba(30, 8, 10, 0.32);
   --scrim-strong: rgba(30, 8, 10, 0.56);
   --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -17,10 +18,21 @@
     --color-border-control: #6b6b6b;
     --color-free: #35b3aa;
     --color-crowded: #f0813f;
+    --color-visited: #5bc470;
     --scrim: rgba(0, 0, 0, 0.5);
     --scrim-strong: rgba(0, 0, 0, 0.6);
     --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
   }
+}
+
+:root[data-theme='dark'] {
+  --color-border-control: #6b6b6b;
+  --color-free: #35b3aa;
+  --color-crowded: #f0813f;
+  --color-visited: #5bc470;
+  --scrim: rgba(0, 0, 0, 0.5);
+  --scrim-strong: rgba(0, 0, 0, 0.6);
+  --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .sr-only {
@@ -1884,7 +1896,7 @@ button.jg-card:active {
   margin: 8px 0 0;
   border-top: 1px solid var(--line);
   font-weight: 700;
-  color: var(--color-free);
+  color: var(--color-visited);
 }
 .jg-wish-btn[aria-pressed='true'] {
   border-color: var(--maroon);
@@ -3917,4 +3929,17 @@ button.jg-ladder-row {
 }
 .jg-tt-note {
   margin: 16px 0 0;
+}
+
+/* The Visited chip: a green tick, then the count in the muted colour. */
+.jg .chip.jg-chip .jg-visited-ic {
+  display: inline-flex;
+  color: var(--color-visited);
+}
+.jg .chip.jg-chip .jg-chip-n {
+  color: var(--muted);
+  font-weight: 500;
+}
+.jg .chip.jg-chip[aria-pressed='true'] .jg-chip-n {
+  font-weight: 600; /* token-ok: selected chip */
 }

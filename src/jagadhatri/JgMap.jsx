@@ -5,8 +5,26 @@ import { MAP_BOUNDS, MAP_CENTER, MAP_STYLE_URL, MAP_STYLE_URL_DARK, MAP_ZOOM } f
 const darkQuery = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null);
 /** Pin, label and location colours for each phone theme (design tokens --color-primary, surface, text, me). */
 const THEME = {
-  light: { primary: '#B31D24', surface: '#FFFFFF', ink: '#2B1214', me: '#1A73E8', free: '#0B7A75', crowded: '#C2410C' },
-  dark: { primary: '#E0434B', surface: '#1C1C1C', ink: '#F2F2F2', me: '#669DF6', free: '#35B3AA', crowded: '#F0813F' },
+  light: {
+    primary: '#B31D24',
+    surface: '#FFFFFF',
+    ink: '#2B1214',
+    me: '#1A73E8',
+    free: '#0B7A75',
+    crowded: '#C2410C',
+    visited: '#2E7D32',
+    tick: '#FFFFFF',
+  },
+  dark: {
+    primary: '#E0434B',
+    surface: '#1C1C1C',
+    ink: '#F2F2F2',
+    me: '#669DF6',
+    free: '#35B3AA',
+    crowded: '#F0813F',
+    visited: '#5BC470',
+    tick: '#0F2A14',
+  },
 };
 
 /**
@@ -28,6 +46,7 @@ const THEME = {
  * @property {Set<string>} priority          Ids whose labels win when labels compete (Must visit, active filter)
  * @property {string | null} selectedId
  * @property {Record<string, { level: string }>} [crowd]  Live crowd status: a teal (free) or orange (crowded) dot
+ * @property {Set<string>} [visited]         Ids the signed-in person has visited: a solid green pin with a white tick
  * @property {import('./lib.js').JgCentre | null} centre
  * @property {{ lat: number, lng: number, accuracy: number } | null} me
  * @property {(id: string) => void} onPuja
@@ -91,7 +110,7 @@ function routeFeatures(/** @type {{ la: number, lo: number, n?: number, end?: bo
   };
 }
 
-function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}) {
+function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}, visited = new Set()) {
   return {
     type: 'FeatureCollection',
     features: pujas.map((p) => {
@@ -107,11 +126,31 @@ function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}) {
           sel,
           rank: sel ? 0 : p.pop ? 1 : priority.has(p.id) ? 2 : 3,
           crowd: crowd[p.id]?.level || '',
+          visited: visited.has(p.id),
         },
         geometry: { type: 'Point', coordinates: [p.lo, p.la] },
       };
     }),
   };
+}
+
+/** The tick drawn on a canvas (32 px at 2x), because a style's glyph fonts may not carry one. */
+function tickImage(/** @type {string} */ color) {
+  const size = 32;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  g.strokeStyle = color;
+  g.lineWidth = 4;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.beginPath();
+  g.moveTo(7, 17);
+  g.lineTo(14, 24);
+  g.lineTo(25, 9);
+  g.stroke();
+  return g.getImageData(0, 0, size, size);
 }
 
 const TRAIN =
@@ -197,7 +236,7 @@ const JgMap = forwardRef(
 
       // Puja layers on top of the map style. Run again after a theme switch, because a new style drops them.
       const addLayers = () => {
-        const { primary, surface, ink, me, free, crowded } = darkQuery()?.matches ? THEME.dark : THEME.light;
+        const { primary, surface, ink, me, free, crowded, visited, tick } = darkQuery()?.matches ? THEME.dark : THEME.light;
         const font = map.getStyle().layers.find((l) => l.type === 'symbol' && l.layout?.['text-font'])?.layout?.['text-font'] || [
           'Noto Sans Regular',
         ];
@@ -213,7 +252,7 @@ const JgMap = forwardRef(
           paint: { 'line-color': me, 'line-width': 1.5, 'line-opacity': 0.7 },
         });
 
-        map.addSource('jg-pujas', { type: 'geojson', data: pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd) });
+        map.addSource('jg-pujas', { type: 'geojson', data: pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd, p.visited) });
         map.addLayer({
           id: 'jg-pins',
           type: 'circle',
@@ -221,8 +260,8 @@ const JgMap = forwardRef(
           layout: { 'circle-sort-key': ['case', ['get', 'sel'], 2, ['get', 'on'], 1, 0] },
           paint: {
             'circle-radius': pinRadius(),
-            'circle-color': ['case', ['get', 'sel'], primary, surface],
-            'circle-stroke-color': primary,
+            'circle-color': ['case', ['get', 'visited'], visited, ['get', 'sel'], primary, surface],
+            'circle-stroke-color': ['case', ['get', 'visited'], visited, primary],
             'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 11, 1.25, 14.5, 2],
             'circle-opacity': ['case', ['get', 'on'], 1, 0.1],
             'circle-stroke-opacity': ['case', ['get', 'on'], 1, 0.1],
@@ -233,12 +272,30 @@ const JgMap = forwardRef(
           type: 'circle',
           source: 'jg-pujas',
           minzoom: 13.5,
+          filter: ['!', ['get', 'visited']],
           layout: { 'circle-sort-key': ['case', ['get', 'sel'], 2, ['get', 'on'], 1, 0] },
           paint: {
             'circle-radius': pinRadius(0.36),
             'circle-color': ['case', ['get', 'sel'], surface, primary],
             'circle-opacity': ['case', ['get', 'on'], 1, 0.1],
           },
+        });
+        // A white tick on the green pin from street level up; zoomed out the pin is a plain green dot.
+        if (map.hasImage('jg-tick')) map.removeImage('jg-tick');
+        map.addImage('jg-tick', tickImage(tick), { pixelRatio: 2 });
+        map.addLayer({
+          id: 'jg-visited-tick',
+          type: 'symbol',
+          source: 'jg-pujas',
+          minzoom: 13.5,
+          filter: ['get', 'visited'],
+          layout: {
+            'icon-image': 'jg-tick',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+            'icon-size': ['interpolate', ['linear'], ['zoom'], 13.5, 0.34, 14.5, 0.5, 16, 0.8],
+          },
+          paint: { 'icon-opacity': ['case', ['get', 'on'], 1, 0.1] },
         });
         // Crowd dot at the pin's top-right edge, from street level up.
         map.addLayer({
@@ -443,7 +500,7 @@ const JgMap = forwardRef(
       if (!map || !ready.current) return;
       const p = latest.current;
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-pujas')).setData(
-        /** @type {any} */ (pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd)),
+        /** @type {any} */ (pujaFeatures(p.pujas, p.lit, p.priority, p.selectedId, p.crowd, p.visited)),
       );
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-radius')).setData(
         /** @type {any} */ (p.centre ? circle(p.centre.lat, p.centre.lng, p.centre.radius) : EMPTY),
@@ -461,8 +518,8 @@ const JgMap = forwardRef(
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route-stops')).setData(/** @type {any} */ (rf.stops));
     }
 
-    const { pujas, lit, priority, selectedId, centre, me, crowd, route } = props;
-    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route]);
+    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited } = props;
+    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

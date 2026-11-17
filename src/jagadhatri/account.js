@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { storage } from '../lib/storage.js';
+import { pujaNight } from './ranks.js';
 
 /**
  * The signed-in account: Google sign-in, wish list and visited pujas, with the server at /api/jagadhatri/account.
@@ -37,20 +38,20 @@ async function post(body) {
 }
 
 /** The same change applied on the phone, so the screen updates before the server answers. */
-function applyLocal(/** @type {Snapshot} */ s, /** @type {Change} */ c, now = Date.now()) {
+export function applyLocal(/** @type {Snapshot} */ s, /** @type {Change} */ c, now = Date.now()) {
   if (c.action === 'wish') {
     const wish = s.wish.filter((w) => w.puja !== c.puja);
     return { ...s, wish: c.on ? [{ puja: c.puja, at: now }, ...wish] : wish };
   }
   const had = s.visited.find((v) => v.puja === c.puja);
   if (c.action === 'here') {
-    const day = new Date(now + 5.5 * 3600_000).toISOString().slice(0, 10);
+    const day = pujaNight(now);
     const rest = s.visited.filter((v) => v.puja !== c.puja);
     return had?.mode === 'person' ? s : { ...s, visited: [{ puja: c.puja, mode: 'person', at: now, day }, ...rest] };
   }
   if (c.on) {
     if (had) return s;
-    const day = new Date(now + 5.5 * 3600_000).toISOString().slice(0, 10);
+    const day = pujaNight(now);
     return { ...s, visited: [{ puja: c.puja, mode: 'manual', at: now, day }, ...s.visited] };
   }
   return { ...s, visited: s.visited.filter((v) => !(v.puja === c.puja && v.mode === 'manual')) };

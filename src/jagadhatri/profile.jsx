@@ -11,6 +11,21 @@ import EmptyState from './loader/EmptyState.jsx';
 import { badgeSvg, progressTo, rankOf, RANKS, statsOf, unlocked, unlockLine } from './ranks.js';
 import { Avatar, ModalSheet, ViewCue } from './ui.jsx';
 
+const WHEN = new Intl.DateTimeFormat('en-IN', {
+  timeZone: 'Asia/Kolkata',
+  weekday: 'short',
+  day: 'numeric',
+  month: 'short',
+  hour: 'numeric',
+  minute: '2-digit',
+  hour12: true,
+});
+/** "Mon 16 Nov, 9:40 PM" in Indian time, for the Visited list. */
+const visitWhen = (/** @type {number} */ at) =>
+  WHEN.format(at)
+    .replace(/^(\w+),/, '$1')
+    .replace(/\b(am|pm)\b/, (m) => m.toUpperCase());
+
 /** One message per reason the sign-in sheet opens (copy approved in the prototype). */
 const SIGN_IN_COPY = {
   start: ['Walk your route, earn badges', 'One tap with Google. Tick off each stop as you go, and we keep count on any phone.'],
@@ -399,10 +414,11 @@ export function ProfileSheet({
                           <span className="jg-row-text">
                             <span className="jg-row-head">
                               <span className="jg-row-title">{p.n}</span>
-                              {v.mode === 'manual' && <span className="jg-tag">Manual</span>}
                             </span>
                             <span className="jg-row-meta">
-                              <span>{v.mode === 'manual' ? 'Not counted for badges' : p.t}</span>
+                              <span>
+                                {v.mode === 'manual' ? 'Marked' : 'Checked in'} · {visitWhen(v.at)}
+                              </span>
                             </span>
                           </span>
                         </button>
@@ -560,7 +576,7 @@ export function SettingsSheet({ open, pending, track, onTrack, local, onLocal, o
       <button type="button" role="switch" aria-checked={track} className="jg-choice jg-switch-row" onClick={() => onTrack(!track)}>
         <span className="jg-choice-text">
           <span className="jg-choice-label">Count visits with location</span>
-          <span className="jg-choice-count">Asks when you spend 2 minutes at a puja</span>
+          <span className="jg-choice-count">Asks when you are near a puja</span>
         </span>
         <span className="jg-switch" aria-hidden="true" />
       </button>

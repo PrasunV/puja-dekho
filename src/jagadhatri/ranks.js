@@ -1,7 +1,7 @@
 /**
- * Rank badges, E-Rank to S-Rank (design 9.4). Only pujas completed in person count ("person" visits, from Yes on the
- * "Are you visiting?" bar); a hand tick ("manual") shows in Visited but never counts. A higher rank always includes
- * the ones below it: reaching D-Rank (10 in total) also earns E-Rank.
+ * Rank badges, E-Rank to S-Rank (design 9.4). Every visited puja counts: a check-in ("person", from Yes on the
+ * "Are you visiting?" bar) and a hand tick ("manual", Mark as visited) alike. The profile says how each was counted.
+ * A higher rank always includes the ones below it: reaching D-Rank (10 in total) also earns E-Rank.
  * Pure functions, tested in test/client/jagadhatri.test.js.
  */
 
@@ -23,6 +23,8 @@ export const RANKS = Object.freeze([
 
 const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
 export const istDay = (/** @type {number} */ ms) => new Date(ms + IST_OFFSET_MS).toISOString().slice(0, 10);
+/** The puja night a moment belongs to: it runs until 5 AM, so a 1 AM visit counts with the evening before it. */
+export const pujaNight = (/** @type {number} */ ms) => istDay(ms - 5 * 60 * 60_000);
 
 /**
  * Counts from the visit list.
@@ -30,12 +32,11 @@ export const istDay = (/** @type {number} */ ms) => new Date(ms + IST_OFFSET_MS)
  * @param {number} now
  */
 export function statsOf(visited, now) {
-  const person = visited.filter((v) => v.mode === 'person');
   const byDay = new Map();
-  for (const v of person) byDay.set(v.day, (byDay.get(v.day) || 0) + 1);
-  const today = byDay.get(istDay(now)) || 0;
+  for (const v of visited) byDay.set(v.day, (byDay.get(v.day) || 0) + 1);
+  const today = byDay.get(pujaNight(now)) || 0;
   const best = Math.max(0, ...byDay.values());
-  return { today, total: person.length, best };
+  return { today, total: visited.length, best };
 }
 
 /** @param {{ best: number, total: number }} s @param {number} i */

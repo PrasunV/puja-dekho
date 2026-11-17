@@ -68,7 +68,8 @@ export function crowdSummary(rows) {
   return out;
 }
 
-const istDay = (ms) => new Date(ms + IST_OFFSET_MS).toISOString().slice(0, 10);
+// The puja night: it runs until 5 AM, so a 1 AM visit counts with the evening before it (same rule as the app).
+const istDay = (ms) => new Date(ms - 5 * 60 * 60_000 + IST_OFFSET_MS).toISOString().slice(0, 10);
 const b64url = (buf) => Buffer.from(buf).toString('base64url');
 const fromB64url = (s) => Buffer.from(s, 'base64url');
 

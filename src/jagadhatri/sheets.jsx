@@ -146,7 +146,7 @@ export function PujaDetail({ puja, station, onClose, visit, onVisited, crowd, cr
         >
           <span className="jg-choice-text">
             <span className="jg-choice-label">Mark as visited</span>
-            <span className="jg-choice-count">Not counted for badges</span>
+            <span className="jg-choice-count">Counts for badges</span>
           </span>
           <span className="jg-switch" aria-hidden="true" />
         </button>

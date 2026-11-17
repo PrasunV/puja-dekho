@@ -43,7 +43,7 @@ import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile
 import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
 import { ShareFab, ShareSheet, useAnyModalOpen, useShareReveal, useSplashGone } from './share.jsx';
-import { NO_STAY, nextStay, sayNo, saidNoToday, stayedLongEnough } from './visit.js';
+import { AUTO_HIDE_MS, canAsk, noteAnswered, noteAsked, sayNo, visitCandidate } from './visit.js';
 import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
@@ -185,7 +185,7 @@ function Loaded({ data }) {
     () =>
       account.signedIn
         ? { ...filtersRaw, mine, crowd: crowd.crowd }
-        : { ...filtersRaw, wish: false, notVisited: false, crowd: crowd.crowd },
+        : { ...filtersRaw, wish: false, notVisited: false, visitedOnly: false, crowd: crowd.crowd },
     [filtersRaw, mine, account.signedIn, crowd.crowd],
   );
   /** Why the sign-in sheet is open, and the change to make once signed in. */
@@ -295,7 +295,7 @@ function Loaded({ data }) {
     // While visits are being counted, location keeps running for the "Are you visiting?" bar.
     if (!tracking) geo.stop();
   }, [geo, tracking]);
-  const { start: geoStart, stop: geoStop } = geo;
+  const { start: geoStart, stop: geoStop, refresh: geoRefresh } = geo;
   useEffect(() => {
     if (tracking && geo.permission === 'granted') geoStart();
   }, [tracking, geo.permission, geoStart]);
@@ -545,7 +545,7 @@ function Loaded({ data }) {
     setSignIn({ reason: 'start' });
   };
 
-  // ---------- "Are you visiting?" (2 minutes within 100 m), then the crowd ----------
+  // ---------- "Are you visiting?" (within 150 m of a puja), then the crowd ----------
   const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
 
   // Every open, signed-out people get the sign-in sheet: 5 s after their first tap or scroll once the welcome card is
@@ -640,7 +640,7 @@ function Loaded({ data }) {
   // ---- Badges: celebrate a rank earned on this phone, once (design 9.4) ----
   // Rank depends only on totals and the best day, so "now" doesn't matter here.
   const curRank = useMemo(() => rankOf(statsOf(account.visited, 0)).cur, [account.visited]);
-  const personTotal = useMemo(() => account.visited.filter((v) => v.mode === 'person').length, [account.visited]);
+  const visitedTotal = account.visited.length;
   /** The highest rank this person has already seen celebrated here. Starts at their rank when they sign in. */
   const [seen, setSeen] = useState(() => /** @type {{ u: string, r: number } | null} */ (storage.get('jg_seen_rank', null)));
   const userKey = account.user?.name ?? null;
@@ -668,31 +668,53 @@ function Loaded({ data }) {
   // A card at the top of the puja list from the first open until answered; a skip brings it back once on a later day.
   const whoDue = !who.answer && who.skips < 2 && who.day !== todayIst && !whoDismissed;
   const markSeen = () => userKey && setSeen({ u: userKey, r: curRank });
-  const stay = useRef(/** @type {import('./visit.js').Stay} */ (NO_STAY));
-  const askedThisSession = useRef(/** @type {Set<string>} */ (new Set()));
-  const visitCtx = useRef({ pos, blocked: true, inPerson: /** @type {Set<string>} */ (new Set()) });
-  const inPerson = useMemo(() => new Set(account.visited.filter((v) => v.mode === 'person').map((v) => v.puja)), [account.visited]);
-  const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen || welcome;
+  // Pujas already on this account (counted in person or ticked by hand) are never asked about.
+  const visitedIds = useMemo(() => new Set(account.visited.map((v) => v.puja)), [account.visited]);
+  // The bar waits for a calm screen: nothing else open, and the sheet not full (it would hide the bar).
+  const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen || welcome || sheet === 'full';
+  const visitCtx = useRef({ pos, blocked: true, visitedIds, tracking, refresh: geoRefresh });
   useEffect(() => {
-    visitCtx.current = { pos, blocked: visitBlocked, inPerson };
-  }, [pos, visitBlocked, inPerson]);
+    visitCtx.current = { pos, blocked: visitBlocked, visitedIds, tracking, refresh: geoRefresh };
+  }, [pos, visitBlocked, visitedIds, tracking, geoRefresh]);
   useEffect(() => {
+    // Ask about the nearest puja within 150 m the moment a fresh, precise fix says so. What was asked or answered is
+    // remembered on the phone, so a reload, a closed tab or a second look never repeats a question.
     const check = () => {
-      const { pos: at, blocked: busy, inPerson: done } = visitCtx.current;
+      const { pos: at, blocked: busy, visitedIds: done } = visitCtx.current;
+      if (busy || document.visibilityState !== 'visible') return;
       const t = Date.now();
-      stay.current = nextStay(stay.current, at, pujas, t);
-      const id = stay.current.id;
-      if (!id || busy || !stayedLongEnough(stay.current, t)) return;
-      if (done.has(id) || askedThisSession.current.has(id) || saidNoToday(id, t)) return;
-      const p = byId.get(id);
-      if (!p) return;
-      askedThisSession.current.add(id);
+      const p = visitCandidate(at, pujas, t);
+      if (!p || done.has(p.id) || !canAsk(p.id, t)) return;
+      noteAsked(p.id, t);
       setBar({ kind: 'ask', puja: p });
     };
+    // A phone that stands still may send no new fix, and the browser pauses location in the camera app: ask for a fresh
+    // one when the app comes back, and whenever the last one is getting old.
+    const freshen = () => {
+      const c = visitCtx.current;
+      if (c.tracking && document.visibilityState === 'visible' && Date.now() - (c.pos?.at ?? 0) > 10_000) c.refresh();
+    };
+    const onShow = () => {
+      freshen();
+      check();
+    };
     check();
-    const timer = window.setInterval(check, 10_000);
-    return () => window.clearInterval(timer);
-  }, [pos, pujas, byId, setBar]);
+    const timer = window.setInterval(() => {
+      freshen();
+      check();
+    }, 3_000);
+    document.addEventListener('visibilitychange', onShow);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onShow);
+    };
+  }, [pos, pujas, setBar]);
+  // An ignored bar hides itself, so it never sits over the camera or the map for long.
+  useEffect(() => {
+    if (visitStep?.kind !== 'ask') return undefined;
+    const id = window.setTimeout(() => setBar(null), AUTO_HIDE_MS);
+    return () => window.clearTimeout(id);
+  }, [visitStep, setBar]);
 
   /** Yes, signed in: count it in person, then ask about the crowd. */
   const countHere = (/** @type {import('./lib.js').JgPuja} */ p) => {
@@ -725,6 +747,7 @@ function Loaded({ data }) {
     primeSound(); // a badge may unlock: let its sound play after the crowd step
     const p = visitStep?.puja;
     if (!p) return;
+    noteAnswered(p.id, Date.now());
     if (account.signedIn) return countHere(p);
     setBar(null);
     setSignInErr(null);
@@ -1067,6 +1090,24 @@ function Loaded({ data }) {
                 <Icon name="sliders" size={16} />
                 {nMore > 0 ? `More · ${nMore}` : 'More'}
               </button>
+              {account.signedIn && (mine.visited.size > 0 || filters.visitedOnly) && (
+                <button
+                  type="button"
+                  className="chip compact jg-chip"
+                  aria-pressed={filters.visitedOnly}
+                  aria-label={`Visited, ${mine.visited.size} ${mine.visited.size === 1 ? 'puja' : 'pujas'}`}
+                  onClick={() => {
+                    setFilters((f) => ({ ...f, visitedOnly: !f.visitedOnly, notVisited: false }));
+                    setView({ kind: 'list' });
+                  }}
+                >
+                  <span className="jg-visited-ic" aria-hidden="true">
+                    <Icon name="check" size={16} />
+                  </span>
+                  Visited
+                  <span className="jg-chip-n">{mine.visited.size}</span>
+                </button>
+              )}
             </div>
           </nav>
         )}
@@ -1106,6 +1147,7 @@ function Loaded({ data }) {
                   priority={priority}
                   selectedId={selectedId}
                   crowd={crowd.crowd}
+                  visited={mine.visited}
                   centre={centre}
                   me={pos && farM == null ? pos : null}
                   route={routeOnMap}
@@ -1408,7 +1450,7 @@ function Loaded({ data }) {
             ? curRank
             : null
         }
-        total={personTotal}
+        total={visitedTotal}
         onShare={() => {
           markSeen();
           setShareRank(curRank);
@@ -1417,7 +1459,7 @@ function Loaded({ data }) {
       />
       <ShareScreen
         rank={shareRank}
-        total={personTotal}
+        total={visitedTotal}
         user={account.user}
         online={online}
         onClose={() => setShareRank(null)}
@@ -1785,7 +1827,7 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
               label="Not visited yet"
               count={pujaCount(pujas.filter((p) => !mine.visited.has(p.id)).length)}
               selected={draft.notVisited}
-              onClick={() => setDraft((d) => ({ ...d, notVisited: !d.notVisited }))}
+              onClick={() => setDraft((d) => ({ ...d, notVisited: !d.notVisited, visitedOnly: d.notVisited ? d.visitedOnly : false }))}
             />
           </>
         ) : (

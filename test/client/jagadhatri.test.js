@@ -64,16 +64,16 @@ test('jagadhatri distance format', () => {
 });
 
 // ---- v0.2 badges ----
-import { istDay, progressTo, rankOf, statsOf, unlocked, unlockLine } from '../../src/jagadhatri/ranks.js';
+import { pujaNight as istDay, progressTo, rankOf, statsOf, unlocked, unlockLine } from '../../src/jagadhatri/ranks.js';
 
-test('only in-person visits count, by IST day', () => {
+test('every visit counts, by puja night', () => {
   const now = Date.UTC(2026, 10, 16, 20, 0); // 17 Nov 01:30 IST
   const v = (puja, mode, day) => ({ puja, mode, at: 0, day });
   const s = statsOf(
     [v('a', 'person', istDay(now)), v('b', 'person', istDay(now)), v('c', 'manual', istDay(now)), v('d', 'person', '2026-11-15')],
     now,
   );
-  assert.deepEqual(s, { today: 2, total: 3, best: 2 });
+  assert.deepEqual(s, { today: 3, total: 4, best: 3 });
 });
 
 test('E-Rank comes with D-Rank; next rank and its line', () => {
@@ -86,19 +86,52 @@ test('E-Rank comes with D-Rank; next rank and its line', () => {
 });
 
 // ---- v0.2 "Are you visiting?" ----
-import { agoText, NO_STAY, nextStay, stayedLongEnough } from '../../src/jagadhatri/visit.js';
+import { agoText, canAsk, noteAnswered, noteAsked, QUIET_MS, SNOOZE_MS, sayNo, visitCandidate } from '../../src/jagadhatri/visit.js';
 
-test('asks only after 2 minutes within 100 m of the same puja', () => {
+/** A tiny localStorage for these tests, since the app's storage keeps things on the phone. */
+const mem = new Map();
+Object.assign(globalThis, {
+  localStorage: {
+    getItem: (/** @type {string} */ k) => mem.get(k) ?? null,
+    setItem: (/** @type {string} */ k, /** @type {string} */ v) => mem.set(k, v),
+  },
+});
+
+test('asks about the nearest puja within 150 m, from a fresh and precise fix', () => {
   const p = data.pujas[0];
-  const at = (dLat, acc = 10) => ({ lat: p.la + dLat, lng: p.lo, accuracy: acc });
-  let s = nextStay(NO_STAY, at(0.0003), data.pujas, 0); // ~33 m away
-  assert.equal(s.id, p.id);
-  s = nextStay(s, at(0.0004), data.pujas, 60_000);
-  assert.equal(stayedLongEnough(s, 60_000), false);
-  assert.equal(stayedLongEnough(nextStay(s, at(0.0002), data.pujas, 120_000), 120_000), true);
-  // An imprecise fix changes nothing; walking away ends the stay.
-  assert.equal(nextStay(s, at(0.01, 300), data.pujas, 90_000), s);
-  assert.equal(nextStay(s, { lat: 22.0, lng: 88.0, accuracy: 10 }, data.pujas, 90_000).id, null);
+  const now = Date.parse('2026-11-17T21:00:00+05:30');
+  const at = (/** @type {number} */ dLat, acc = 10, age = 1_000) => ({ lat: p.la + dLat, lng: p.lo, accuracy: acc, at: now - age });
+  assert.equal(visitCandidate(at(0.0012), data.pujas, now)?.id, p.id); // ~133 m
+  assert.equal(visitCandidate(at(0.0016), data.pujas, now)?.id === p.id, false); // ~178 m: not asked about this one
+  // An old fix (the camera app paused location), a loose fix and no fix ask nothing.
+  assert.equal(visitCandidate(at(0.0003, 10, 60_000), data.pujas, now), null);
+  assert.equal(visitCandidate(at(0.0003, 120), data.pujas, now), null);
+  assert.equal(visitCandidate(null, data.pujas, now), null);
+  assert.equal(visitCandidate({ lat: 22.0, lng: 88.0, accuracy: 10, at: now }, data.pujas, now), null);
+});
+
+test('the bar remembers what it asked, so a reload never repeats a question', () => {
+  mem.clear();
+  const t = Date.parse('2026-11-17T21:00:00+05:30');
+  assert.equal(canAsk('a', t), true);
+  noteAsked('a', t); // the bar went up
+  assert.equal(canAsk('a', t + 5_000), false, 'not again right after, even after a reload');
+  assert.equal(canAsk('a', t + SNOOZE_MS - 1), false);
+  assert.equal(canAsk('a', t + SNOOZE_MS + 1), true, 'an ignored bar comes back after an hour');
+  noteAnswered('a', t + 10_000); // Yes
+  assert.equal(canAsk('a', t + 6 * 60 * 60_000), false, 'answered: not again tonight, even after midnight (up to 3 AM)');
+  assert.equal(canAsk('b', t + 10_000 + QUIET_MS - 1), false, 'no bar for any puja for 2 minutes after an answer');
+  assert.equal(canAsk('b', t + 10_000 + QUIET_MS + 1), true);
+  assert.equal(canAsk('a', t + 24 * 60 * 60_000 + 60_000), true, 'the next night starts fresh');
+});
+
+test('No means not again today for that puja', () => {
+  mem.clear();
+  const t = Date.parse('2026-11-17T21:00:00+05:30');
+  sayNo('c', t);
+  assert.equal(canAsk('c', t + 5 * 60 * 60_000), false, 'still no at 2 AM');
+  assert.equal(canAsk('c', t + 20 * 60 * 60_000), true, 'asked again the next night');
+  assert.equal(canAsk('d', t + QUIET_MS + 1), true);
 });
 
 test('crowd filters and time text', () => {
@@ -119,6 +152,46 @@ test('share lines say what earned the badge', () => {
   assert.equal(rareLine(0, 3), '5 pujas in one day');
   assert.equal(rareLine(2, 31), '31 pujas visited');
   assert.equal(rareLine(1, 4), '10 pujas visited');
+});
+
+// ---- Visited: check-ins and marks count alike, by puja night ----
+import { pujaNight } from '../../src/jagadhatri/ranks.js';
+import { applyLocal } from '../../src/jagadhatri/account.js';
+
+test('the puja night runs until 5 AM', () => {
+  assert.equal(pujaNight(Date.parse('2026-11-16T23:30:00+05:30')), '2026-11-16');
+  assert.equal(pujaNight(Date.parse('2026-11-17T01:10:00+05:30')), '2026-11-16', 'after midnight is still the same night');
+  assert.equal(pujaNight(Date.parse('2026-11-17T04:59:00+05:30')), '2026-11-16');
+  assert.equal(pujaNight(Date.parse('2026-11-17T05:01:00+05:30')), '2026-11-17');
+});
+
+test('a mark counts for badges like a check-in', () => {
+  const now = Date.parse('2026-11-16T23:00:00+05:30');
+  const v = (puja, mode, at) => ({ puja, mode, at, day: pujaNight(at) });
+  const visited = [
+    v('a', 'person', now),
+    v('b', 'manual', now + 60_000),
+    v('c', 'manual', now + 2 * 3600_000), // 1 AM, same night
+    v('d', 'person', now - 24 * 3600_000),
+  ];
+  const s = statsOf(visited, now);
+  assert.equal(s.total, 4);
+  assert.equal(s.today, 3);
+  assert.equal(s.best, 3);
+});
+
+test('marking by hand stamps the puja night', () => {
+  const at = Date.parse('2026-11-17T01:00:00+05:30');
+  const next = applyLocal({ user: null, visited: [], wish: [] }, { action: 'visited', puja: 'x', on: true }, at);
+  assert.equal(next.visited[0].mode, 'manual');
+  assert.equal(next.visited[0].day, '2026-11-16');
+});
+
+test('the Visited filter keeps only visited pujas', () => {
+  const [a, b] = data.pujas;
+  const mine = { wish: new Set(), visited: new Set([a.id]) };
+  assert.equal(passes(a, { ...NO_FILTERS, visitedOnly: true, mine }), true);
+  assert.equal(passes(b, { ...NO_FILTERS, visitedOnly: true, mine }), false);
 });
 
 // ---- Traffic notice status ----
@@ -275,20 +348,6 @@ test('Express route: 17 matched pujas in the guide order, from Mankundu Station 
   const plan = bestPlan(r, byId, points);
   assert.equal(plan?.stops.length, 17);
   assert.ok(plan && plan.minutes > 6 * 60 && plan.minutes < 9 * 60, 'about 7 to 8 hours');
-});
-
-test('the stay timer keeps running while the fix wobbles between two close pujas', () => {
-  const A = /** @type {any} */ ({ id: 'a', la: 22.865, lo: 88.37 });
-  const B = /** @type {any} */ ({ id: 'b', la: 22.865, lo: 88.37035 });
-  let stay = /** @type {import('../../src/jagadhatri/visit.js').Stay} */ (NO_STAY);
-  let t = 0;
-  for (let i = 0; i < 20; i++) {
-    stay = nextStay(stay, { lat: 22.865, lng: 88.37017 + (i % 2 ? 0.00008 : -0.00008), accuracy: 20 }, [A, B], t);
-    t += 10_000;
-  }
-  assert.equal(stayedLongEnough(stay, t), true);
-  // walking 300 m away ends it
-  assert.equal(nextStay(stay, { lat: 22.865, lng: 88.373, accuracy: 20 }, [A, B], t).id, null);
 });
 
 // ---- Eastern Railway specials ----
