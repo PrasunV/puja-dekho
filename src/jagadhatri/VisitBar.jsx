@@ -2,58 +2,70 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Icon } from '../components/ui/Icon.jsx';
 
 /**
- * The "Are you visiting?" bar (design 7.9): a soft grey card floating just above the bottom sheet. Two steps, one
- * question each, with two equal grey buttons so neither answer is nudged:
- *   ask   "Are you visiting [puja]?"   No | Yes        (no close button: No is the way out)
- *   crowd "How is the crowd right now?" ✕   Free | Crowded   (✕ skips)
+ * The "Are you visiting?" bar (design 7.9): a soft grey card floating just above the bottom sheet. Each step asks one
+ * question with two equal grey buttons so neither answer is nudged:
+ *   ask   "Are you visiting [puja]?"        ✕  No | Yes   (✕ closes it with no answer; it is asked again later)
+ *   late  "Have you visited [puja]?"        ✕  No | Yes   a second line says when you were near it, with dots when
+ *                                                          there is more than one puja (up to 5)
+ *   crowd "How is the crowd right now?"     ✕  Free | Crowded   (✕ skips)
  * @param {{
- *   step: null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja },
+ *   step: null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja } | { kind: 'late', puja: import('./lib.js').JgPuja, line: string, i: number, total: number },
  *   busy: boolean,
  *   bottom: string,
- *   onYes: () => void, onNo: () => void,
+ *   onYes: () => void, onNo: () => void, onClose: () => void,
  *   onCrowd: (level: 'free' | 'crowded') => void, onSkip: () => void,
  * }} props
  */
-export function VisitBar({ step, busy, bottom, onYes, onNo, onCrowd, onSkip }) {
+export function VisitBar({ step, busy, bottom, onYes, onNo, onClose, onCrowd, onSkip }) {
   const reduce = useReducedMotion();
+  const late = step?.kind === 'late' ? step : null;
   return (
     <AnimatePresence>
       {step && (
         <motion.section
-          key={step.puja.id}
+          key={step.kind === 'crowd' ? `${step.puja.id}-crowd` : step.puja.id}
           className="jg-visit-bar"
           style={{ bottom }}
           role="dialog"
           aria-live="polite"
-          aria-label={step.kind === 'ask' ? 'Are you visiting this puja?' : 'Crowd report'}
+          aria-label={
+            step.kind === 'ask'
+              ? 'Are you visiting this puja?'
+              : late
+                ? `Have you visited this puja?${late.total > 1 ? ` ${late.i + 1} of ${late.total}` : ''}`
+                : 'Crowd report'
+          }
           initial={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
           animate={reduce ? { opacity: 1 } : { opacity: 1, y: 0 }}
           exit={reduce ? { opacity: 0 } : { opacity: 0, y: 12 }}
           transition={{ duration: 0.2 }}
         >
-          {step.kind === 'ask' ? (
+          <div className="jg-visit-head">
             <p className="jg-visit-q">
-              Are you visiting <strong>{step.puja.n}</strong>?
+              {step.kind === 'ask' && (
+                <>
+                  Are you visiting <strong>{step.puja.n}</strong>?
+                </>
+              )}
+              {late && (
+                <>
+                  Have you visited <strong>{step.puja.n}</strong>?
+                </>
+              )}
+              {step.kind === 'crowd' && 'How is the crowd right now?'}
             </p>
-          ) : (
-            <div className="jg-visit-head">
-              <p className="jg-visit-q">How is the crowd right now?</p>
-              <button type="button" className="jg-visit-x" aria-label="Skip crowd report" onClick={onSkip}>
-                <Icon name="x" size={20} />
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              className="jg-visit-x"
+              aria-label={step.kind === 'crowd' ? 'Skip crowd report' : 'Close, ask me later'}
+              onClick={step.kind === 'crowd' ? onSkip : onClose}
+            >
+              <Icon name="x" size={20} />
+            </button>
+          </div>
+          {late && <p className="jg-visit-sub">{late.line}</p>}
           <div className="jg-visit-btns">
-            {step.kind === 'ask' ? (
-              <>
-                <button type="button" className="jg-visit-btn" onClick={onNo} disabled={busy}>
-                  No
-                </button>
-                <button type="button" className="jg-visit-btn" onClick={onYes} disabled={busy}>
-                  Yes
-                </button>
-              </>
-            ) : (
+            {step.kind === 'crowd' ? (
               <>
                 <button type="button" className="jg-visit-btn" onClick={() => onCrowd('free')} disabled={busy}>
                   <span className="jg-visit-dot free" aria-hidden="true" />
@@ -64,8 +76,24 @@ export function VisitBar({ step, busy, bottom, onYes, onNo, onCrowd, onSkip }) {
                   Crowded
                 </button>
               </>
+            ) : (
+              <>
+                <button type="button" className="jg-visit-btn" onClick={onNo} disabled={busy}>
+                  No
+                </button>
+                <button type="button" className="jg-visit-btn" onClick={onYes} disabled={busy}>
+                  Yes
+                </button>
+              </>
             )}
           </div>
+          {late && late.total > 1 && (
+            <div className="jg-visit-dots" aria-hidden="true">
+              {Array.from({ length: late.total }, (_, k) => (
+                <i key={k} className={k === late.i ? 'cur' : k < late.i ? 'past' : ''} />
+              ))}
+            </div>
+          )}
         </motion.section>
       )}
     </AnimatePresence>

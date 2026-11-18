@@ -43,7 +43,19 @@ import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile
 import { rankOf, statsOf } from './ranks.js';
 import { TrafficDetail } from './traffic.jsx';
 import { ShareFab, ShareSheet, useAnyModalOpen, useShareReveal, useSplashGone } from './share.jsx';
-import { AUTO_HIDE_MS, canAsk, noteAnswered, noteAsked, sayNo, visitCandidate } from './visit.js';
+import {
+  AUTO_HIDE_MS,
+  canAsk,
+  CATCHUP_AFTER_MS,
+  CATCHUP_GIVE_UP_MS,
+  lateLine,
+  lateQueue,
+  noteAnswered,
+  noteAsked,
+  noteNear,
+  sayNo,
+  visitCandidate,
+} from './visit.js';
 import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
@@ -546,7 +558,9 @@ function Loaded({ data }) {
   };
 
   // ---------- "Are you visiting?" (within 150 m of a puja), then the crowd ----------
-  const [visitStep, setVisitStep] = useState(/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ (null));
+  const [visitStep, setVisitStep] = useState(
+    /** @type {null | { kind: 'ask' | 'crowd' | 'late', puja: import('./lib.js').JgPuja }} */ (null),
+  );
 
   // Every open, signed-out people get the sign-in sheet: 5 s after their first tap or scroll once the welcome card is
   // gone, or 20 s after it if they touch nothing. It waits for a calm moment (never over another sheet, search, a puja
@@ -624,7 +638,9 @@ function Loaded({ data }) {
   const [visitBusy, setVisitBusy] = useState(false);
   // While the bar shows, the sheet drops to its resting third so the map stays visible, then goes back (design 7.9).
   const sheetBeforeBar = useRef(/** @type {null | 'peek' | 'initial' | 'half' | 'full'} */ (null));
-  const setBar = useCallback((/** @type {null | { kind: 'ask' | 'crowd', puja: import('./lib.js').JgPuja }} */ next) => {
+  /** The "Have you visited?" pujas waiting in the bar, and which one is showing. */
+  const [late, setLate] = useState(/** @type {null | { items: import('./visit.js').LateItem[], i: number }} */ (null));
+  const setBar = useCallback((/** @type {null | { kind: 'ask' | 'crowd' | 'late', puja: import('./lib.js').JgPuja }} */ next) => {
     setVisitStep(next);
     if (next && sheetBeforeBar.current == null) {
       setSheet((cur) => {
@@ -672,6 +688,10 @@ function Loaded({ data }) {
   const visitedIds = useMemo(() => new Set(account.visited.map((v) => v.puja)), [account.visited]);
   // The bar waits for a calm screen: nothing else open, and the sheet not full (it would hide the bar).
   const visitBlocked = visitStep != null || choosing != null || signIn != null || searchOpen || settingsOpen || welcome || sheet === 'full';
+  const lateOpened = useRef(Date.now());
+  const catchUpDone = useRef(false);
+  /** Pujas already shown as "Have you visited?" since the app opened: not shown twice. */
+  const lateAsked = useRef(/** @type {Set<string>} */ (new Set()));
   const visitCtx = useRef({ pos, blocked: true, visitedIds, tracking, refresh: geoRefresh });
   useEffect(() => {
     visitCtx.current = { pos, blocked: visitBlocked, visitedIds, tracking, refresh: geoRefresh };
@@ -683,10 +703,30 @@ function Loaded({ data }) {
       const { pos: at, blocked: busy, visitedIds: done } = visitCtx.current;
       if (busy || document.visibilityState !== 'visible') return;
       const t = Date.now();
+      // Remember every puja you were near, so "Have you visited?" can ask once you have walked on.
+      noteNear(at, pujas, t);
       const p = visitCandidate(at, pujas, t);
-      if (!p || done.has(p.id) || !canAsk(p.id, t)) return;
-      noteAsked(p.id, t);
-      setBar({ kind: 'ask', puja: p });
+      if (p && !done.has(p.id) && canAsk(p.id, t)) {
+        noteAsked(p.id, t);
+        setBar({ kind: 'ask', puja: p });
+        return;
+      }
+      // 5 s after the map opens (once per open), then whenever you have walked on from a puja: ask about the ones
+      // you may have visited. No fresh fix within 20 s of opening: no question.
+      const sinceOpen = t - lateOpened.current;
+      let onOpen = false;
+      if (!catchUpDone.current && sinceOpen >= CATCHUP_AFTER_MS) {
+        if (sinceOpen >= CATCHUP_GIVE_UP_MS) catchUpDone.current = true;
+        else onOpen = true;
+      }
+      const skip = new Set([...done, ...lateAsked.current]);
+      const items = lateQueue(at, pujas, t, skip, onOpen);
+      if (onOpen && items.length) catchUpDone.current = true;
+      else if (onOpen && at && t - at.at <= 20_000 && at.accuracy <= 50) catchUpDone.current = true;
+      if (!items.length) return;
+      for (const it of items) lateAsked.current.add(it.puja.id);
+      setLate({ items, i: 0 });
+      setBar({ kind: 'late', puja: items[0].puja });
     };
     // A phone that stands still may send no new fix, and the browser pauses location in the camera app: ask for a fresh
     // one when the app comes back, and whenever the last one is getting old.
@@ -709,12 +749,48 @@ function Loaded({ data }) {
       document.removeEventListener('visibilitychange', onShow);
     };
   }, [pos, pujas, setBar]);
-  // An ignored bar hides itself, so it never sits over the camera or the map for long.
+  // An ignored live bar fades out after a minute so it never sits over the camera or the map. The puja is asked again
+  // later as "Have you visited?".
   useEffect(() => {
     if (visitStep?.kind !== 'ask') return undefined;
     const id = window.setTimeout(() => setBar(null), AUTO_HIDE_MS);
     return () => window.clearTimeout(id);
   }, [visitStep, setBar]);
+
+  /** Show the next "Have you visited?" card, or close the bar after the last one. */
+  const nextLate = () => {
+    const cur = late;
+    if (!cur || cur.i + 1 >= cur.items.length) {
+      setLate(null);
+      setBar(null);
+      return;
+    }
+    setLate({ items: cur.items, i: cur.i + 1 });
+    setBar({ kind: 'late', puja: cur.items[cur.i + 1].puja });
+  };
+  /** Yes on "Have you visited?": it counts as marked (no proof they stood there), then the next card. */
+  const lateYes = () => {
+    const p = visitStep?.puja;
+    if (!p) return;
+    noteAnswered(p.id, Date.now());
+    if (!account.signedIn) {
+      setLate(null);
+      setBar(null);
+      setSignInErr(null);
+      setSignIn({ reason: 'visited', change: { action: 'visited', puja: p.id, on: true } });
+      return;
+    }
+    setVisitBusy(true);
+    accountChange({ action: 'visited', puja: p.id, on: true })
+      .then(
+        (how) => show(how === 'queued' ? 'Saved. Counts when online' : 'Marked · counts for badges'),
+        () => show("Couldn't mark it. Try again"),
+      )
+      .finally(() => {
+        setVisitBusy(false);
+        nextLate();
+      });
+  };
 
   /** Yes, signed in: count it in person, then ask about the crowd. */
   const countHere = (/** @type {import('./lib.js').JgPuja} */ p) => {
@@ -744,6 +820,7 @@ function Loaded({ data }) {
       .finally(() => setVisitBusy(false));
   };
   const onVisitYes = () => {
+    if (visitStep?.kind === 'late') return lateYes();
     primeSound(); // a badge may unlock: let its sound play after the crowd step
     const p = visitStep?.puja;
     if (!p) return;
@@ -1179,12 +1256,23 @@ function Loaded({ data }) {
 
         {!floatBar && <ViewCount visits={visits} live={live} bottom={pillBottom} full={sheet === 'full'} />}
         <VisitBar
-          step={barShown ? visitStep : null}
+          step={
+            barShown && visitStep
+              ? visitStep.kind === 'late' && late
+                ? { kind: 'late', puja: visitStep.puja, line: lateLine(late.items[late.i]), i: late.i, total: late.items.length }
+                : /** @type {any} */ (visitStep)
+              : null
+          }
           busy={visitBusy}
           bottom="calc(var(--sheet-h, 35%) + 12px)"
           onYes={onVisitYes}
           onNo={() => {
             if (visitStep) sayNo(visitStep.puja.id, Date.now());
+            if (visitStep?.kind === 'late') nextLate();
+            else setBar(null);
+          }}
+          onClose={() => {
+            setLate(null);
             setBar(null);
           }}
           onCrowd={onCrowd}

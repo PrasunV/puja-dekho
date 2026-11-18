@@ -86,7 +86,21 @@ test('E-Rank comes with D-Rank; next rank and its line', () => {
 });
 
 // ---- v0.2 "Are you visiting?" ----
-import { agoText, canAsk, noteAnswered, noteAsked, QUIET_MS, SNOOZE_MS, sayNo, visitCandidate } from '../../src/jagadhatri/visit.js';
+import {
+  agoText,
+  AUTO_HIDE_MS,
+  canAsk,
+  lateLine,
+  lateQueue,
+  MAX_LATE,
+  noteAnswered,
+  noteAsked,
+  noteNear,
+  QUIET_MS,
+  SNOOZE_MS,
+  sayNo,
+  visitCandidate,
+} from '../../src/jagadhatri/visit.js';
 
 /** A tiny localStorage for these tests, since the app's storage keeps things on the phone. */
 const mem = new Map();
@@ -192,6 +206,62 @@ test('the Visited filter keeps only visited pujas', () => {
   const mine = { wish: new Set(), visited: new Set([a.id]) };
   assert.equal(passes(a, { ...NO_FILTERS, visitedOnly: true, mine }), true);
   assert.equal(passes(b, { ...NO_FILTERS, visitedOnly: true, mine }), false);
+});
+
+test('Have you visited: asks about pujas you were near once you have walked on', () => {
+  mem.clear();
+  const [a, b] = data.pujas;
+  const t = Date.parse('2026-11-17T21:00:00+05:30');
+  const fix = (/** @type {{ la: number, lo: number }} */ q, /** @type {number} */ dLat, at = t) => ({
+    lat: q.la + dLat,
+    lng: q.lo,
+    accuracy: 10,
+    at,
+  });
+  assert.equal(AUTO_HIDE_MS, 60_000, 'the live bar fades after a minute');
+  noteNear(fix(a, 0.0005), data.pujas, t); // 55 m from a: seen
+  const later = t + 10 * 60_000;
+  // Still within 200 m: it is the live bar's job, not this one's.
+  assert.equal(
+    lateQueue(fix(a, 0.001, later), data.pujas, later, new Set(), false).some((x) => x.puja.id === a.id),
+    false,
+  );
+  // Walked on (about 330 m): ask.
+  const q = lateQueue(fix(a, 0.003, later), data.pujas, later, new Set(), false);
+  assert.equal(q[0].puja.id, a.id);
+  assert.equal(q[0].kind, 'seen');
+  assert.equal(lateLine(q[0]), 'You were near it at 9:00 PM');
+  // Not if already visited / asked this time, said No to, or answered.
+  assert.equal(lateQueue(fix(a, 0.003, later), data.pujas, later, new Set([a.id]), false).length, 0);
+  sayNo(a.id, later);
+  assert.equal(
+    lateQueue(fix(a, 0.003, later + QUIET_MS + 1), data.pujas, later + QUIET_MS + 1, new Set(), false).length,
+    0,
+    'No skips it tonight',
+  );
+  void b;
+});
+
+test('Have you visited: the open-time question adds pujas 150-300 m away, nearest first, at most five', () => {
+  mem.clear();
+  const base = data.pujas[0];
+  const t = Date.parse('2026-11-17T21:00:00+05:30');
+  const pos = { lat: base.la, lng: base.lo, accuracy: 10, at: t };
+  const open = lateQueue(pos, data.pujas, t, new Set(), true);
+  assert.ok(open.length <= MAX_LATE);
+  assert.ok(open.every((x) => x.d > 150 && x.d <= 300 && x.kind === 'now'));
+  assert.deepEqual(
+    open.map((x) => x.d),
+    [...open.map((x) => x.d)].sort((x, y) => x - y),
+  );
+  assert.equal(lateQueue(pos, data.pujas, t, new Set(), false).length, 0, 'the live check alone adds nothing near-now');
+  // No fresh, precise fix: silent.
+  assert.equal(lateQueue({ ...pos, at: t - 60_000 }, data.pujas, t, new Set(), true).length, 0);
+  assert.equal(lateQueue({ ...pos, accuracy: 120 }, data.pujas, t, new Set(), true).length, 0);
+  assert.equal(lateQueue(null, data.pujas, t, new Set(), true).length, 0);
+  if (open[0]) assert.match(lateLine(open[0]), /^Near you now · \d+ m$/);
+  noteAnswered('x', t);
+  assert.equal(lateQueue(pos, data.pujas, t + 1_000, new Set(), true).length, 0, '2 quiet minutes after an answer');
 });
 
 // ---- Traffic notice status ----

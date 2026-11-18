@@ -2010,6 +2010,33 @@ button.jg-card:active {
 .jg-visit-head + .jg-visit-btns {
   margin-top: 8px;
 }
+.jg-visit-sub {
+  margin: 4px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+.jg-visit-sub + .jg-visit-btns {
+  margin-top: 12px;
+}
+.jg-visit-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.jg-visit-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.jg-visit-dots i.past {
+  background: var(--muted);
+}
+.jg-visit-dots i.cur {
+  background: var(--ink);
+}
 .jg-visit-btns {
   display: flex;
   gap: 12px;
