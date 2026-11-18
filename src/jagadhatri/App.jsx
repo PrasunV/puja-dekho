@@ -59,6 +59,8 @@ import {
 import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
+import { WinnersDetail } from './winners.jsx';
+import { WINNERS_EVENT_ID } from './winners.js';
 import { makePlan } from './plan.js';
 import { PlanView, RouteView, TrainsView } from './plan.jsx';
 import { About, AboutFooter, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
@@ -951,6 +953,7 @@ function Loaded({ data }) {
         crowd={crowd.crowd[p.id]}
         crowdAt={crowd.at}
         onVisited={(on) => ask({ action: 'visited', puja: p.id, on })}
+        onWinners={() => setView({ kind: 'event', id: WINNERS_EVENT_ID })}
       />
     );
     footer = <PujaActions puja={p} wished={mine.wish.has(p.id)} onWish={(on) => ask({ action: 'wish', puja: p.id, on })} />;
@@ -968,10 +971,12 @@ function Loaded({ data }) {
   } else if (view.kind === 'event' && eventById(view.id)) {
     const ev = /** @type {import('./config.js').JgEvent} */ (eventById(view.id));
     const evPuja = ev.pujaId ? byId.get(ev.pujaId) : undefined;
-    body = (
+    body = ev.winners ? (
+      <WinnersDetail ev={ev} byId={byId} onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} onOpenPuja={(id) => openPuja(id)} />
+    ) : (
       <EventDetail ev={ev} puja={evPuja} onBack={() => setView({ kind: 'whatsnew' })} onClose={toList} onOpenPuja={(id) => openPuja(id)} />
     );
-    footer = <EventActions puja={evPuja} place={ev.place} />;
+    footer = ev.winners ? null : <EventActions puja={evPuja} place={ev.place} />;
     peek = ev.title;
   } else if (view.kind === 'traffic') {
     const back = view.from;

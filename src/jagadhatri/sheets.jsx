@@ -4,6 +4,7 @@ import { ABOUT } from './config.js';
 import { directionsUrl, formatDistance, pujas as pujaCount } from './lib.js';
 import { ViewCue } from './ui.jsx';
 import { agoText } from './visit.js';
+import { awardsOf } from './winners.js';
 
 const CROWD_WORD = { free: 'Free', crowded: 'Crowded' };
 
@@ -82,9 +83,9 @@ function ThemeArtist({ puja }) {
 /**
  * The puja sheet (design 7.6): name, Bengali name, meta line, tags, theme and artist, details. The buttons are in
  * `PujaActions`, pinned at the bottom of the sheet.
- * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void, visit?: { mode: string } | undefined, onVisited: (on: boolean) => void, crowd?: { level: string, n: number, at: number }, crowdAt?: number }} props
+ * @param {{ puja: import('./lib.js').JgPuja, station: import('./lib.js').JgStation | undefined, onClose: () => void, visit?: { mode: string } | undefined, onVisited: (on: boolean) => void, crowd?: { level: string, n: number, at: number }, crowdAt?: number, onWinners?: () => void }} props
  */
-export function PujaDetail({ puja, station, onClose, visit, onVisited, crowd, crowdAt = 0 }) {
+export function PujaDetail({ puja, station, onClose, visit, onVisited, crowd, crowdAt = 0, onWinners }) {
   const meta = [puja.t, puja.y ? `Estd ${puja.y}` : null, station ? `${station.name} ${formatDistance(puja.st[1])}` : null].filter(Boolean);
   const facts = [
     ['Address', puja.ad],
@@ -119,6 +120,19 @@ export function PujaDetail({ puja, station, onClose, visit, onVisited, crowd, cr
         {puja.c !== 'Other' && <span className="jg-tag">{puja.c}</span>}
         {puja.j && <span className="jg-tag">{puja.j}</span>}
         {puja.pr && <span className="jg-tag proc">{`Procession · Zone ${puja.pr.z} · No. ${puja.pr.s}`}</span>}
+        {onWinners &&
+          awardsOf(puja.id).map(({ award, label }) => (
+            <button
+              key={award.id}
+              type="button"
+              className="jg-tag jg-tag-award"
+              aria-label={`Winner, ${award.en}, ${label}. See all winners`}
+              onClick={onWinners}
+            >
+              <Icon name="star" size={16} />
+              {`${award.en} · ${label}`}
+            </button>
+          ))}
       </div>
       <ThemeArtist key={puja.id} puja={puja} />
       {facts.length > 0 && (

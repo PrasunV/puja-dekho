@@ -13,6 +13,8 @@ import {
   typeNoun,
   visibleList,
 } from '../../src/jagadhatri/lib.js';
+import { EVENTS } from '../../src/jagadhatri/config.js';
+import { AWARDS, awardsOf, placeLabel, WINNERS_EVENT_ID } from '../../src/jagadhatri/winners.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../../public/jagadhatripuja/data/pujas.json', import.meta.url), 'utf8'));
 // The app indexes Must visit pujas first, so ties go to the better-known puja.
@@ -502,4 +504,49 @@ test('ferries still stop at 10 PM during the specials', () => {
 
 test('Plan my walk offers 2, 3 and 5 hours', () => {
   assert.deepEqual([...PLAN_HOURS], [2, 3, 5]);
+});
+
+test('winners: six awards, each linked winner is a real puja, no puja linked twice in one award', () => {
+  assert.equal(AWARDS.length, 6);
+  const known = new Set(data.pujas.map((/** @type {any} */ p) => p.id));
+  for (const a of AWARDS) {
+    assert.ok(a.en && a.bn, a.id);
+    const ids = a.placings.map((pl) => pl.who.id).filter(Boolean);
+    for (const id of ids) assert.ok(known.has(/** @type {string} */ (id)), `${a.id}: ${id}`);
+    assert.equal(new Set(ids).size, ids.length, a.id);
+    for (const pl of a.placings) assert.ok(pl.who.en && pl.who.bn, `${a.id}: name and Bengali`);
+  }
+  // Five ranked awards have 1 first and joint 2nd and 3rd; the sixth has three unranked winners.
+  for (const a of AWARDS.slice(0, 5))
+    assert.deepEqual(
+      a.placings.map((pl) => pl.place),
+      [1, 2, 2, 3, 3],
+      a.id,
+    );
+  assert.deepEqual(
+    AWARDS[5].placings.map((pl) => pl.place),
+    [0, 0, 0],
+  );
+});
+
+test('winners: labels and the award line on a puja', () => {
+  assert.equal(placeLabel(AWARDS[0].placings[0]), '1st');
+  assert.equal(placeLabel(AWARDS[0].placings[1]), 'Joint 2nd');
+  assert.equal(placeLabel(AWARDS[5].placings[0]), 'Winner');
+  assert.deepEqual(
+    awardsOf('palpara-jagadhatri-puja-committee').map((x) => [x.award.en, x.label]),
+    [['Idol’s Face', '1st']],
+  );
+  assert.deepEqual(
+    awardsOf('bagbazar-choumatha').map((x) => x.label),
+    ['Joint 2nd'],
+  );
+  assert.deepEqual(awardsOf('no-such-puja'), []);
+});
+
+test('winners: the event is a Highlight on 18 Nov and opens the winners sheet', () => {
+  const ev = EVENTS.find((e) => e.id === WINNERS_EVENT_ID);
+  assert.ok(ev && ev.winners);
+  assert.equal(ev.section, 'highlight');
+  assert.equal(ev.day, '2026-11-18');
 });

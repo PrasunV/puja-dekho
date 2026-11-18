@@ -27,7 +27,7 @@ export const POPULAR_ORDER = Object.freeze([
  * `endDay` when it runs over several days. `short`: a short date for the card when `when` is long. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
  * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
  * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, short?: string, day: string, endDay?: string, start?: string,
- *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string,
+ *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string, winners?: boolean,
  *   photos: { src: string, thumb?: string, alt: string }[] }} JgEvent
  */
 const CHOKKHUDAAN =
@@ -35,6 +35,19 @@ const CHOKKHUDAAN =
 
 /** @type {readonly JgEvent[]} */
 export const EVENTS = Object.freeze([
+  {
+    id: 'winners-2026',
+    section: 'highlight',
+    title: 'Jagadhatri Puja 2026 winners',
+    short: '18 Nov',
+    day: '2026-11-18',
+    when: '18 Nov 2026',
+    place: 'Chandannagar',
+    by: 'Chandernagore Central Jagadhatri Puja Committee (চন্দননগর কেন্দ্রীয় জগদ্ধাত্রী পূজা কমিটি)',
+    body: 'Announced by the Chandernagore Central Jagadhatri Puja Committee (চন্দননগর কেন্দ্রীয় জগদ্ধাত্রী পূজা কমিটি). Tap a winner to see the puja.',
+    winners: true,
+    photos: [],
+  },
   {
     id: 'inauguration-2026',
     section: 'highlight',
