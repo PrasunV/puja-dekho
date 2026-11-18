@@ -20,7 +20,7 @@ import {
 } from './config.js';
 import { storage } from '../lib/storage.js';
 import { useAccount, useCrowd } from './account.js';
-import { IN_APP_BROWSER, useBackClose, useGeo, useJgData, useToast } from './hooks.js';
+import { IN_APP_BROWSER, useBackClose, useCompass, useGeo, useHeading, useJgData, useToast } from './hooks.js';
 import EmptyState from './loader/EmptyState.jsx';
 import LoadingState from './loader/LoadingState.jsx';
 import { hideSplash } from './loader/splash.js';
@@ -234,6 +234,10 @@ function Loaded({ data }) {
 
   // ---------- Location ----------
   const pos = geo.position;
+  // Which way you are going: a triangle on the location dot. iPhone asks for the compass once, from the locate button.
+  const compass = useCompass(geo.status === 'on');
+  const heading = useHeading(pos, compass.reading);
+  const requestCompass = compass.request;
   const farM = useMemo(() => {
     if (!pos) return null;
     let min = Infinity;
@@ -317,6 +321,7 @@ function Loaded({ data }) {
   }, []);
 
   const toggleNear = () => {
+    requestCompass();
     if (near.on) return turnNearOff();
     clearStation();
     setView({ kind: 'list' });
@@ -1226,7 +1231,7 @@ function Loaded({ data }) {
                   crowd={crowd.crowd}
                   visited={mine.visited}
                   centre={centre}
-                  me={pos && farM == null ? pos : null}
+                  me={pos && farM == null ? { lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, heading } : null}
                   route={routeOnMap}
                   onPuja={(id) => openPuja(id, false)}
                   onStation={chooseStation}
@@ -1289,6 +1294,7 @@ function Loaded({ data }) {
             data-state={geo.status}
             aria-label={geo.status === 'denied' ? 'Location is off. How to turn it on' : 'Show my location'}
             onClick={() => {
+              requestCompass();
               if (geo.status === 'denied') return setChoosing('locate');
               if (pos && farM == null) return mapRef.current?.flyTo(pos.lat, pos.lng, 16);
               if (pos && farM != null) return show(`You are ${formatDistance(farM)} from ${TOWN_POINT.name}`);

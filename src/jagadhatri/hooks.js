@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DATA_URL } from './config.js';
+import { compassFromEvent, pickHeading, smoothAngle, turn } from './heading.js';
 
 /**
  * The puja data, loaded once. The offline worker caches it, so it also loads with no network after one visit.
@@ -32,6 +33,16 @@ export function useJgData() {
 export const IN_APP_BROWSER =
   typeof navigator !== 'undefined' && /Instagram|FBAN|FBAV|FB_IAB|Snapchat|Line\/|LinkedInApp/i.test(navigator.userAgent);
 
+/** A browser position as the app keeps it: heading and speed are null when the phone has no direction of travel. */
+const fix = (/** @type {GeolocationPosition} */ p) => ({
+  lat: p.coords.latitude,
+  lng: p.coords.longitude,
+  accuracy: p.coords.accuracy,
+  at: p.timestamp,
+  heading: p.coords.heading != null && Number.isFinite(p.coords.heading) ? p.coords.heading : null,
+  speed: p.coords.speed != null && Number.isFinite(p.coords.speed) ? p.coords.speed : null,
+});
+
 /**
  * The phone's location, watched only while something asks for it (Near me or the location button). It never leaves
  * the phone.
@@ -41,7 +52,9 @@ export const IN_APP_BROWSER =
  */
 export function useGeo() {
   const [status, setStatus] = useState(/** @type {'off' | 'finding' | 'on' | 'denied' | 'unavailable'} */ ('off'));
-  const [position, setPosition] = useState(/** @type {{ lat: number, lng: number, accuracy: number, at: number } | null} */ (null));
+  const [position, setPosition] = useState(
+    /** @type {{ lat: number, lng: number, accuracy: number, at: number, heading: number | null, speed: number | null } | null} */ (null),
+  );
   const [permission, setPermission] = useState(/** @type {'granted' | 'prompt' | 'denied' | 'unknown'} */ ('unknown'));
   const watch = useRef(/** @type {number | null} */ (null));
   const hasFix = useRef(false);
@@ -83,7 +96,7 @@ export function useGeo() {
     watch.current = navigator.geolocation.watchPosition(
       (p) => {
         hasFix.current = true;
-        setPosition({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy, at: p.timestamp });
+        setPosition(fix(p));
         setStatus('on');
         setPermission('granted');
       },
@@ -101,6 +114,20 @@ export function useGeo() {
     );
   }, []);
 
+  /** One fresh fix right now: the browser pauses the watch while another app is in front, so ask again on return. */
+  const refresh = useCallback(() => {
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        hasFix.current = true;
+        setPosition(fix(p));
+        setStatus('on');
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10_000 },
+    );
+  }, []);
+
   useEffect(
     () => () => {
       if (watch.current != null) navigator.geolocation.clearWatch(watch.current);
@@ -108,7 +135,72 @@ export function useGeo() {
     [],
   );
 
-  return { status, position, permission, start, stop };
+  return { status, position, permission, start, stop, refresh };
+}
+
+/**
+ * The phone compass, listened to only while `active`. Android needs no permission. iPhone asks once, and only from a
+ * tap, so `request()` belongs in a button handler; until then (or if refused) there is simply no compass heading.
+ */
+export function useCompass(/** @type {boolean} */ active) {
+  const [reading, setReading] = useState(/** @type {{ heading: number, at: number } | null} */ (null));
+  /** @type {() => 'prompt' | 'granted' | 'denied' | 'unsupported'} */
+  const initialPermission = () => {
+    if (typeof window === 'undefined' || !('DeviceOrientationEvent' in window)) return 'unsupported';
+    return typeof (/** @type {any} */ (window).DeviceOrientationEvent.requestPermission) === 'function' ? 'prompt' : 'granted';
+  };
+  const [permission, setPermission] = useState(initialPermission);
+  const request = useCallback(() => {
+    const DOE = typeof window !== 'undefined' ? /** @type {any} */ (window).DeviceOrientationEvent : null;
+    if (permission !== 'prompt' || typeof DOE?.requestPermission !== 'function') return;
+    DOE.requestPermission().then(
+      (r) => setPermission(r === 'granted' ? 'granted' : 'denied'),
+      () => setPermission('denied'),
+    );
+  }, [permission]);
+
+  useEffect(() => {
+    if (!active || permission !== 'granted') return undefined;
+    let last = 0;
+    const onEvent = (/** @type {any} */ e) => {
+      const now = Date.now();
+      if (now - last < 200) return; // 5 readings a second is plenty for an arrow
+      const h = compassFromEvent(e, screen.orientation?.angle ?? 0);
+      if (h == null) return;
+      last = now;
+      setReading((cur) => {
+        const next = smoothAngle(cur?.heading ?? null, h);
+        return cur && Math.abs(turn(cur.heading, next)) < 2 ? { heading: cur.heading, at: now } : { heading: next, at: now };
+      });
+    };
+    // Android's absolute event is true north; the plain one is relative to wherever the phone started. iPhone only
+    // has the plain one, with a ready compass heading.
+    window.addEventListener('deviceorientationabsolute', onEvent, true);
+    window.addEventListener('deviceorientation', onEvent, true);
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', onEvent, true);
+      window.removeEventListener('deviceorientation', onEvent, true);
+    };
+  }, [active, permission]);
+
+  return { reading, permission, request };
+}
+
+/**
+ * The direction for the pin: walking direction, else compass, else null. Re-checked every second so a reading that
+ * stops arriving fades to a plain dot.
+ */
+export function useHeading(
+  /** @type {{ heading: number | null, speed: number | null, at: number } | null} */ gps,
+  /** @type {{ heading: number, at: number } | null} */ compass,
+) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const latest = Math.max(now, gps?.at ?? 0, compass?.at ?? 0);
+  return pickHeading({ gps, compass, now: latest });
 }
 
 // ---- Android back button: closes the top sheet instead of leaving the app ----

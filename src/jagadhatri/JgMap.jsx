@@ -48,7 +48,7 @@ const THEME = {
  * @property {Record<string, { level: string }>} [crowd]  Live crowd status: a teal (free) or orange (crowded) dot
  * @property {Set<string>} [visited]         Ids the signed-in person has visited: a solid green pin with a white tick
  * @property {import('./lib.js').JgCentre | null} centre
- * @property {{ lat: number, lng: number, accuracy: number } | null} me
+ * @property {{ lat: number, lng: number, accuracy: number, heading?: number | null } | null} me   heading: a triangle on the dot points the way you are going; none, no triangle
  * @property {(id: string) => void} onPuja
  * @property {(id: string) => void} onStation
  * @property {() => void} onBlank
@@ -132,6 +132,31 @@ function pujaFeatures(pujas, lit, priority, selectedId, crowd = {}, visited = ne
       };
     }),
   };
+}
+
+/**
+ * The heading triangle on a canvas: 44 px square with the dot at its centre and the triangle above it, pointing up
+ * (north), so turning the whole image by the heading points it the right way. White edge, like the dot.
+ */
+function headingImage(/** @type {string} */ color) {
+  const size = 88; // 44 px at 2x
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  const cx = size / 2;
+  g.beginPath();
+  g.moveTo(cx, 4); // apex
+  g.lineTo(cx + 14, 30);
+  g.lineTo(cx - 14, 30);
+  g.closePath();
+  g.lineJoin = 'round';
+  g.lineWidth = 6;
+  g.strokeStyle = '#ffffff';
+  g.stroke();
+  g.fillStyle = color;
+  g.fill();
+  return g.getImageData(0, 0, size, size);
 }
 
 /** The tick drawn on a canvas (32 px at 2x), because a style's glyph fonts may not carry one. */
@@ -396,6 +421,23 @@ const JgMap = forwardRef(
           source: 'jg-me',
           paint: { 'circle-radius': 7, 'circle-color': me, 'circle-stroke-color': '#ffffff', 'circle-stroke-width': 2.5 },
         });
+        // The way you are heading: a small triangle just outside the dot, turned to the heading. No heading, no triangle.
+        if (map.hasImage('jg-me-dir')) map.removeImage('jg-me-dir');
+        map.addImage('jg-me-dir', headingImage(me), { pixelRatio: 2 });
+        map.addLayer({
+          id: 'jg-me-dir',
+          type: 'symbol',
+          source: 'jg-me',
+          filter: ['has', 'heading'],
+          layout: {
+            'icon-image': 'jg-me-dir',
+            'icon-rotate': ['get', 'heading'],
+            'icon-rotation-alignment': 'map',
+            'icon-pitch-alignment': 'map',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+        });
       };
 
       map.on('load', () => {
@@ -507,7 +549,13 @@ const JgMap = forwardRef(
       );
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-me')).setData(
         /** @type {any} */ (
-          p.me ? { type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [p.me.lng, p.me.lat] } } : EMPTY
+          p.me
+            ? {
+                type: 'Feature',
+                properties: p.me.heading == null ? {} : { heading: Math.round(p.me.heading) },
+                geometry: { type: 'Point', coordinates: [p.me.lng, p.me.lat] },
+              }
+            : EMPTY
         ),
       );
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-me-acc')).setData(

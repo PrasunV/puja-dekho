@@ -264,6 +264,41 @@ test('Have you visited: the open-time question adds pujas 150-300 m away, neares
   assert.equal(lateQueue(pos, data.pujas, t + 1_000, new Set(), true).length, 0, '2 quiet minutes after an answer');
 });
 
+// ---- The direction triangle on the location pin ----
+import { compassFromEvent, pickHeading, smoothAngle, turn } from '../../src/jagadhatri/heading.js';
+
+test('direction: walking first, compass when standing, otherwise none', () => {
+  const now = 100_000;
+  const gps = (/** @type {number | null} */ heading, /** @type {number | null} */ speed, age = 1_000) => ({
+    heading,
+    speed,
+    at: now - age,
+  });
+  const compass = (age = 500) => ({ heading: 200, at: now - age });
+  assert.equal(pickHeading({ gps: gps(90, 1.4), compass: compass(), now }), 90, 'walking: the way you move wins');
+  assert.equal(
+    pickHeading({ gps: gps(90, 0.4), compass: compass(), now }),
+    200,
+    'shuffling in a crowd: GPS heading is noise, use the compass',
+  );
+  assert.equal(pickHeading({ gps: gps(null, 1.4), compass: compass(), now }), 200, 'no GPS heading: compass');
+  assert.equal(pickHeading({ gps: gps(90, 1.4, 8_000), compass: compass(), now }), 200, 'an old GPS heading is ignored');
+  assert.equal(pickHeading({ gps: gps(90, 0.2), compass: compass(5_000), now }), null, 'a stopped compass: no triangle');
+  assert.equal(pickHeading({ gps: null, compass: null, now }), null);
+  assert.equal(pickHeading({ gps: gps(-10, 2), compass: null, now }), 350, 'headings are kept between 0 and 360');
+});
+
+test('direction: turns take the short way round and compass events read right', () => {
+  assert.equal(turn(359, 1), 2);
+  assert.equal(turn(1, 359), -2);
+  assert.equal(smoothAngle(null, 90), 90);
+  assert.ok(Math.abs(turn(smoothAngle(350, 10), 0)) < 8, 'smoothing across north does not swing round');
+  assert.equal(compassFromEvent({ webkitCompassHeading: 123 }), 123, 'iPhone');
+  assert.equal(compassFromEvent({ alpha: 90, absolute: true }), 270, 'Android: alpha runs anticlockwise');
+  assert.equal(compassFromEvent({ alpha: 90, absolute: false }), null, 'a relative reading is not north');
+  assert.equal(compassFromEvent({ alpha: 90, absolute: true }, 90), 0, 'a rotated screen is corrected');
+});
+
 // ---- Traffic notice status ----
 import { trafficStatus } from '../../src/jagadhatri/traffic.js';
 
