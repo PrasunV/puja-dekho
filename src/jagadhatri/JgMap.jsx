@@ -256,6 +256,15 @@ const JgMap = forwardRef(
       });
       map.touchZoomRotate.disableRotation();
       map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-right');
+      // MapLibre opens the compact credit box on first load. Keep it closed: the (i) button stays, and About carries the credits.
+      const closeCredit = () => {
+        const el = box.current?.querySelector('.maplibregl-ctrl-attrib');
+        el?.classList.remove('maplibregl-compact-show');
+        el?.removeAttribute('open');
+      };
+      closeCredit();
+      map.on('load', closeCredit);
+      map.on('styledata', closeCredit);
       mapRef.current = map;
       if (/** @type {any} */ (window).__PD_E2E__) /** @type {any} */ (window).__jgMap = map;
 
