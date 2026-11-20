@@ -172,7 +172,7 @@ export function ProcessionSheet({ tab, onTab, zones, total, lorries, phase, watc
               <strong>Approximate route.</strong> Follow the police and volunteers on the ground, and check the police map on the day.
             </p>
             <h3 className="jg-proc-h">Suggested places to watch</h3>
-            <p className="jg-meta">Picked from the route, the ghat and the big pandals. Tap one to see it on the map.</p>
+            <p className="jg-meta">Nine points along the route, in procession order. Tap one to see it on the map.</p>
             <ul className="jg-proc-list">
               {WATCH.map((w, i) => (
                 <li key={w.t}>

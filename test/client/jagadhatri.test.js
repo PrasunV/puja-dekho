@@ -589,7 +589,7 @@ test('procession: zones, lorries and lighting match the police list', () => {
 
 test('procession: route and watch points sit inside Chandannagar', () => {
   assert.ok(ROUTE.length > 20);
-  assert.equal(WATCH.length, 7);
+  assert.equal(WATCH.length, 9);
   for (const [la, lo] of routePoints().map((p) => [p.la, p.lo])) {
     assert.ok(la > 22.83 && la < 22.9 && lo > 88.34 && lo < 88.4);
   }
