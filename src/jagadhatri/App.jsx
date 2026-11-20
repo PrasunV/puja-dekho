@@ -60,6 +60,8 @@ import { VisitBar, WhoCard } from './VisitBar.jsx';
 import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
 import { WinnersDetail } from './winners.jsx';
+import { ProcessionSheet } from './procession.jsx';
+import { badgeCentres, processionPujas, procPhase, ROUTE, routePoints, WATCH, zoneInfo } from './procession.js';
 import { WINNERS_EVENT_ID } from './winners.js';
 import { makePlan } from './plan.js';
 import { PlanView, RouteView, TrainsView } from './plan.jsx';
@@ -87,7 +89,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' } | { kind: 'plan' } | { kind: 'trains' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' | 'procession' } | { kind: 'plan' } | { kind: 'trains' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' } | { kind: 'procession' }} View
  */
 
 export default function App() {
@@ -124,6 +126,13 @@ export default function App() {
 function Loaded({ data }) {
   const { pujas, stations } = data;
   const byId = useMemo(() => new Map(pujas.map((p) => [p.id, p])), [pujas]);
+  // Procession guide: the pujas in walking order, per-zone totals and badge positions.
+  const procList = useMemo(() => processionPujas(pujas), [pujas]);
+  const procZones = useMemo(() => zoneInfo(procList), [procList]);
+  const procBadges = useMemo(() => badgeCentres(procZones), [procZones]);
+  const procLorries = useMemo(() => procZones.reduce((a, z) => a + z.lorries, 0), [procZones]);
+  const [procTab, setProcTab] = useState('Overview');
+  const [watchSel, setWatchSel] = useState(-1);
   const stById = useMemo(() => new Map(stations.map((s) => [s.id, s])), [stations]);
   /** Stations and ghats as plan start and end points. */
   const planPoints = useMemo(
@@ -295,7 +304,11 @@ function Loaded({ data }) {
 
   const list = useMemo(() => visibleList(pujas, filters, centre), [pujas, filters, centre]);
   const filtered = filters !== NO_FILTERS && (filters.mustVisit || filters.type || moreCount(filters) > 0);
-  const lit = useMemo(() => (centre || filtered ? new Set(list.map((r) => r.puja.id)) : null), [centre, filtered, list]);
+  const procOn = view.kind === 'procession' || (view.kind === 'puja' && view.from === 'procession');
+  const litBase = useMemo(() => (centre || filtered ? new Set(list.map((r) => r.puja.id)) : null), [centre, filtered, list]);
+  // While the procession guide is open, only its pujas stay at full strength.
+  const procIds = useMemo(() => new Set(procList.map((p) => p.id)), [procList]);
+  const lit = procOn ? procIds : litBase;
   const priority = useMemo(() => (filtered ? new Set(list.map((r) => r.puja.id)) : new Set()), [filtered, list]);
   const radiusCounts = useMemo(
     () => (centre ? countsByRadius(pujas, filters, centre.lat, centre.lng, RADIUS_STEPS) : {}),
@@ -358,10 +371,10 @@ function Loaded({ data }) {
 
   // ---------- Views ----------
   const openPuja = useCallback(
-    (/** @type {string} */ id, fly = true) => {
+    (/** @type {string} */ id, fly = true, /** @type {'procession' | undefined} */ from = undefined) => {
       const p = byId.get(id);
       if (!p) return;
-      setView({ kind: 'puja', id });
+      setView(from ? { kind: 'puja', id, from } : { kind: 'puja', id });
       setSheet((cur) => (cur === 'full' || cur === 'peek' ? 'half' : cur === 'initial' ? 'half' : cur));
       if (fly) mapRef.current?.flyTo(p.la, p.lo, 16);
     },
@@ -370,7 +383,13 @@ function Loaded({ data }) {
   const toList = useCallback(() => setView({ kind: 'list' }), []);
   const closePuja = useCallback(() => {
     // A puja opened from a plan goes back to the plan.
-    setView((v) => (v.kind === 'puja' && v.from === 'route' ? { kind: 'route' } : { kind: 'list' }));
+    setView((v) =>
+      v.kind === 'puja' && v.from === 'route'
+        ? { kind: 'route' }
+        : v.kind === 'puja' && v.from === 'procession'
+          ? { kind: 'procession' }
+          : { kind: 'list' },
+    );
     if (picked?.kind === 'puja') setPicked(null);
   }, [picked]);
 
@@ -414,6 +433,55 @@ function Loaded({ data }) {
     setView({ kind: 'plan' }),
   );
   useBackClose(view.kind === 'puja' && view.from === 'route', () => setView({ kind: 'route' }));
+  useBackClose(view.kind === 'puja' && view.from === 'procession', () => setView({ kind: 'procession' }));
+
+  // ---------- Procession guide ----------
+  const openProcession = useCallback(() => {
+    setView({ kind: 'procession' });
+    setSheet('half');
+  }, []);
+  /** Frame what the open tab is about: a zone's pujas, or the whole route. */
+  const frameProc = useCallback(
+    (/** @type {string} */ tab) => {
+      const z = procZones.find((x) => x.zone === tab);
+      mapRef.current?.fitPoints(z ? z.rows : [...routePoints(), ...procList]);
+    },
+    [procZones, procList],
+  );
+  const changeProcTab = useCallback(
+    (/** @type {string} */ tab) => {
+      setProcTab(tab);
+      setWatchSel(-1);
+      frameProc(tab);
+    },
+    [frameProc],
+  );
+  const pickWatch = useCallback((/** @type {number} */ i) => {
+    setWatchSel(i);
+    setProcTab('Route');
+    const w = WATCH[i];
+    if (w) mapRef.current?.flyTo(w.la, w.lo, 16);
+  }, []);
+  const procLayer = useMemo(
+    () =>
+      procOn
+        ? {
+            pujas: procList,
+            zone: procZones.some((z) => z.zone === procTab) ? procTab : null,
+            badges: procBadges,
+            watch: WATCH,
+            watchSel: procTab === 'Route' ? watchSel : -1,
+            route: ROUTE,
+          }
+        : null,
+    [procOn, procList, procZones, procTab, procBadges, watchSel],
+  );
+  // Opening the guide frames the whole route once the map has a size.
+  const procOpened = view.kind === 'procession';
+  useEffect(() => {
+    if (procOpened && mapReady) frameProc(procTab);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the guide opens or the map becomes ready
+  }, [procOpened, mapReady]);
 
   // ---------- Plan my route ----------
   /** Frame a plan on the map: start, every puja, end. */
@@ -987,6 +1055,22 @@ function Loaded({ data }) {
     footer = <AboutFooter />;
     footerClass = 'contrast';
     peek = 'About Puja Dekho';
+  } else if (view.kind === 'procession') {
+    body = (
+      <ProcessionSheet
+        tab={procTab}
+        onTab={changeProcTab}
+        zones={procZones}
+        total={procList.length}
+        lorries={procLorries}
+        phase={procPhase(todayIst)}
+        watchSel={watchSel}
+        onWatch={pickWatch}
+        onOpen={(id) => openPuja(id, true, 'procession')}
+        onClose={toList}
+      />
+    );
+    peek = 'Procession';
   } else if (view.kind === 'popular') {
     body = <PujaListSheet title="Popular pujas" rows={mustVisitRows} onOpen={(id) => openPuja(id)} onClose={toList} />;
     peek = 'Popular pujas';
@@ -1129,6 +1213,15 @@ function Loaded({ data }) {
                 <Icon name="route" size={16} />
                 Plan my route
               </button>
+              <button
+                type="button"
+                className="chip compact jg-chip"
+                aria-pressed={procOn}
+                onClick={() => (procOn ? setView({ kind: 'list' }) : openProcession())}
+              >
+                <Icon name="flag" size={16} />
+                Procession
+              </button>
               <button type="button" className="chip compact jg-chip" aria-pressed={near.on} onClick={toggleNear}>
                 <Icon name="locate" size={16} />
                 {nearLabel}
@@ -1238,7 +1331,10 @@ function Loaded({ data }) {
                   centre={centre}
                   me={pos && farM == null ? { lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, heading } : null}
                   route={routeOnMap}
-                  onPuja={(id) => openPuja(id, false)}
+                  procession={procLayer}
+                  onProcZone={changeProcTab}
+                  onProcWatch={pickWatch}
+                  onPuja={(id) => openPuja(id, false, procOn ? 'procession' : undefined)}
                   onStation={chooseStation}
                   onBlank={() => {
                     if (view.kind === 'puja') closePuja();

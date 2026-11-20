@@ -14,6 +14,11 @@ const THEME = {
     crowded: '#C2410C',
     visited: '#2E7D32',
     tick: '#FFFFFF',
+    glow: '#F5C400',
+    glowInk: '#6B4E00',
+    routeInk: '#2B1214',
+    badge: '#4A0E14',
+    onBadge: '#FFFFFF',
   },
   dark: {
     primary: '#E0434B',
@@ -24,6 +29,11 @@ const THEME = {
     crowded: '#F0813F',
     visited: '#5BC470',
     tick: '#0F2A14',
+    glow: '#FFD426',
+    glowInk: '#FFE27A',
+    routeInk: '#F2F2F2',
+    badge: '#F0D3D6',
+    onBadge: '#2B1214',
   },
 };
 
@@ -56,6 +66,17 @@ const THEME = {
  * @property {() => void} [onReady]
  * @property {() => void} [onFail]     The map style could not load (no network on a first visit)
  * @property {{ la: number, lo: number, n?: number, end?: boolean }[] | null} [route]  A planned walk: dotted line, numbered stops
+ * @property {ProcessionLayer | null} [procession]  The procession guide: a yellow glow on each procession puja, the route, zone badges, watch points
+ * @property {(zone: string) => void} [onProcZone]   A zone badge was tapped
+ * @property {(i: number) => void} [onProcWatch]     A numbered watch point was tapped
+ *
+ * @typedef {object} ProcessionLayer
+ * @property {import('./lib.js').JgPuja[]} pujas      The pujas in the procession
+ * @property {string | null} zone                     The zone tab that is open: its pins get serial numbers, the others fade
+ * @property {Record<string, { la: number, lo: number }>} badges
+ * @property {readonly { la: number, lo: number }[]} watch
+ * @property {number} watchSel                        The watch point in focus, or -1
+ * @property {readonly (readonly [number, number])[]} route
  */
 
 /** Pin radius by zoom: small dots for the whole town, 30 px pins at street level. */
@@ -175,6 +196,63 @@ function tickImage(/** @type {string} */ color) {
   g.lineTo(14, 24);
   g.lineTo(25, 9);
   g.stroke();
+  return g.getImageData(0, 0, size, size);
+}
+
+/** Features for the procession guide layers. */
+function procFeatures(/** @type {ProcessionLayer | null | undefined} */ pr) {
+  const none = { type: 'FeatureCollection', features: [] };
+  if (!pr) return { route: none, pujas: none, badge: none, watch: none };
+  return {
+    route: {
+      type: 'FeatureCollection',
+      features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: pr.route.map(([la, lo]) => [lo, la]) } }],
+    },
+    pujas: {
+      type: 'FeatureCollection',
+      features: pr.pujas.map((p) => ({
+        type: 'Feature',
+        properties: { id: p.id, s: p.pr?.s ?? 0, on: pr.zone == null || p.pr?.z === pr.zone, num: pr.zone != null && p.pr?.z === pr.zone },
+        geometry: { type: 'Point', coordinates: [p.lo, p.la] },
+      })),
+    },
+    badge: {
+      type: 'FeatureCollection',
+      features: Object.entries(pr.badges).map(([z, c]) => ({
+        type: 'Feature',
+        properties: { z, sel: pr.zone === z },
+        geometry: { type: 'Point', coordinates: [c.lo, c.la] },
+      })),
+    },
+    watch: {
+      type: 'FeatureCollection',
+      features: pr.watch.map((w, i) => ({
+        type: 'Feature',
+        properties: { n: String(i + 1), i, sel: pr.watchSel === i },
+        geometry: { type: 'Point', coordinates: [w.lo, w.la] },
+      })),
+    },
+  };
+}
+
+/** A small arrow pointing right (east), drawn on a canvas; the route layer turns it along the line. */
+function arrowImage(/** @type {string} */ fill, /** @type {string} */ edge) {
+  const size = 40; // 20 px at 2x
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  g.beginPath();
+  g.moveTo(10, 8);
+  g.lineTo(32, 20);
+  g.lineTo(10, 32);
+  g.closePath();
+  g.lineJoin = 'round';
+  g.lineWidth = 5;
+  g.strokeStyle = edge;
+  g.stroke();
+  g.fillStyle = fill;
+  g.fill();
   return g.getImageData(0, 0, size, size);
 }
 
@@ -421,6 +499,134 @@ const JgMap = forwardRef(
           paint: { 'text-color': surface },
         });
 
+        // Procession guide: glow and route sit under the pins, badges and watch points above them.
+        const pf = procFeatures(p.procession);
+        const { glow, glowInk, routeInk, badge, onBadge } = darkQuery()?.matches ? THEME.dark : THEME.light;
+        if (!map.hasImage('jg-arrow')) map.addImage('jg-arrow', arrowImage(routeInk, surface), { pixelRatio: 2 });
+        map.addSource('jg-proc-route', { type: 'geojson', data: /** @type {any} */ (pf.route) });
+        map.addSource('jg-proc-pujas', { type: 'geojson', data: /** @type {any} */ (pf.pujas) });
+        map.addSource('jg-proc-badge', { type: 'geojson', data: /** @type {any} */ (pf.badge) });
+        map.addSource('jg-proc-watch', { type: 'geojson', data: /** @type {any} */ (pf.watch) });
+        map.addLayer(
+          {
+            id: 'jg-proc-casing',
+            type: 'line',
+            source: 'jg-proc-route',
+            layout: { 'line-cap': 'round', 'line-join': 'round' },
+            paint: { 'line-color': surface, 'line-width': 7, 'line-opacity': 0.8 },
+          },
+          'jg-pins',
+        );
+        map.addLayer(
+          {
+            id: 'jg-proc-line',
+            type: 'line',
+            source: 'jg-proc-route',
+            layout: { 'line-join': 'round' },
+            paint: { 'line-color': routeInk, 'line-width': 3.5, 'line-dasharray': [1.6, 1.4] },
+          },
+          'jg-pins',
+        );
+        map.addLayer(
+          {
+            id: 'jg-proc-glow',
+            type: 'circle',
+            source: 'jg-proc-pujas',
+            paint: {
+              'circle-radius': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                11,
+                ['case', ['get', 'on'], 9, 5],
+                15,
+                ['case', ['get', 'on'], 20, 10],
+              ],
+              'circle-color': glow,
+              'circle-opacity': ['case', ['get', 'on'], 0.5, 0.18],
+              'circle-blur': 0.6,
+            },
+          },
+          'jg-pins',
+        );
+        map.addLayer({
+          id: 'jg-proc-arrows',
+          type: 'symbol',
+          source: 'jg-proc-route',
+          layout: {
+            'symbol-placement': 'line',
+            'symbol-spacing': 110,
+            'icon-image': 'jg-arrow',
+            'icon-rotation-alignment': 'map',
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
+        });
+        map.addLayer({
+          id: 'jg-proc-serial',
+          type: 'symbol',
+          source: 'jg-proc-pujas',
+          minzoom: 13,
+          filter: ['get', 'num'],
+          layout: {
+            'text-field': ['to-string', ['get', 's']],
+            'text-font': bold,
+            'text-size': 11,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+            'text-offset': [0, -1.7],
+          },
+          paint: { 'text-color': glowInk, 'text-halo-color': surface, 'text-halo-width': 1.6 },
+        });
+        map.addLayer({
+          id: 'jg-proc-badge',
+          type: 'circle',
+          source: 'jg-proc-badge',
+          paint: {
+            'circle-radius': 16,
+            'circle-color': badge,
+            'circle-stroke-color': ['case', ['get', 'sel'], glow, surface],
+            'circle-stroke-width': ['case', ['get', 'sel'], 4, 2.5],
+          },
+        });
+        map.addLayer({
+          id: 'jg-proc-badge-t',
+          type: 'symbol',
+          source: 'jg-proc-badge',
+          layout: {
+            'text-field': ['get', 'z'],
+            'text-font': bold,
+            'text-size': 15,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: { 'text-color': onBadge },
+        });
+        map.addLayer({
+          id: 'jg-proc-watch',
+          type: 'circle',
+          source: 'jg-proc-watch',
+          paint: {
+            'circle-radius': 13,
+            'circle-color': primary,
+            'circle-stroke-color': ['case', ['get', 'sel'], glow, '#FFFFFF'],
+            'circle-stroke-width': ['case', ['get', 'sel'], 4, 2.5],
+          },
+        });
+        map.addLayer({
+          id: 'jg-proc-watch-t',
+          type: 'symbol',
+          source: 'jg-proc-watch',
+          layout: {
+            'text-field': ['get', 'n'],
+            'text-font': bold,
+            'text-size': 13,
+            'text-allow-overlap': true,
+            'text-ignore-placement': true,
+          },
+          paint: { 'text-color': '#FFFFFF' },
+        });
+
         map.addSource('jg-me', { type: 'geojson', data: EMPTY });
         map.addSource('jg-me-acc', { type: 'geojson', data: EMPTY });
         map.addLayer({ id: 'jg-me-acc', type: 'fill', source: 'jg-me-acc', paint: { 'fill-color': me, 'fill-opacity': 0.14 } });
@@ -497,6 +703,20 @@ const JgMap = forwardRef(
       map.on('click', (e) => {
         if (!ready.current) return;
         const { x, y } = e.point;
+        // The procession badges and watch points sit on top, so they take the tap first.
+        const proc = map.queryRenderedFeatures(
+          [
+            [x - 22, y - 22],
+            [x + 22, y + 22],
+          ],
+          { layers: ['jg-proc-badge', 'jg-proc-watch'] },
+        );
+        if (proc.length) {
+          const f = proc[0];
+          if (f.layer.id === 'jg-proc-badge') latest.current.onProcZone?.(String(f.properties.z));
+          else latest.current.onProcWatch?.(Number(f.properties.i));
+          return;
+        }
         // Pins the filters have faded to 10% are not tappable.
         const hits = map
           .queryRenderedFeatures(
@@ -573,10 +793,15 @@ const JgMap = forwardRef(
       const rf = routeFeatures(p.route);
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route')).setData(/** @type {any} */ (rf.line));
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route-stops')).setData(/** @type {any} */ (rf.stops));
+      const pf = procFeatures(p.procession);
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-route')).setData(/** @type {any} */ (pf.route));
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-pujas')).setData(/** @type {any} */ (pf.pujas));
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-badge')).setData(/** @type {any} */ (pf.badge));
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-watch')).setData(/** @type {any} */ (pf.watch));
     }
 
-    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited } = props;
-    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited]);
+    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession } = props;
+    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

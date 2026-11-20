@@ -550,3 +550,58 @@ test('winners: the event is a Highlight on 18 Nov and opens the winners sheet', 
   assert.equal(ev.section, 'highlight');
   assert.equal(ev.day, '2026-11-18');
 });
+
+import {
+  badgeCentres,
+  lightingOf,
+  processionPujas,
+  procPhase,
+  ROUTE,
+  routePoints,
+  WATCH,
+  zoneInfo,
+} from '../../src/jagadhatri/procession.js';
+
+test('procession: zones, lorries and lighting match the police list', () => {
+  const list = processionPujas(data.pujas);
+  const zones = zoneInfo(list);
+  assert.equal(list.length, 68);
+  assert.deepEqual(
+    zones.map((z) => [z.zone, z.n]),
+    [
+      ['A', 30],
+      ['B', 12],
+      ['C', 13],
+      ['D', 13],
+    ],
+  );
+  assert.equal(
+    list.reduce((a, p) => a + (p.pr?.tr || 0), 0),
+    245,
+  );
+  assert.equal(list.filter((p) => lightingOf(p).length).length, 13);
+  const serials = list.map((p) => p.pr?.s);
+  assert.deepEqual(
+    serials,
+    [...serials].sort((a, b) => /** @type {number} */ (a) - /** @type {number} */ (b)),
+  );
+});
+
+test('procession: route and watch points sit inside Chandannagar', () => {
+  assert.ok(ROUTE.length > 20);
+  assert.equal(WATCH.length, 7);
+  for (const [la, lo] of routePoints().map((p) => [p.la, p.lo])) {
+    assert.ok(la > 22.83 && la < 22.9 && lo > 88.34 && lo < 88.4);
+  }
+  for (const w of WATCH) assert.ok(w.t && w.d > 0 && w.why);
+});
+
+test('procession: phase and badge separation', () => {
+  assert.equal(procPhase('2026-11-21'), 'before');
+  assert.equal(procPhase('2026-11-22'), 'on');
+  assert.equal(procPhase('2026-11-23'), 'after');
+  const b = badgeCentres(zoneInfo(processionPujas(data.pujas)));
+  const dx = (b.C.lo - b.D.lo) * 111320 * Math.cos((22.87 * Math.PI) / 180);
+  const dy = (b.C.la - b.D.la) * 111320;
+  assert.ok(Math.hypot(dx, dy) >= 255);
+});

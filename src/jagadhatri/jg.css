@@ -4070,3 +4070,200 @@ button.jg-win-row {
 .jg-win-intro {
   margin: 16px 0 0;
 }
+
+/* ---- Procession guide: tab group (scrolling text tabs, the one underline-tab exception) and zone lists ---- */
+.jg-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  margin: 8px -16px 0;
+  padding: 0 4px;
+  overflow-x: auto;
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: none;
+}
+.jg-tabs::-webkit-scrollbar {
+  display: none;
+}
+.jg-tab {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.jg-tab[aria-selected='true'] {
+  color: var(--primary);
+}
+.jg-tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: var(--primary);
+}
+.jg-tab-n {
+  font-weight: 400;
+}
+.jg-proc-when {
+  display: grid;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--tile);
+}
+.jg-proc-when span {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--muted);
+}
+.jg-proc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.jg-proc-stats div {
+  display: grid;
+  padding: 12px 4px;
+  border-radius: 12px;
+  background: var(--tile);
+  text-align: center;
+}
+.jg-proc-stats strong {
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+}
+.jg-proc-stats span {
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-proc-h {
+  margin: 24px 0 0;
+  font-size: 1.0625rem;
+  line-height: 1.375rem;
+  font-weight: 700;
+}
+.jg-proc-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-proc-list > li {
+  border-top: 1px solid var(--line);
+}
+.jg-proc-reach {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 0;
+}
+.jg-proc-reach > span:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+.jg-proc-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  padding: 12px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.jg-proc-row > svg {
+  flex: none;
+  color: var(--muted);
+}
+.jg-proc-no {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--tile);
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.jg-proc-wp {
+  border-radius: 999px;
+  background: var(--primary);
+  color: #ffffff;
+}
+.jg-proc-row[aria-pressed='true'] .jg-proc-no {
+  outline: 2px solid var(--maroon);
+  outline-offset: 2px;
+}
+.jg-proc-main {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+}
+.jg-proc-name {
+  overflow-wrap: anywhere;
+}
+.jg-proc-main .jg-bn {
+  display: block;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-proc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
+.jg-proc-meta:empty {
+  display: none;
+}
+.jg-proc-meta > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.jg-proc-warn {
+  margin: 16px 0 0;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+.jg-proc-credit {
+  margin: 24px 0 0;
+  font-size: 0.8125rem;
+  line-height: 1rem;
+  color: var(--muted);
+}
