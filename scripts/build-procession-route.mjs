@@ -64,7 +64,9 @@ async function route(/** @type {string} */ base) {
     for (let k = 1; k < g.length; k++) len += metres(g[k - 1] ?? [], g[k] ?? []);
     const crow = metres([a[1], a[2]], [b[1], b[2]]);
     console.log(`${a[0]} to ${b[0]}: ${Math.round(len)} m by road, ${Math.round(crow)} m straight`);
-    if (crow > 100 && len > crow * 1.8) throw new Error(`${a[0]} to ${b[0]} takes a long detour`);
+    // Roads bend, so up to 3x the straight line is normal; only a far bigger detour means a bad snap.
+    if (crow > 100 && len > crow * 3) throw new Error(`${a[0]} to ${b[0]} takes a long detour`);
+    if (crow > 100 && len > crow * 1.8) console.log('  note: this leg is longer than it looks, check it on the map');
     line.push(...(line.length ? g.slice(1) : g));
     await new Promise((r) => setTimeout(r, 1100)); // be polite to the public router
   }

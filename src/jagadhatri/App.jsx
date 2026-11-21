@@ -41,6 +41,8 @@ import {
 import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
 import { rankOf, statsOf } from './ranks.js';
+import { ImmersionSheet } from './immersion.jsx';
+import { trafficSpots } from './immersion-traffic.js';
 import { TrafficDetail } from './traffic.jsx';
 import { ShareFab, ShareSheet, useAnyModalOpen, useShareReveal, useSplashGone } from './share.jsx';
 import {
@@ -89,7 +91,7 @@ const TOAST_TEXT = {
 };
 
 /**
- * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' | 'procession' } | { kind: 'plan' } | { kind: 'trains' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' } | { kind: 'procession' }} View
+ * @typedef {{ kind: 'list' } | { kind: 'puja', id: string, from?: 'route' | 'procession' } | { kind: 'plan' } | { kind: 'trains' } | { kind: 'route' } | { kind: 'whatsnew' } | { kind: 'traffic', from?: 'plan' | 'route' } | { kind: 'immersion' } | { kind: 'event', id: string } | { kind: 'about' } | { kind: 'popular' } | { kind: 'procession' }} View
  */
 
 export default function App() {
@@ -133,6 +135,8 @@ function Loaded({ data }) {
   const procLorries = useMemo(() => procZones.reduce((a, z) => a + z.lorries, 0), [procZones]);
   const [procTab, setProcTab] = useState('Overview');
   const [watchSel, setWatchSel] = useState(-1);
+  const [immTab, setImmTab] = useState('Overview');
+  const [immSel, setImmSel] = useState(/** @type {string | null} */ (null));
   const stById = useMemo(() => new Map(stations.map((s) => [s.id, s])), [stations]);
   /** Stations and ghats as plan start and end points. */
   const planPoints = useMemo(
@@ -425,7 +429,7 @@ function Loaded({ data }) {
   useBackClose(choosing != null, () => setChoosing(null));
   useBackClose(view.kind !== 'list', () => (view.kind === 'puja' ? closePuja() : toList()));
   // An event or the traffic notice sits on top of What's new: Back returns there first, like the on-screen back arrow.
-  useBackClose(view.kind === 'event' || view.kind === 'traffic', () =>
+  useBackClose(view.kind === 'event' || view.kind === 'traffic' || view.kind === 'immersion', () =>
     setView((v) => (v.kind === 'traffic' && v.from ? { kind: v.from } : { kind: 'whatsnew' })),
   );
   // A plan sits on Plan my route, and a puja opened from a plan sits on the plan.
@@ -488,6 +492,43 @@ function Loaded({ data }) {
     else frameProc(procTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the guide opens or the map becomes ready
   }, [procOpened, mapReady]);
+
+  // ---------- Procession day traffic ----------
+  // The P and no-entry markers show only while this sheet is open; each tab frames what it lists.
+  const immOpen = view.kind === 'immersion';
+  const immSpots = useMemo(() => trafficSpots(), []);
+  const trafficLayer = useMemo(() => (immOpen ? { spots: immSpots, sel: immSel } : null), [immOpen, immSpots, immSel]);
+  const frameImm = useCallback(
+    (/** @type {string} */ tab) => {
+      const k = tab === 'Parking' ? 'p' : tab === 'No entry' ? 'n' : null;
+      const rows = immSpots.filter((t) => k == null || t.k === k);
+      if (rows.length) mapRef.current?.fitPoints(rows);
+    },
+    [immSpots],
+  );
+  const changeImmTab = useCallback(
+    (/** @type {string} */ tab) => {
+      setImmTab(tab);
+      setImmSel(null);
+      frameImm(tab);
+    },
+    [frameImm],
+  );
+  const pickImm = useCallback((/** @type {string} */ id, /** @type {number} */ la, /** @type {number} */ lo) => {
+    setImmSel(id);
+    mapRef.current?.flyTo(la, lo, 16);
+  }, []);
+  const openImmersion = useCallback(() => {
+    setImmTab('Overview');
+    setImmSel(null);
+    setView({ kind: 'immersion' });
+    setSheet('half');
+  }, []);
+  useEffect(() => {
+    if (!immOpen || !mapReady) return;
+    frameImm('Overview');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the sheet opens or the map becomes ready
+  }, [immOpen, mapReady]);
 
   // ---------- Plan my route ----------
   /** Frame a plan on the map: start, every puja, end. */
@@ -1040,6 +1081,7 @@ function Loaded({ data }) {
         byId={byId}
         onClose={toList}
         onTraffic={() => setView({ kind: 'traffic' })}
+        onImmersion={openImmersion}
         onEvent={(id) => (eventById(id)?.procession ? openProcession() : setView({ kind: 'event', id }))}
       />
     );
@@ -1058,6 +1100,18 @@ function Loaded({ data }) {
     const back = view.from;
     body = <TrafficDetail onBack={() => setView(back ? { kind: back } : { kind: 'whatsnew' })} onClose={toList} />;
     peek = 'Traffic and road closures';
+  } else if (view.kind === 'immersion') {
+    body = (
+      <ImmersionSheet
+        tab={immTab}
+        onTab={changeImmTab}
+        sel={immSel}
+        onPick={pickImm}
+        onBack={() => setView({ kind: 'whatsnew' })}
+        onClose={toList}
+      />
+    );
+    peek = 'Procession day traffic';
   } else if (view.kind === 'about') {
     body = <About onClose={toList} onWelcome={() => setWelcome(true)} />;
     footer = <AboutFooter />;
@@ -1206,7 +1260,9 @@ function Loaded({ data }) {
                 </button>
               ))}
               <WhatsNewChip
-                open={view.kind === 'whatsnew' || (view.kind === 'traffic' && !view.from) || view.kind === 'event'}
+                open={
+                  view.kind === 'whatsnew' || (view.kind === 'traffic' && !view.from) || view.kind === 'immersion' || view.kind === 'event'
+                }
                 onOpen={() => {
                   setView({ kind: 'whatsnew' });
                   setSheet('half');
@@ -1340,6 +1396,7 @@ function Loaded({ data }) {
                   me={pos && farM == null ? { lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, heading } : null}
                   route={routeOnMap}
                   procession={procLayer}
+                  traffic={trafficLayer}
                   onProcZone={changeProcTab}
                   onProcWatch={pickWatch}
                   onPuja={(id) => openPuja(id, false, procOn ? 'procession' : undefined)}

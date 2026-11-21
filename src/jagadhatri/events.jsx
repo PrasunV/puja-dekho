@@ -7,6 +7,7 @@ import { useBackClose } from './hooks.js';
 import LazyImage from './loader/LazyImage.jsx';
 import { PROCESSION_MOVED, ROUTE_KM } from './procession.js';
 import { RouteThumb } from './procession.jsx';
+import { ImmersionCard } from './immersion.jsx';
 import { TrafficCard, useMinute } from './traffic.jsx';
 import { Section, useCollapse } from './ui.jsx';
 
@@ -162,9 +163,9 @@ function EventCard({ ev, state, puja, onOpen }) {
 
 /**
  * What's new: Notice (pinned, the latest notice), Highlights, Latest events. Empty sections are left out.
- * @param {{ byId: Map<string, import('./lib.js').JgPuja>, onClose: () => void, onTraffic: () => void, onEvent: (id: string) => void }} props
+ * @param {{ byId: Map<string, import('./lib.js').JgPuja>, onClose: () => void, onTraffic: () => void, onImmersion: () => void, onEvent: (id: string) => void }} props
  */
-export function WhatsNew({ byId, onClose, onTraffic, onEvent }) {
+export function WhatsNew({ byId, onClose, onTraffic, onImmersion, onEvent }) {
   const now = useMinute();
   const [isOpen, toggle] = useCollapse(true);
   const groups = /** @type {const} */ ([
@@ -187,6 +188,7 @@ export function WhatsNew({ byId, onClose, onTraffic, onEvent }) {
         </button>
       </div>
       <Section title="Notice" collapsible={false} open onToggle={() => {}}>
+        <ImmersionCard onOpen={onImmersion} />
         <TrafficCard onOpen={onTraffic} />
       </Section>
       {groups

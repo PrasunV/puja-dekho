@@ -19,6 +19,8 @@ const THEME = {
     routeInk: '#2B1214',
     badge: '#4A0E14',
     onBadge: '#FFFFFF',
+    park: '#1A56C4',
+    onPark: '#FFFFFF',
   },
   dark: {
     primary: '#E0434B',
@@ -34,6 +36,8 @@ const THEME = {
     routeInk: '#F2F2F2',
     badge: '#F0D3D6',
     onBadge: '#2B1214',
+    park: '#7BA7FF',
+    onPark: '#0B1F4A',
   },
 };
 
@@ -67,8 +71,13 @@ const THEME = {
  * @property {() => void} [onFail]     The map style could not load (no network on a first visit)
  * @property {{ la: number, lo: number, n?: number, end?: boolean }[] | null} [route]  A planned walk: dotted line, numbered stops
  * @property {ProcessionLayer | null} [procession]  The procession guide: a yellow glow on each procession puja, the route, zone badges, watch points
+ * @property {TrafficLayer | null} [traffic]      Procession-day traffic: blue P for parking, no-entry sign for closed roads
  * @property {(zone: string) => void} [onProcZone]   A zone badge was tapped
  * @property {(i: number) => void} [onProcWatch]     A numbered watch point was tapped
+ *
+ * @typedef {object} TrafficLayer
+ * @property {readonly { k: 'p' | 'n', id: string, la: number, lo: number, near: boolean }[]} spots
+ * @property {string | null} sel                      The spot in focus (`k` + id), or null
  *
  * @typedef {object} ProcessionLayer
  * @property {import('./lib.js').JgPuja[]} pujas      The pujas in the procession
@@ -233,6 +242,65 @@ function procFeatures(/** @type {ProcessionLayer | null | undefined} */ pr) {
       })),
     },
   };
+}
+
+/** Features for the traffic layer. */
+function trafficFeatures(/** @type {TrafficLayer | null | undefined} */ tr) {
+  return {
+    type: 'FeatureCollection',
+    features: (tr?.spots ?? []).map((t) => ({
+      type: 'Feature',
+      properties: { k: t.k, id: t.id, sel: tr?.sel === t.id },
+      geometry: { type: 'Point', coordinates: [t.lo, t.la] },
+    })),
+  };
+}
+
+/** A blue rounded square with a white P: a parking place. */
+function parkImage(/** @type {string} */ fill, /** @type {string} */ ink, /** @type {string} */ edge) {
+  const size = 56; // 28 px at 2x
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  g.beginPath();
+  g.roundRect(4, 4, 48, 48, 12);
+  g.fillStyle = fill;
+  g.fill();
+  g.lineWidth = 3;
+  g.strokeStyle = edge;
+  g.stroke();
+  g.beginPath();
+  g.moveTo(20, 42);
+  g.lineTo(20, 14);
+  g.lineTo(31, 14);
+  g.arc(31, 23, 9, -Math.PI / 2, Math.PI / 2);
+  g.lineTo(20, 32);
+  g.lineWidth = 5;
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  g.strokeStyle = ink;
+  g.stroke();
+  return g.getImageData(0, 0, size, size);
+}
+
+/** A white disc with a red ring and bar: a no-entry point. */
+function noEntryImage(/** @type {string} */ ring, /** @type {string} */ disc) {
+  const size = 56;
+  const c = document.createElement('canvas');
+  c.width = size;
+  c.height = size;
+  const g = /** @type {CanvasRenderingContext2D} */ (c.getContext('2d'));
+  g.beginPath();
+  g.arc(28, 28, 24, 0, Math.PI * 2);
+  g.fillStyle = disc;
+  g.fill();
+  g.lineWidth = 6;
+  g.strokeStyle = ring;
+  g.stroke();
+  g.fillStyle = ring;
+  g.fillRect(14, 22, 28, 12);
+  return g.getImageData(0, 0, size, size);
 }
 
 /** A small arrow pointing right (east), drawn on a canvas; the route layer turns it along the line. */
@@ -501,7 +569,7 @@ const JgMap = forwardRef(
 
         // Procession guide: glow and route sit under the pins, badges and watch points above them.
         const pf = procFeatures(p.procession);
-        const { glow, glowInk, routeInk, badge, onBadge } = darkQuery()?.matches ? THEME.dark : THEME.light;
+        const { glow, glowInk, routeInk, badge, onBadge, park, onPark } = darkQuery()?.matches ? THEME.dark : THEME.light;
         if (!map.hasImage('jg-arrow')) map.addImage('jg-arrow', arrowImage(routeInk, surface), { pixelRatio: 2 });
         map.addSource('jg-proc-route', { type: 'geojson', data: /** @type {any} */ (pf.route) });
         map.addSource('jg-proc-pujas', { type: 'geojson', data: /** @type {any} */ (pf.pujas) });
@@ -625,6 +693,24 @@ const JgMap = forwardRef(
             'text-ignore-placement': true,
           },
           paint: { 'text-color': '#FFFFFF' },
+        });
+
+        // Procession-day traffic: a blue P for parking, a no-entry sign for closed roads. Drawn above the procession layers.
+        if (map.hasImage('jg-park')) map.removeImage('jg-park');
+        if (map.hasImage('jg-noentry')) map.removeImage('jg-noentry');
+        map.addImage('jg-park', parkImage(park, onPark, surface), { pixelRatio: 2 });
+        map.addImage('jg-noentry', noEntryImage(primary, surface), { pixelRatio: 2 });
+        map.addSource('jg-traffic', { type: 'geojson', data: /** @type {any} */ (trafficFeatures(p.traffic)) });
+        map.addLayer({
+          id: 'jg-traffic',
+          type: 'symbol',
+          source: 'jg-traffic',
+          layout: {
+            'icon-image': ['case', ['==', ['get', 'k'], 'p'], 'jg-park', 'jg-noentry'],
+            'icon-size': ['case', ['get', 'sel'], 1.3, 1],
+            'icon-allow-overlap': true,
+            'icon-ignore-placement': true,
+          },
         });
 
         map.addSource('jg-me', { type: 'geojson', data: EMPTY });
@@ -793,6 +879,7 @@ const JgMap = forwardRef(
       const rf = routeFeatures(p.route);
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route')).setData(/** @type {any} */ (rf.line));
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-route-stops')).setData(/** @type {any} */ (rf.stops));
+      /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-traffic')).setData(/** @type {any} */ (trafficFeatures(p.traffic)));
       const pf = procFeatures(p.procession);
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-route')).setData(/** @type {any} */ (pf.route));
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-pujas')).setData(/** @type {any} */ (pf.pujas));
@@ -800,8 +887,8 @@ const JgMap = forwardRef(
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-watch')).setData(/** @type {any} */ (pf.watch));
     }
 
-    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession } = props;
-    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession]);
+    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession, traffic } = props;
+    useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession, traffic]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

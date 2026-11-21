@@ -14,6 +14,16 @@ import {
   visibleList,
 } from '../../src/jagadhatri/lib.js';
 import { EVENTS } from '../../src/jagadhatri/config.js';
+import {
+  capacityText,
+  IMMERSION_FROM,
+  IMMERSION_TO,
+  immersionState,
+  NO_ENTRY,
+  noEntryId,
+  PARKING,
+  trafficSpots,
+} from '../../src/jagadhatri/immersion-traffic.js';
 import { AWARDS, awardsOf, placeLabel, WINNERS_EVENT_ID } from '../../src/jagadhatri/winners.js';
 
 const data = JSON.parse(fs.readFileSync(new URL('../../public/jagadhatripuja/data/pujas.json', import.meta.url), 'utf8'));
@@ -659,4 +669,41 @@ test('procession: Jyoti More is the one best viewing point', () => {
     WATCH.filter((w) => w.best).map((w) => w.t),
     ['Jyoti More'],
   );
+});
+
+test('procession day traffic: 40 no-entry points, 10 parking places, in order', () => {
+  assert.equal(NO_ENTRY.length, 40);
+  assert.deepEqual(
+    NO_ENTRY.map((n) => n.sl),
+    Array.from({ length: 40 }, (_, i) => i + 1),
+  );
+  assert.equal(PARKING.length, 10);
+  assert.equal(new Set(PARKING.map((p) => p.id)).size, 10);
+  assert.equal(
+    PARKING.reduce((n, p) => n + p.big + p.medium + p.small + p.two, 0),
+    2205,
+    'total spaces',
+  );
+});
+
+test('procession day traffic: capacity text leaves out kinds with no space', () => {
+  assert.equal(capacityText(/** @type {any} */ (PARKING[0])), '30 big, 50 medium, 60 small, 150 two-wheelers');
+  assert.equal(capacityText(/** @type {any} */ (PARKING[9])), '700 two-wheelers');
+});
+
+test('procession day traffic: map spots are inside Chandannagar and Bhadreswar, Taldanga I and II share one', () => {
+  const spots = trafficSpots();
+  assert.ok(spots.length > 0);
+  for (const t of spots) assert.ok(t.la > 22.8 && t.la < 22.9 && t.lo > 88.33 && t.lo < 88.4, `${t.id} is off the map`);
+  assert.equal(new Set(spots.map((t) => `${t.k}${t.id}`)).size, spots.length);
+  const [i, ii] = [NO_ENTRY[36], NO_ENTRY[37]];
+  assert.ok(i && ii);
+  assert.equal(noEntryId(i), noEntryId(ii));
+});
+
+test('procession day traffic: in force on 22 and 23 Nov only', () => {
+  assert.equal(immersionState(IMMERSION_FROM - 1), 'before');
+  assert.equal(immersionState(IMMERSION_FROM), 'on');
+  assert.equal(immersionState(IMMERSION_TO - 1), 'on');
+  assert.equal(immersionState(IMMERSION_TO), 'ended');
 });

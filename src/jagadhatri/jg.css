@@ -11,6 +11,8 @@
   --color-award: #8a5a00; /* winner tags and rows: gold ink on --color-award-bg, 5:1 */
   --color-award-bg: #fdf0d2;
   --color-glow: #f5c400; /* yellow glow on procession pujas and the route picture */
+  --color-park: #1a56c4; /* the blue P on parking places, white P on it 6.6:1 */
+  --color-on-park: #ffffff;
   --scrim: rgba(30, 8, 10, 0.32);
   --scrim-strong: rgba(30, 8, 10, 0.56);
   --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -25,6 +27,8 @@
     --color-award: #f2c35b;
     --color-award-bg: #3a2f14;
     --color-glow: #ffd426;
+    --color-park: #7ba7ff;
+    --color-on-park: #0b1f4a;
     --scrim: rgba(0, 0, 0, 0.5);
     --scrim-strong: rgba(0, 0, 0, 0.6);
     --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -39,6 +43,8 @@
   --color-award: #f2c35b;
   --color-award-bg: #3a2f14;
   --color-glow: #ffd426;
+  --color-park: #7ba7ff;
+  --color-on-park: #0b1f4a;
   --scrim: rgba(0, 0, 0, 0.5);
   --scrim-strong: rgba(0, 0, 0, 0.6);
   --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -4317,4 +4323,74 @@ button.jg-win-row {
 .jg-best-tag {
   margin-left: 8px;
   vertical-align: 1px;
+}
+
+/* ---- Procession day traffic: card, sheet rows, legend ---- */
+.jg-imm-ic {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+.jg-imm-sign {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--tile);
+  color: var(--primary); /* the no-entry sign takes this colour; the P sign has its own */
+}
+.jg-imm-sign svg {
+  width: 24px;
+  height: 24px;
+}
+.jg-imm-row[aria-pressed='true'] .jg-imm-sign {
+  outline: 2px solid var(--maroon);
+  outline-offset: 2px;
+}
+.jg-imm-row[data-static] {
+  cursor: default;
+}
+.jg-imm-note {
+  margin: 0;
+}
+.jg-imm-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.jg-imm-legend {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+.jg-imm-legend li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.9375rem;
+  line-height: 1.25rem;
+}
+.jg-imm-alt {
+  color: var(--muted);
+}
+.jg-imm-alt-line,
+.jg-imm-lead,
+.jg-imm-src {
+  margin: 4px 0 12px;
+}
+.jg-imm-alt-line {
+  padding-left: 56px;
+  margin-top: -8px;
+}
+.jg-imm-row {
+  padding-left: 4px;
+}
+.jg-imm-row .jg-row-title,
+.jg-imm-row .jg-row-meta,
+.jg-imm-row .jg-row-meta span {
+  display: block;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
 }
