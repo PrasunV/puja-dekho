@@ -38,7 +38,7 @@ export const EVENTS = Object.freeze([
   {
     id: 'procession-2026',
     section: 'highlight',
-    title: 'Procession',
+    title: 'Jagadhatri Puja 2026 procession',
     day: '2026-11-22',
     endDay: '2026-11-23',
     start: '2026-11-22T18:00:00+05:30',

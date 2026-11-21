@@ -635,3 +635,10 @@ test('procession: the event goes Live now from 6 PM Sunday to 7 AM Monday', () =
   assert.equal(ev.section, 'highlight');
   assert.ok(WATCH.every((w, i) => i === 0 || (w.s ?? 0) > (WATCH[i - 1]?.s ?? 0)));
 });
+
+test('procession: Jyoti More is the one best viewing point', () => {
+  assert.deepEqual(
+    WATCH.filter((w) => w.best).map((w) => w.t),
+    ['Jyoti More'],
+  );
+});

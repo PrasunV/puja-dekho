@@ -88,7 +88,7 @@ export const ROUTE = Object.freeze([
 
 /**
  * Suggested places to watch, picked from the route, the ghat and the big pandals. To be verified with the police.
- * @typedef {{ t: string, la: number, lo: number, s: number, st: string, d: number, why: string }} Watch
+ * @typedef {{ t: string, la: number, lo: number, s: number, st: string, d: number, why: string, best?: boolean }} Watch
  * @type {readonly Watch[]}
  */
 export const WATCH = Object.freeze([
@@ -99,7 +99,8 @@ export const WATCH = Object.freeze([
     lo: 88.362361,
     st: 'Gondalpara Ghat',
     d: 1018,
-    why: 'Start and end of the route. Tematha (No. 11) is 65 m away.',
+    why: 'Best place to watch. The procession starts and ends here. Tematha (No. 11) is 65 m away.',
+    best: true,
   },
   {
     t: 'Kabi Bharatchandra Road',
@@ -275,7 +276,7 @@ export function routePoints() {
 
 const M_PER_DEG = 111320;
 /** Straight-line metres between two points (flat-earth is accurate to a few metres at this scale). */
-const metres = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: number, lo: number }} */ b) =>
+export const metres = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: number, lo: number }} */ b) =>
   Math.hypot((a.lo - b.lo) * M_PER_DEG * Math.cos((22.87 * Math.PI) / 180), (a.la - b.la) * M_PER_DEG);
 
 /** Walking minutes for a straight-line distance: 30% longer for the bends, at 80 m a minute. */

@@ -4,6 +4,7 @@ import { formatDistance } from './lib.js';
 import { PickerField } from './picker.jsx';
 import {
   lightingOf,
+  metres,
   PROCESSION_CREDIT,
   PROCESSION_MOVED,
   PROCESSION_WHEN,
@@ -11,6 +12,7 @@ import {
   ROUTE,
   ROUTE_KM,
   WATCH,
+  walkMinutes,
   watchPlan,
   ZONES,
 } from './procession.js';
@@ -192,7 +194,10 @@ export function ProcessionSheet({ tab, onTab, zones, total, lorries, phase, watc
                   <button type="button" className="jg-proc-row" aria-pressed={watchSel === i} onClick={() => onWatch(i)}>
                     <span className="jg-proc-no jg-proc-wp">{i + 1}</span>
                     <span className="jg-proc-main">
-                      <span className="jg-proc-name">{w.t}</span>
+                      <span className="jg-proc-name">
+                        {w.t}
+                        {w.best && <span className="jg-tag tonal jg-best-tag">Best view</span>}
+                      </span>
                       <span className="jg-proc-meta">
                         <span>{w.why}</span>
                       </span>
@@ -279,6 +284,8 @@ export function WatchPlanCard({ options, points, onShow }) {
   const at = points.get(from);
   const legs = made && at ? watchPlan(at, count) : [];
   const lead = legs[0];
+  const bestIndex = WATCH.findIndex((w) => w.best);
+  const best = WATCH[bestIndex];
   return (
     <>
       <div className="jg-plan-card">
@@ -311,7 +318,10 @@ export function WatchPlanCard({ options, points, onShow }) {
                   <button type="button" className="jg-proc-row" onClick={() => onShow(leg.index)}>
                     <span className="jg-proc-no jg-proc-wp">{leg.index + 1}</span>
                     <span className="jg-proc-main">
-                      <span className="jg-proc-name">{w.t}</span>
+                      <span className="jg-proc-name">
+                        {w.t}
+                        {w.best && <span className="jg-tag tonal jg-best-tag">Best view</span>}
+                      </span>
                       {k > 0 && (
                         <span className="jg-proc-meta">
                           <span>{`${formatDistance(leg.m)} along the route from the last spot · about ${leg.min} min`}</span>
@@ -324,6 +334,28 @@ export function WatchPlanCard({ options, points, onShow }) {
               );
             })}
           </ul>
+          {!legs.some((l) => WATCH[l.index]?.best) && best && (
+            <>
+              <h3 className="jg-plan-h">Best viewing point</h3>
+              <ul className="jg-proc-list">
+                <li>
+                  <button type="button" className="jg-proc-row" onClick={() => onShow(bestIndex)}>
+                    <span className="jg-proc-no jg-proc-wp">{bestIndex + 1}</span>
+                    <span className="jg-proc-main">
+                      <span className="jg-proc-name">
+                        {best.t}
+                        <span className="jg-tag tonal jg-best-tag">Best view</span>
+                      </span>
+                      <span className="jg-proc-meta">
+                        <span>{`${formatDistance(Math.round(metres(at, best)))} from ${at.name} in a straight line · about ${walkMinutes(metres(at, best))} min`}</span>
+                      </span>
+                    </span>
+                    <Icon name="next" size={20} />
+                  </button>
+                </li>
+              </ul>
+            </>
+          )}
           <p className="jg-meta">Route is approximate. Follow the police and volunteers, and check the police map on the day.</p>
         </>
       )}
