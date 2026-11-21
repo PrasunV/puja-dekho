@@ -436,7 +436,10 @@ function Loaded({ data }) {
   useBackClose(view.kind === 'puja' && view.from === 'procession', () => setView({ kind: 'procession' }));
 
   // ---------- Procession guide ----------
-  const openProcession = useCallback(() => {
+  /** Opens the guide on Overview, or on Route with that watch point picked. */
+  const openProcession = useCallback((/** @type {number} */ watch = -1) => {
+    setProcTab(watch >= 0 ? 'Route' : 'Overview');
+    setWatchSel(watch);
     setView({ kind: 'procession' });
     setSheet('half');
   }, []);
@@ -479,7 +482,10 @@ function Loaded({ data }) {
   // Opening the guide frames the whole route once the map has a size.
   const procOpened = view.kind === 'procession';
   useEffect(() => {
-    if (procOpened && mapReady) frameProc(procTab);
+    if (!procOpened || !mapReady) return;
+    const w = WATCH[watchSel];
+    if (w) mapRef.current?.flyTo(w.la, w.lo, 16);
+    else frameProc(procTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the guide opens or the map becomes ready
   }, [procOpened, mapReady]);
 
@@ -977,6 +983,8 @@ function Loaded({ data }) {
         onMake={makeMyPlan}
         onBest={(plan) => showPlan(plan)}
         onTrains={() => setView({ kind: 'trains' })}
+        onProcession={() => openProcession()}
+        onWatch={(i) => openProcession(i)}
         onClose={toList}
       />
     );
@@ -1032,7 +1040,7 @@ function Loaded({ data }) {
         byId={byId}
         onClose={toList}
         onTraffic={() => setView({ kind: 'traffic' })}
-        onEvent={(id) => setView({ kind: 'event', id })}
+        onEvent={(id) => (eventById(id)?.procession ? openProcession() : setView({ kind: 'event', id }))}
       />
     );
     peek = "What's new";
@@ -2058,14 +2066,6 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
             onClick={() => toggleIn('ages', id)}
           />
         ))}
-      </Section>
-      <Section {...group('Procession', [draft.procession && 'Going for procession'])}>
-        <ChoiceRow
-          label="Going for procession"
-          count={n((p) => !!p.pr)}
-          selected={draft.procession}
-          onClick={() => setDraft((d) => ({ ...d, procession: !d.procession }))}
-        />
       </Section>
       <Section
         {...group(

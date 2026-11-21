@@ -558,6 +558,8 @@ import {
   procPhase,
   ROUTE,
   routePoints,
+  walkMinutes,
+  watchPlan,
   WATCH,
   zoneInfo,
 } from '../../src/jagadhatri/procession.js';
@@ -604,4 +606,32 @@ test('procession: phase and badge separation', () => {
   const dx = (b.C.lo - b.D.lo) * 111320 * Math.cos((22.87 * Math.PI) / 180);
   const dy = (b.C.la - b.D.la) * 111320;
   assert.ok(Math.hypot(dx, dy) >= 255);
+});
+
+test('procession: watch plan starts at the nearest point and follows procession order', () => {
+  const rani = watchPlan({ la: 22.859946, lo: 88.371396 }, 3);
+  assert.deepEqual(
+    rani.map((l) => l.index),
+    [2, 3, 4],
+  );
+  assert.ok(rani[0] && rani[0].m > 200 && rani[0].m < 330);
+  assert.equal(rani[1]?.m, (WATCH[3]?.s ?? 0) - (WATCH[2]?.s ?? 0));
+  // Arriving near the last point leaves fewer spots than asked for.
+  const bagbazar = watchPlan({ la: 22.8634, lo: 88.3675 }, 9);
+  assert.deepEqual(
+    bagbazar.map((l) => l.index),
+    [8],
+  );
+  assert.equal(watchPlan({ la: 22.845, lo: 88.3623 }, 9).length, WATCH.length);
+  assert.equal(walkMinutes(1), 1);
+  assert.equal(walkMinutes(800), 13);
+});
+
+test('procession: the event goes Live now from 6 PM Sunday to 7 AM Monday', () => {
+  const ev = EVENTS.find((e) => e.procession);
+  assert.ok(ev);
+  assert.equal(ev.start, '2026-11-22T18:00:00+05:30');
+  assert.equal(ev.end, '2026-11-23T07:00:00+05:30');
+  assert.equal(ev.section, 'highlight');
+  assert.ok(WATCH.every((w, i) => i === 0 || (w.s ?? 0) > (WATCH[i - 1]?.s ?? 0)));
 });

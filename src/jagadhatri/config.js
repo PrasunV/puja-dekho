@@ -27,7 +27,7 @@ export const POPULAR_ORDER = Object.freeze([
  * `endDay` when it runs over several days. `short`: a short date for the card when `when` is long. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
  * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
  * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, short?: string, day: string, endDay?: string, start?: string,
- *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string, winners?: boolean,
+ *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string, winners?: boolean, procession?: boolean,
  *   photos: { src: string, thumb?: string, alt: string }[] }} JgEvent
  */
 const CHOKKHUDAAN =
@@ -35,6 +35,22 @@ const CHOKKHUDAAN =
 
 /** @type {readonly JgEvent[]} */
 export const EVENTS = Object.freeze([
+  {
+    id: 'procession-2026',
+    section: 'highlight',
+    title: 'Procession',
+    day: '2026-11-22',
+    endDay: '2026-11-23',
+    start: '2026-11-22T18:00:00+05:30',
+    end: '2026-11-23T07:00:00+05:30',
+    when: 'Sun 22 Nov, evening',
+    short: 'Sun 22 Nov, evening',
+    place: 'Chandannagar',
+    by: 'Chandannagar Police',
+    body: 'The Jagadhatri Puja immersion procession.',
+    procession: true,
+    photos: [],
+  },
   {
     id: 'winners-2026',
     section: 'highlight',

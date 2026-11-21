@@ -5,6 +5,8 @@ import { EVENTS } from './config.js';
 import { directionsUrl } from './lib.js';
 import { useBackClose } from './hooks.js';
 import LazyImage from './loader/LazyImage.jsx';
+import { PROCESSION_MOVED, ROUTE_KM } from './procession.js';
+import { RouteThumb } from './procession.jsx';
 import { TrafficCard, useMinute } from './traffic.jsx';
 import { Section, useCollapse } from './ui.jsx';
 
@@ -72,7 +74,7 @@ export function orderEvents(list, now) {
     });
 }
 
-function StateTag({ state }) {
+export function StateTag({ state }) {
   return (
     <span className={`jg-tag jg-ev-tag${state === 'ended' || state === 'upcoming' ? '' : ' tonal'}`} data-state={state}>
       {STATE_WORD[state]}
@@ -97,10 +99,46 @@ function Thumbs({ photos }) {
 }
 
 /**
+ * The procession card, in What's new and in Plan my route: route picture, name and status tag, date, one line more.
+ * Tapping it opens the Procession guide.
+ * @param {{ ev: JgEvent, state: EventState, variant: 'news' | 'plan', onOpen: () => void }} props
+ */
+export function ProcessionCard({ ev, state, variant, onOpen }) {
+  const when = ev.short ?? ev.when;
+  return (
+    <button
+      type="button"
+      className="jg-ev jg-ev-proc"
+      data-state={state}
+      onClick={onOpen}
+      aria-label={`${ev.title}. ${STATE_WORD[state]}. ${when}. ${variant === 'news' ? PROCESSION_MOVED : 'Route, watch points and lorries by zone'}`}
+    >
+      <span className="jg-ev-proc-thumb" aria-hidden="true">
+        <RouteThumb />
+      </span>
+      <span className="jg-ev-proc-text">
+        <span className="jg-ev-head">
+          <span className="jg-ev-title">{ev.title}</span>
+          <StateTag state={state} />
+        </span>
+        <span className="jg-ev-meta">{variant === 'plan' ? `${when} · ${ROUTE_KM} km` : when}</span>
+        <span className="jg-ev-meta">{variant === 'news' ? PROCESSION_MOVED : 'Route, watch points and lorries by zone'}</span>
+      </span>
+    </button>
+  );
+}
+
+/**
  * One event: name and status tag, date · puja, photos. The whole card opens its details sheet.
  * @param {{ ev: JgEvent, state: EventState, puja: import('./lib.js').JgPuja | undefined, onOpen: () => void }} props
  */
 function EventCard({ ev, state, puja, onOpen }) {
+  if (ev.procession)
+    return (
+      <li>
+        <ProcessionCard ev={ev} state={state} variant="news" onOpen={onOpen} />
+      </li>
+    );
   const n = ev.photos.length;
   return (
     <li>

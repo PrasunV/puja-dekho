@@ -11,7 +11,7 @@
 /** The procession day (IST), after rain moved it from Thursday 19 Nov. */
 export const PROCESSION_DAY = '2026-11-22';
 export const PROCESSION_WHEN = 'Sunday 22 Nov, evening';
-export const PROCESSION_MOVED = 'Moved from 19 Nov because of rain';
+export const PROCESSION_MOVED = 'Moved from 19 Nov due to rain';
 /** Published route length in km (Chandannagar Police). */
 export const ROUTE_KM = 8.7;
 export const PROCESSION_CREDIT = 'Route and timings: Chandannagar Police';
@@ -88,12 +88,13 @@ export const ROUTE = Object.freeze([
 
 /**
  * Suggested places to watch, picked from the route, the ghat and the big pandals. To be verified with the police.
- * @typedef {{ t: string, la: number, lo: number, st: string, d: number, why: string }} Watch
+ * @typedef {{ t: string, la: number, lo: number, s: number, st: string, d: number, why: string }} Watch
  * @type {readonly Watch[]}
  */
 export const WATCH = Object.freeze([
   {
     t: 'Jyoti More',
+    s: 0,
     la: 22.845139,
     lo: 88.362361,
     st: 'Gondalpara Ghat',
@@ -102,6 +103,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Kabi Bharatchandra Road',
+    s: 1209,
     la: 22.85398,
     lo: 88.369028,
     st: 'Rani Ghat',
@@ -110,6 +112,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Strand Road, near Rani Ghat',
+    s: 1666,
     la: 22.85794,
     lo: 88.370073,
     st: 'Rani Ghat',
@@ -118,6 +121,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Ganj Choumatha and Rath Stand',
+    s: 2498,
     la: 22.864991,
     lo: 88.372835,
     st: 'Rani Ghat',
@@ -126,6 +130,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Boro Taldanga',
+    s: 3968,
     la: 22.877782,
     lo: 88.376308,
     st: 'Chuchura Stn',
@@ -134,6 +139,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Bibirhat Tematha',
+    s: 4358,
     la: 22.878091,
     lo: 88.373806,
     st: 'Chuchura Stn',
@@ -142,6 +148,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Palpara Road',
+    s: 4931,
     la: 22.87372,
     lo: 88.370789,
     st: 'Rani Ghat',
@@ -150,6 +157,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Vidyalankar',
+    s: 5737,
     la: 22.867172,
     lo: 88.367481,
     st: 'Rani Ghat',
@@ -158,6 +166,7 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Bagbazar Choumatha',
+    s: 6207,
     la: 22.863374,
     lo: 88.367455,
     st: 'Rani Ghat',
@@ -262,4 +271,37 @@ export function badgeCentres(zones, minM = 260) {
 /** The traced route as plain points, for framing the map. */
 export function routePoints() {
   return ROUTE.map(([la, lo]) => ({ la, lo }));
+}
+
+const M_PER_DEG = 111320;
+/** Straight-line metres between two points (flat-earth is accurate to a few metres at this scale). */
+const metres = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: number, lo: number }} */ b) =>
+  Math.hypot((a.lo - b.lo) * M_PER_DEG * Math.cos((22.87 * Math.PI) / 180), (a.la - b.la) * M_PER_DEG);
+
+/** Walking minutes for a straight-line distance: 30% longer for the bends, at 80 m a minute. */
+export const walkMinutes = (/** @type {number} */ m) => Math.max(1, Math.round((m * 1.3) / 80));
+
+/**
+ * A watch plan: the watch point nearest to where you arrive, then the ones after it in procession order.
+ * The first leg is straight-line metres from the arrival; later legs are metres along the route from the spot before.
+ * @param {{ la: number, lo: number }} from
+ * @param {number} count how many spots (the list stops at the last point)
+ * @returns {{ index: number, m: number, min: number }[]}
+ */
+export function watchPlan(from, count) {
+  let first = 0;
+  let nearest = Infinity;
+  WATCH.forEach((w, i) => {
+    const d = metres(from, w);
+    if (d < nearest) {
+      nearest = d;
+      first = i;
+    }
+  });
+  const legs = [];
+  for (let i = first; i < WATCH.length && legs.length < count; i++) {
+    const m = legs.length === 0 ? Math.round(nearest) : Math.abs((WATCH[i]?.s ?? 0) - (WATCH[i - 1]?.s ?? 0));
+    legs.push({ index: i, m, min: walkMinutes(m) });
+  }
+  return legs;
 }

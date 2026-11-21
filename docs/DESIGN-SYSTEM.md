@@ -37,6 +37,8 @@ Never use `#222` or black for a fill or border. Use `--maroon`.
 - **Input and select** 48 px, 12 px radius, maroon border on focus. The select has a custom chevron.
 - **Switch** the map layer checkboxes inside `.pop`.
 - **Filters sheet** `FilterSheet.jsx`. Bottom sheet on phones, centred dialog on desktop. Sections: distance, area (several can be picked, nearest first when location is known, search box when there are more than 12 areas), saved. Footer: `Clear all` text button and a dark `Show N pujas` button that updates live and reads `No pujas match` at zero.
+- **Procession card** `ProcessionCard` in `events.jsx`, used in What's new (Highlights) and Plan my route. A `.jg-ev` card with a 64 px square route picture (4 px radius) at the left, then the title with the status tag flush right (same place as every other event card), the date, and one more line. No arrow. Tap opens the Procession guide. The status tag is the shared `.jg-tag`: Upcoming and Ended are plain, Live now and Today are tonal. Live now runs 6 PM Sun 22 Nov to 7 AM Mon 23 Nov.
+- **Watch plan card** `WatchPlanCard` in `procession.jsx`, in Plan my route under "Or watch it from a spot". A `.jg-plan-card` with the anchored picker (Arrive), a three-way `.jg-seg` (1, 3, All) and a `.btn.primary.block`. The result is a `.jg-proc-list` of numbered red points; tapping one opens the guide on Route with that point picked.
 - **Bar** `FilterBar.jsx`. Two compact chips (Distance, Filters with a count badge). Applied area and Saved filters appear underneath as removable chips.
 
 ## Rules

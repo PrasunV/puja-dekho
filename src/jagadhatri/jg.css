@@ -10,6 +10,7 @@
   --color-visited: #2e7d32; /* the green pin, tick and Visited chip: apart from the teal crowd dot */
   --color-award: #8a5a00; /* winner tags and rows: gold ink on --color-award-bg, 5:1 */
   --color-award-bg: #fdf0d2;
+  --color-glow: #f5c400; /* yellow glow on procession pujas and the route picture */
   --scrim: rgba(30, 8, 10, 0.32);
   --scrim-strong: rgba(30, 8, 10, 0.56);
   --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -23,6 +24,7 @@
     --color-visited: #5bc470;
     --color-award: #f2c35b;
     --color-award-bg: #3a2f14;
+    --color-glow: #ffd426;
     --scrim: rgba(0, 0, 0, 0.5);
     --scrim-strong: rgba(0, 0, 0, 0.6);
     --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -36,6 +38,7 @@
   --color-visited: #5bc470;
   --color-award: #f2c35b;
   --color-award-bg: #3a2f14;
+  --color-glow: #ffd426;
   --scrim: rgba(0, 0, 0, 0.5);
   --scrim-strong: rgba(0, 0, 0, 0.6);
   --float-shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.4);
@@ -4266,4 +4269,47 @@ button.jg-win-row {
   font-size: 0.8125rem;
   line-height: 1rem;
   color: var(--muted);
+}
+
+/* Procession card (What's new and Plan my route): square route picture, then name and tag, date, one line more. */
+.jg-ev-proc {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.jg-ev-proc-thumb {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--tile-line);
+}
+.jg-route-thumb {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.jg-rt-line {
+  fill: none;
+  stroke: var(--maroon);
+  stroke-width: 1.6;
+  stroke-dasharray: 4 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.jg-rt-dot {
+  fill: var(--color-glow);
+}
+.jg-ev-proc-text {
+  flex: 1;
+  min-width: 0;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+.jg-watch-lead {
+  margin: 12px 0 0;
 }

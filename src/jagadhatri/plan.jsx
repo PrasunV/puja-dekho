@@ -1,6 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { Icon } from '../components/ui/Icon.jsx';
-import { BEST_ROUTES, PLAN_HOURS, PLAN_POINTS } from './config.js';
+import { BEST_ROUTES, EVENTS, PLAN_HOURS, PLAN_POINTS } from './config.js';
+import { eventState, ProcessionCard } from './events.jsx';
+import { WatchPlanCard } from './procession.jsx';
+import { useMinute } from './traffic.jsx';
 import { bestPlan, durationText, lastWayHome, planStats, stopTag, walkUrl } from './plan.js';
 import { PickerField } from './picker.jsx';
 import { BANDEL_HOWRAH, BARDDHAMAN, clock12, HOWRAH_BANDEL, specialsActive } from './trains.js';
@@ -36,9 +39,13 @@ function EndChip({ point }) {
  * `meOff` says why "Where I am" can't be used right now (location off, or far away); the plan then starts at a station.
  * @param {{ points: Map<string, PlanPoint>, byId: Map<string, import('./lib.js').JgPuja>,
  *   form: { start: string, end: string, hours: number }, onForm: (f: { start: string, end: string, hours: number }) => void,
- *   meOff: string | null, onMake: () => void, onBest: (plan: Plan) => void, onTrains: () => void, onClose: () => void }} props
+ *   meOff: string | null, onMake: () => void, onBest: (plan: Plan) => void, onTrains: () => void, onProcession: () => void,
+ *   onWatch: (index: number) => void, onClose: () => void }} props
  */
-export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, onTrains, onClose }) {
+export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, onTrains, onProcession, onWatch, onClose }) {
+  const now = useMinute();
+  const procEv = EVENTS.find((e) => e.procession);
+  const procState = procEv ? eventState(procEv, now) : 'ended';
   // Checked when Plan my route opens; the timings row disappears once the specials are over.
   const [specials] = useState(() => specialsActive(Date.now()));
   const pts = /** @type {PlanPoint[]} */ (PLAN_POINTS.map((id) => points.get(id)).filter((p) => !!p));
@@ -62,6 +69,22 @@ export function PlanView({ points, byId, form, onForm, meOff, onMake, onBest, on
         </button>
       </div>
       <p className="jg-body jg-plan-intro">Pick where you start and end. We plan the pujas in between.</p>
+      {procEv && (
+        <>
+          <h3 className="jg-plan-h">{`Procession, ${(procEv.short ?? procEv.when).split(',')[0]}`}</h3>
+          <ul className="jg-ev-list">
+            <li>
+              <ProcessionCard ev={procEv} state={procState} variant="plan" onOpen={onProcession} />
+            </li>
+          </ul>
+          {procState !== 'ended' && (
+            <>
+              <h3 className="jg-plan-h">Or watch it from a spot</h3>
+              <WatchPlanCard options={opts} points={points} onShow={onWatch} />
+            </>
+          )}
+        </>
+      )}
       <h3 className="jg-plan-h">Plan your walk</h3>
       <div className="jg-plan-card">
         <PickerField
