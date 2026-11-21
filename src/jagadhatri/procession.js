@@ -2,11 +2,11 @@
  * Procession guide: the Chandannagar Jagadhatri procession (postponed by rain to Sunday 22 Nov 2026, evening).
  * Pure data and helpers, no React, so they are tested directly (test/client/jagadhatri.test.js).
  *
- * The route line is APPROXIMATE. It was traced from screenshots of the Chandannagar Police procession map and placed
- * with the 68 puja positions, so it can be tens of metres off, and its south end runs past the last screenshot
- * (about 8.1 km traced of the 8.7 km published). Replace ROUTE with the police file when it is available.
+ * The route line is APPROXIMATE (see route-roads.js). Replace it with the police file when it is available.
  * Route and timings are credited to Chandannagar Police.
  */
+
+import { ROUTE_ROADS, ROUTE_SOURCE } from './route-roads.js';
 
 /** The procession day (IST), after rain moved it from Thursday 19 Nov. */
 export const PROCESSION_DAY = '2026-11-22';
@@ -18,83 +18,50 @@ export const PROCESSION_CREDIT = 'Route and timings: Chandannagar Police';
 export const ZONES = Object.freeze(['A', 'B', 'C', 'D']);
 
 /**
- * One continuous line [lat, lng]: south to north along the river-side line (Strand Road), across the north end, then
- * south along the west line. The arrows on the map follow this order.
+ * One closed line [lat, lng]: from Jyoti More north along the river-side line (Strand Road), across the north end,
+ * then south along the west line (GT Road) back to Jyoti More. The arrows on the map follow this order.
+ * The points live in route-roads.js, which `npm run route:build` regenerates from the roads.
  * @type {readonly (readonly [number, number])[]}
  */
-export const ROUTE = Object.freeze([
-  [22.84493, 88.36265],
-  [22.84571, 88.36335],
-  [22.84667, 88.36421],
-  [22.84774, 88.3651],
-  [22.8488, 88.36606],
-  [22.84993, 88.36683],
-  [22.85105, 88.36745],
-  [22.85218, 88.36802],
-  [22.85331, 88.36878],
-  [22.85447, 88.36932],
-  [22.85563, 88.36945],
-  [22.85679, 88.36966],
-  [22.85795, 88.37],
-  [22.85911, 88.37039],
-  [22.86026, 88.37085],
-  [22.86143, 88.37123],
-  [22.86258, 88.37149],
-  [22.86383, 88.37183],
-  [22.86512, 88.3721],
-  [22.86635, 88.37244],
-  [22.86756, 88.3728],
-  [22.86877, 88.37323],
-  [22.87, 88.37371],
-  [22.87123, 88.37422],
-  [22.87242, 88.37463],
-  [22.87351, 88.37501],
-  [22.87465, 88.3754],
-  [22.87587, 88.37563],
-  [22.87716, 88.37588],
-  [22.87856, 88.37622],
-  [22.87856, 88.37365],
-  [22.87762, 88.37329],
-  [22.87669, 88.37277],
-  [22.8757, 88.37208],
-  [22.8747, 88.37128],
-  [22.8736, 88.37067],
-  [22.87244, 88.37021],
-  [22.87132, 88.36964],
-  [22.87023, 88.36895],
-  [22.86913, 88.36841],
-  [22.86804, 88.36787],
-  [22.86696, 88.3673],
-  [22.86587, 88.36679],
-  [22.86463, 88.36644],
-  [22.86339, 88.36645],
-  [22.86211, 88.36682],
-  [22.86082, 88.36693],
-  [22.85959, 88.36653],
-  [22.85838, 88.36606],
-  [22.85717, 88.36569],
-  [22.85589, 88.36531],
-  [22.8546, 88.36487],
-  [22.85331, 88.36444],
-  [22.85202, 88.36412],
-  [22.85089, 88.36371],
-  [22.84977, 88.36328],
-  [22.84865, 88.36303],
-  [22.84746, 88.3627],
-  [22.84622, 88.36225],
-  [22.84501, 88.36195],
-  [22.84461, 88.36192],
-]);
+export const ROUTE = ROUTE_ROADS;
+export { ROUTE_SOURCE };
+
+const M_PER_DEG = 111320;
+/** Straight-line metres between two points (flat-earth is accurate to a few metres at this scale). */
+export const metres = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: number, lo: number }} */ b) =>
+  Math.hypot((a.lo - b.lo) * M_PER_DEG * Math.cos((22.87 * Math.PI) / 180), (a.la - b.la) * M_PER_DEG);
+
+/** Metres along the closed route from Jyoti More to the point of the route nearest to (la, lo). */
+function alongRoute(/** @type {number} */ la, /** @type {number} */ lo) {
+  const cos = Math.cos((22.87 * Math.PI) / 180);
+  const xy = (/** @type {readonly [number, number]} */ p) => [p[1] * cos * M_PER_DEG, p[0] * M_PER_DEG];
+  const [px = 0, py = 0] = xy([la, lo]);
+  let run = 0;
+  let best = Infinity;
+  let at = 0;
+  for (let i = 1; i < ROUTE.length; i++) {
+    const [ax = 0, ay = 0] = xy(/** @type {[number, number]} */ (ROUTE[i - 1]));
+    const [bx = 0, by = 0] = xy(/** @type {[number, number]} */ (ROUTE[i]));
+    const len = Math.hypot(bx - ax, by - ay);
+    const t = len ? Math.max(0, Math.min(1, ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / (len * len))) : 0;
+    const d = Math.hypot(px - (ax + t * (bx - ax)), py - (ay + t * (by - ay)));
+    if (d < best) {
+      best = d;
+      at = run + t * len;
+    }
+    run += len;
+  }
+  return Math.round(at);
+}
 
 /**
  * Suggested places to watch, picked from the route, the ghat and the big pandals. To be verified with the police.
  * @typedef {{ t: string, la: number, lo: number, s: number, st: string, d: number, why: string, best?: boolean }} Watch
- * @type {readonly Watch[]}
+ * @type {readonly Omit<Watch, 's'>[]}
  */
-export const WATCH = Object.freeze([
+const WATCH_RAW = [
   {
     t: 'Jyoti More',
-    s: 0,
     la: 22.845139,
     lo: 88.362361,
     st: 'Gondalpara Ghat',
@@ -104,7 +71,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Kabi Bharatchandra Road',
-    s: 1209,
     la: 22.85398,
     lo: 88.369028,
     st: 'Rani Ghat',
@@ -113,7 +79,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Strand Road, near Rani Ghat',
-    s: 1666,
     la: 22.85794,
     lo: 88.370073,
     st: 'Rani Ghat',
@@ -122,7 +87,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Ganj Choumatha and Rath Stand',
-    s: 2498,
     la: 22.864991,
     lo: 88.372835,
     st: 'Rani Ghat',
@@ -131,7 +95,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Boro Taldanga',
-    s: 3968,
     la: 22.877782,
     lo: 88.376308,
     st: 'Chuchura Stn',
@@ -140,7 +103,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Bibirhat Tematha',
-    s: 4358,
     la: 22.878091,
     lo: 88.373806,
     st: 'Chuchura Stn',
@@ -149,7 +111,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Palpara Road',
-    s: 4931,
     la: 22.87372,
     lo: 88.370789,
     st: 'Rani Ghat',
@@ -158,7 +119,6 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Vidyalankar',
-    s: 5737,
     la: 22.867172,
     lo: 88.367481,
     st: 'Rani Ghat',
@@ -167,14 +127,16 @@ export const WATCH = Object.freeze([
   },
   {
     t: 'Bagbazar Choumatha',
-    s: 6207,
     la: 22.863374,
     lo: 88.367455,
     st: 'Rani Ghat',
     d: 556,
     why: 'Bagbazar Choumatha (No. 43), Zone C, on the west line.',
   },
-]);
+];
+
+/** The watch points, each with `s`: metres along the route from Jyoti More (the start, so 0). */
+export const WATCH = Object.freeze(WATCH_RAW.map((w, i) => ({ ...w, s: i === 0 ? 0 : alongRoute(w.la, w.lo) })));
 
 /** Straight-line distance from stations and ghats to the nearest point of the traced route. */
 export const REACH = Object.freeze([
@@ -273,11 +235,6 @@ export function badgeCentres(zones, minM = 260) {
 export function routePoints() {
   return ROUTE.map(([la, lo]) => ({ la, lo }));
 }
-
-const M_PER_DEG = 111320;
-/** Straight-line metres between two points (flat-earth is accurate to a few metres at this scale). */
-export const metres = (/** @type {{ la: number, lo: number }} */ a, /** @type {{ la: number, lo: number }} */ b) =>
-  Math.hypot((a.lo - b.lo) * M_PER_DEG * Math.cos((22.87 * Math.PI) / 180), (a.la - b.la) * M_PER_DEG);
 
 /** Walking minutes for a straight-line distance: 30% longer for the bends, at 80 m a minute. */
 export const walkMinutes = (/** @type {number} */ m) => Math.max(1, Math.round((m * 1.3) / 80));

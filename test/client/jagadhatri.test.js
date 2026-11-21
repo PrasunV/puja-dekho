@@ -589,6 +589,24 @@ test('procession: zones, lorries and lighting match the police list', () => {
   );
 });
 
+test('procession: the route is one closed loop with no long straight jumps', () => {
+  const first = ROUTE[0];
+  const last = ROUTE[ROUTE.length - 1];
+  assert.ok(first && last);
+  const m = (/** @type {readonly number[]} */ a, /** @type {readonly number[]} */ b) =>
+    Math.hypot(((a[1] ?? 0) - (b[1] ?? 0)) * 102500, ((a[0] ?? 0) - (b[0] ?? 0)) * 111320);
+  assert.ok(m(first, last) < 30, 'the line ends where it starts');
+  let km = 0;
+  let longest = 0;
+  for (let i = 1; i < ROUTE.length; i++) {
+    const d = m(/** @type {readonly number[]} */ (ROUTE[i - 1]), /** @type {readonly number[]} */ (ROUTE[i]));
+    km += d / 1000;
+    longest = Math.max(longest, d);
+  }
+  assert.ok(km > 7.5 && km < 10.5, `length ${km} km`);
+  assert.ok(longest < 400, `longest straight piece ${longest} m`);
+});
+
 test('procession: route and watch points sit inside Chandannagar', () => {
   assert.ok(ROUTE.length > 20);
   assert.equal(WATCH.length, 9);

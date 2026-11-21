@@ -19,7 +19,8 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc -p tsconfig.json",
     "data": "python3 scripts/build-data.py",
-    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build"
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build",
+    "route:build": "node scripts/build-procession-route.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-bengali": "^5.3.0",

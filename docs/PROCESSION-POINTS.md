@@ -121,3 +121,9 @@ The merged 9 are final, in the "as built" direction (river-side line north first
 9. Bagbazar Choumatha
 
 Open: the police serial numbers point the other way (section 2). The arrows were left as built on the owner's call.
+
+## 9. Route line (21 Nov)
+
+The line is now one closed loop that ends where it starts, at Jyoti More, and is smoothed between the traced points. It still comes from the police screenshots, so it can be tens of metres off the road.
+
+To follow the roads exactly (GT Road, Strand Road) run `npm run route:build` once, with internet. It routes through the 11 pins in `chandannagar_procession_route_details.md`, checks the result against the screenshot trace, and rewrites `src/jagadhatri/route-roads.js`. Then run `npm test` and commit the file.
