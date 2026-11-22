@@ -156,6 +156,20 @@ export function procPhase(dayIst) {
   return dayIst < PROCESSION_DAY ? 'before' : dayIst === PROCESSION_DAY ? 'on' : 'after';
 }
 
+const IST_MIN = 330 * 60_000;
+/** The procession sets off at 6 PM on the day and is over by 7 AM next morning (India time). */
+export const PROCESSION_FROM = Date.UTC(2026, 10, 22, 18, 0) - IST_MIN;
+export const PROCESSION_TO = Date.UTC(2026, 10, 23, 7, 0) - IST_MIN;
+
+/**
+ * The grey line on the daily card: when it starts, then that it is on, then nothing once it is over.
+ * @param {number} now  ms since epoch
+ */
+export function entryLine(now) {
+  if (now < PROCESSION_FROM) return 'Starting 22nd Nov, 6 PM onwards';
+  return now < PROCESSION_TO ? 'Happening now' : '';
+}
+
 /**
  * The pujas in the procession, in walking order.
  * @param {import('./lib.js').JgPuja[]} pujas

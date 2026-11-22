@@ -566,6 +566,7 @@ import {
   lightingOf,
   processionPujas,
   procPhase,
+  entryLine,
   ROUTE,
   routePoints,
   walkMinutes,
@@ -720,4 +721,13 @@ test('Rani Ma lorry update: a poster Highlight on 22 Nov, at 11 AM, ahead of the
   for (const f of [ev.photos[0]?.src, ev.photos[0]?.thumb]) {
     assert.ok(f && fs.existsSync(`public${f}`), `${f} is missing`);
   }
+});
+
+test('the entry card line follows the clock: before, on, then gone', () => {
+  const at = (/** @type {number} */ d, /** @type {number} */ h, /** @type {number} */ m = 0) => Date.UTC(2026, 10, d, h, m) - 330 * 60_000;
+  assert.equal(entryLine(at(22, 11, 30)), 'Starting 22nd Nov, 6 PM onwards');
+  assert.equal(entryLine(at(22, 17, 59)), 'Starting 22nd Nov, 6 PM onwards');
+  assert.equal(entryLine(at(22, 18)), 'Happening now');
+  assert.equal(entryLine(at(23, 6, 59)), 'Happening now');
+  assert.equal(entryLine(at(23, 7)), '');
 });

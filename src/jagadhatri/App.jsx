@@ -1725,7 +1725,13 @@ function Loaded({ data }) {
         toast={show}
       />
       <ShareSheet open={shareOpen} online={online} onClose={() => setShareOpen(false)} toast={show} />
-      <Welcome open={welcome} name={account.user?.name?.split(' ')[0] ?? null} onClose={closeWelcome} onPlan={() => openPlanner()} />
+      <Welcome
+        open={welcome}
+        signedIn={account.signedIn}
+        onClose={closeWelcome}
+        onProcession={() => openProcession()}
+        onTraffic={openImmersion}
+      />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
       <div className="jg-toast-zone" aria-live="polite" style={floatBar ? { top: topInset + 4, bottom: 'auto' } : { bottom: toolsBottom }}>

@@ -2789,20 +2789,84 @@ button.jg-ladder-row {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 24px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+  align-items: stretch;
+  padding: 0;
   border-radius: 24px 24px 0 0;
   background: var(--surface);
   color: var(--ink);
   text-align: center;
 }
+/* The animation slot. Deep red with a warm glow; the same in light and dark so a white close button always reads. */
+.jg-welcome-hero {
+  position: relative;
+  flex: none;
+  height: 200px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px 24px 0 0;
+  background:
+    radial-gradient(circle at 50% 120%, rgb(245 196 0 / 45%), transparent 60%), linear-gradient(180deg, #4a0e14, #7a1620); /* token-ok: festive hero, fixed in both themes */
+}
+/* Keep the animation inside this box: 260 x 136 at most, clear of the close button. It never takes a tap. */
+.jg-welcome-art {
+  width: min(100% - 112px, 260px);
+  height: 136px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.jg-welcome-art > * {
+  max-width: 100%;
+  max-height: 100%;
+}
 .jg-welcome-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 88px;
+  height: 88px;
+  border-radius: 24px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+}
+/* 48 x 48 tap target, 8 px from the corner, with a 36 px dark disc so the X reads on any animation. */
+.jg-welcome-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff; /* token-ok: sits on the fixed dark hero */
+  cursor: pointer;
+  isolation: isolate;
+}
+.jg-welcome-x::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 40%);
+}
+.jg-welcome-x:focus-visible {
+  outline: 2px solid #fff; /* token-ok: on the fixed dark hero */
+  outline-offset: -2px;
+}
+.jg-welcome-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20px 20px calc(20px + env(safe-area-inset-bottom, 0px));
+}
+.jg-welcome-second {
+  width: 100%;
+  min-height: 52px;
+  margin-top: 8px;
 }
 .jg-welcome-title {
-  margin: 16px 0 0;
+  margin: 0;
   font-size: 1.5rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -2819,8 +2883,8 @@ button.jg-ladder-row {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin: 24px 0 0;
+  gap: 12px;
+  margin: 20px 0 0;
   padding: 0;
   list-style: none;
   text-align: left;
@@ -2916,16 +2980,21 @@ button.jg-ladder-row {
   --jg-credit-heart: #b31d24;
 }
 @media (max-height: 640px) {
-  .jg-welcome {
-    padding-top: 20px;
+  .jg-welcome-hero {
+    height: 144px;
+  }
+  .jg-welcome-art {
+    height: 96px;
   }
   .jg-welcome-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+  }
+  .jg-welcome-body {
+    padding-top: 16px;
   }
   .jg-welcome-title {
-    margin-top: 12px;
     font-size: 1.0625rem;
     line-height: 1.375rem;
   }
