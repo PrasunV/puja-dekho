@@ -2800,29 +2800,56 @@ button.jg-ladder-row {
 .jg-welcome-hero {
   position: relative;
   flex: none;
-  height: 200px;
+  /* Top 56 = the 48 px close row plus its 8 px offset, so the frame never sits under the X. */
+  padding: 56px 16px 16px;
   display: grid;
-  place-items: center;
+  justify-items: center;
   border-radius: 24px 24px 0 0;
   background:
     radial-gradient(circle at 50% 120%, rgb(245 196 0 / 45%), transparent 60%), linear-gradient(180deg, #4a0e14, #7a1620); /* token-ok: festive hero, fixed in both themes */
 }
-/* Keep the animation inside this box: 260 x 136 at most, clear of the close button. It never takes a tap. */
+/* The animation frame: always 16:9, up to 400 wide, centred. It never takes a tap. */
 .jg-welcome-art {
-  width: min(100% - 112px, 260px);
-  height: 136px;
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
   display: grid;
   place-items: center;
+  border-radius: 12px;
+  background: rgb(0 0 0 / 28%);
   pointer-events: none;
 }
-.jg-welcome-art > * {
-  max-width: 100%;
-  max-height: 100%;
+.jg-welcome-fallback {
+  display: grid;
+  place-items: center;
+  transition: opacity 0.3s;
+}
+.jg-welcome-fallback[data-hidden] {
+  opacity: 0;
+}
+.jg-welcome-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.jg-welcome-canvas[data-shown] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jg-welcome-fallback,
+  .jg-welcome-canvas {
+    transition: none;
+  }
 }
 .jg-welcome-logo {
-  width: 88px;
-  height: 88px;
-  border-radius: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
   box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
 }
 /* 48 x 48 tap target, 8 px from the corner, with a 36 px dark disc so the X reads on any animation. */
@@ -2979,31 +3006,38 @@ button.jg-ladder-row {
 :root[data-theme='dark'] {
   --jg-credit-heart: #b31d24;
 }
-@media (max-height: 640px) {
-  .jg-welcome-hero {
-    height: 144px;
-  }
+/* Short phones: the two buttons must stay on screen, so the frame shrinks (still 16:9) and the rows keep their
+   titles only. */
+@media (max-height: 700px) {
   .jg-welcome-art {
-    height: 96px;
+    max-width: 224px;
   }
   .jg-welcome-logo {
-    width: 64px;
-    height: 64px;
-    border-radius: 16px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
   }
-  .jg-welcome-body {
-    padding-top: 16px;
-  }
-  .jg-welcome-title {
-    font-size: 1.0625rem;
-    line-height: 1.375rem;
+  .jg-welcome-text span {
+    display: none;
   }
   .jg-welcome-rows {
     gap: 12px;
     margin-top: 16px;
   }
+  .jg-welcome-body {
+    padding-top: 16px;
+  }
   .jg-welcome-go {
-    margin-top: 20px;
+    margin-top: 16px;
+  }
+}
+/* Very short phones (iPhone SE size): the rows go too, so both buttons are on screen without scrolling. */
+@media (max-height: 600px) {
+  .jg-welcome-rows {
+    display: none;
+  }
+  .jg-welcome-art {
+    max-width: 200px;
   }
 }
 .jg-welcome-sub {

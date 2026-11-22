@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Icon } from '../components/ui/Icon.jsx';
 import { useBackClose } from './hooks.js';
+import LedArt from './LedArt.jsx';
 import { NoEntryIcon } from './immersion.jsx';
 import { entryLine } from './procession.js';
 
@@ -69,9 +70,7 @@ export function Welcome({ open, signedIn = false, onClose, onProcession, onTraff
               <button type="button" className="jg-welcome-x" aria-label="Close" onClick={onClose}>
                 <Icon name="x" size={24} />
               </button>
-              <div className="jg-welcome-art">
-                <img className="jg-welcome-logo" src="/icon.svg" width="88" height="88" alt="" />
-              </div>
+              <LedArt logo={<img className="jg-welcome-logo" src="/icon.svg" width="88" height="88" alt="" />} />
             </div>
             <div className="jg-welcome-body">
               <h2 id="jg-welcome-title" className="jg-welcome-title">

@@ -731,3 +731,28 @@ test('the entry card line follows the clock: before, on, then gone', () => {
   assert.equal(entryLine(at(23, 6, 59)), 'Happening now');
   assert.equal(entryLine(at(23, 7)), '');
 });
+
+test('the entry card animation: a square file the 16:9 frame can crop, with a still frame inside it', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { LED_FILE, STILL_FRAME } = await import('../../src/jagadhatri/led-art.js');
+  const anim = JSON.parse(readFileSync(`public${LED_FILE}`, 'utf8'));
+  assert.equal(anim.w, 512);
+  assert.equal(anim.h, 512);
+  assert.equal(anim.fr, 30);
+  assert.ok(STILL_FRAME > anim.ip && STILL_FRAME < anim.op, 'the still frame is inside the animation');
+  // The art is a wide band in the middle: a 16:9 crop of the square keeps y 112 to 400. Every LED sits inside it
+  // (the full-height scan line is meant to run past the edges).
+  /** @type {number[]} */
+  const ys = [];
+  for (const layer of anim.layers.filter((/** @type {{ nm: string }} */ l) => l.nm !== 'sweep')) {
+    for (const g of layer.shapes) {
+      const dy = g.it.find((/** @type {{ ty: string }} */ i) => i.ty === 'tr')?.p.k[1] ?? 0; // glow groups are placed by their transform
+      for (const it of g.it) if ((it.ty === 'rc' || it.ty === 'el') && it.p?.a === 0) ys.push(it.p.k[1] + dy);
+    }
+  }
+  assert.ok(ys.length > 100);
+  assert.ok(
+    ys.every((y) => y > 112 && y < 400),
+    'every LED row is inside the 16:9 crop',
+  );
+});

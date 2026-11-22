@@ -48,6 +48,32 @@ Never use `#222` or black for a fill or border. Use `--maroon`.
 3. Every tappable thing is at least 44 px, either visibly or through its tap area.
 4. A filter that is on must be visible without opening a sheet.
 
+## Daily entry card (Welcome sheet)
+
+`Welcome.jsx`, opened on the first visit of each day (India time) and from About. A bottom sheet (max 560 wide, 24 px top corners). The scrim closes it, as does the X, Escape and the phone's back button. Same card for everyone; new visitors also get three feature rows.
+
+| Part         | Spec                                                                                                                                                                               |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Top area     | Deep red gradient, the same in light and dark so a white X always reads. Padding 56 / 16 / 16: the top 56 is the X row, so the animation never sits under the X                    |
+| Close X      | `.jg-welcome-x`: 48 x 48 tap target, 8 px from the top and right, with a 36 px black 40% disc behind the icon so it reads on any animation. Always above the animation             |
+| Animation    | `LedArt.jsx`: a 16:9 frame (12 px radius, black 28% fill, max 400 wide, centred). The file (`public/anim/led-loop.json`) is a square; fit cover crops its empty top and bottom     |
+| Headline     | "Experience the glory of Jagadhatri Puja '26 Procession": 24/28, 700, same for everyone, no name                                                                                   |
+| Grey line    | 15/20, muted. `entryLine()`: before 6 PM Sun 22 Nov "Starting 22nd Nov, 6 PM onwards"; 6 PM to 7 AM "Happening now"; after that nothing                                            |
+| Feature rows | New visitors only. Icon tile (32 px, 12 px radius), 15/20 bold title, 14/20 muted line. Follow the route, Find the best place to watch, View procession idols in order             |
+| Buttons      | Exactly two, 52 px high, 8 px apart. Primary `.btn.dark` "View procession" (flag icon) opens the guide. Secondary `.btn.jg-btn-outline` "View traffic and parking" (no-entry icon) |
+
+Rules the card follows:
+
+1. **One job, two actions.** The main action is filled, the second is an outline. No third button and no text link. Closing is the X.
+2. **The decoration never takes a tap.** The animation frame has `pointer-events: none`; the X and buttons keep their full tap targets (48 and 52 px) and nothing overlaps them.
+3. **Nothing moves when the animation arrives.** The 16:9 frame holds its space from the first paint. The logo shows inside it until the animation is ready, then cross-fades (0.3 s). If the file does not load in 8 s the logo stays.
+4. **Reduced motion.** With "reduce motion" on, the animation never plays: it shows one still lit frame (`STILL_FRAME` = 245) and the fades are off.
+5. **Battery.** The loop pauses when the page is hidden and is destroyed when the card closes. The player and the file load only when the card opens (the player is the one already used for the festival greeting).
+6. **Short phones keep both buttons on screen.** Up to 700 px tall: the frame shrinks (still 16:9, 224 wide) and rows show titles only. Up to 600 px tall (iPhone SE size): the rows go and the frame is 200 wide. Taller phones scroll inside the sheet if they must, never behind the home bar.
+7. **Safe areas.** The bottom padding adds `env(safe-area-inset-bottom)`.
+
+Replacing the animation: keep the file square (512 x 512) with the artwork inside y 112 to 400, so the 16:9 crop shows all of it; `test/client/jagadhatri.test.js` checks this. Then update `STILL_FRAME` in `led-art.js` to a sharp lit frame.
+
 ## Map location and "Search this area"
 
 Location button (round, bottom right, crosshair icon like Google Maps and Airbnb):
