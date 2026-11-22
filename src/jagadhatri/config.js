@@ -27,7 +27,7 @@ export const POPULAR_ORDER = Object.freeze([
  * `endDay` when it runs over several days. `short`: a short date for the card when `when` is long. Optional `start` / `end` (ISO with +05:30) turn on "Live now".
  * Photos: up to any number; cards show 3 and "+N". Each needs `alt` text.
  * @typedef {{ id: string, section: 'highlight' | 'latest', title: string, subtitle?: string, short?: string, day: string, endDay?: string, start?: string,
- *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string, winners?: boolean, procession?: boolean,
+ *   end?: string, when: string, pujaId?: string, place?: string, by: string, body: string, facts?: string[], link?: string, linkLabel?: string, winners?: boolean, procession?: boolean, poster?: boolean,
  *   photos: { src: string, thumb?: string, alt: string }[] }} JgEvent
  */
 const CHOKKHUDAAN =
@@ -35,6 +35,27 @@ const CHOKKHUDAAN =
 
 /** @type {readonly JgEvent[]} */
 export const EVENTS = Object.freeze([
+  {
+    id: 'ranima-lorry-2026',
+    section: 'highlight',
+    title: 'রাণীমাকে লরিতে তোলা হবে',
+    subtitle: 'Rani Ma goes onto the lorry',
+    short: 'Sun 22 Nov, 11 AM',
+    day: '2026-11-22',
+    start: '2026-11-22T11:00:00+05:30',
+    when: 'Sun 22 Nov, 11:00 AM',
+    pujaId: 'tematha',
+    by: 'Tematha Sarbajanin Jagadhatri Puja Samiti (তেমাথা সার্বজনীন জগদ্ধাত্রী পূজা সমিতি)',
+    body: 'সেই ঐতিহাসিক মুহূর্ত। রাণীমাকে লরিতে তোলা হবে ২২শে নভেম্বর, রবিবার, বেলা ১১টায়। Rani Ma is lifted onto the lorry for the procession.',
+    poster: true,
+    photos: [
+      {
+        src: '/jagadhatripuja/events/ranima-lorry.jpg',
+        thumb: '/jagadhatripuja/events/ranima-lorry-thumb.jpg',
+        alt: 'Poster: Ranima will be put on the lorry on Sunday 22 November at 11 AM, with the golden Goddess among a crowd lifting her',
+      },
+    ],
+  },
   {
     id: 'procession-2026',
     section: 'highlight',

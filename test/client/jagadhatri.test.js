@@ -707,3 +707,17 @@ test('procession day traffic: in force on 22 and 23 Nov only', () => {
   assert.equal(immersionState(IMMERSION_TO - 1), 'on');
   assert.equal(immersionState(IMMERSION_TO), 'ended');
 });
+
+test('Rani Ma lorry update: a poster Highlight on 22 Nov, at 11 AM, ahead of the evening procession', () => {
+  const ev = EVENTS.find((e) => e.id === 'ranima-lorry-2026');
+  const proc = EVENTS.find((e) => e.id === 'procession-2026');
+  assert.ok(ev && proc);
+  assert.equal(ev.section, 'highlight');
+  assert.equal(ev.poster, true);
+  assert.equal(ev.day, '2026-11-22');
+  assert.ok(Date.parse(ev.start ?? '') < Date.parse(proc.start ?? ''));
+  assert.equal(ev.photos.length, 1);
+  for (const f of [ev.photos[0]?.src, ev.photos[0]?.thumb]) {
+    assert.ok(f && fs.existsSync(`public${f}`), `${f} is missing`);
+  }
+});

@@ -8,7 +8,7 @@ import LazyImage from './loader/LazyImage.jsx';
 import { PROCESSION_MOVED, ROUTE_KM } from './procession.js';
 import { RouteThumb } from './procession.jsx';
 import { ImmersionCard } from './immersion.jsx';
-import { TrafficCard, useMinute } from './traffic.jsx';
+import { useMinute } from './traffic.jsx';
 import { Section, useCollapse } from './ui.jsx';
 
 const IST_MS = 5.5 * 3600 * 1000;
@@ -141,11 +141,12 @@ function EventCard({ ev, state, puja, onOpen }) {
       </li>
     );
   const n = ev.photos.length;
+  const poster = ev.poster ? ev.photos[0] : undefined;
   return (
     <li>
       <button
         type="button"
-        className="jg-ev"
+        className={`jg-ev${poster ? ' jg-ev-poster' : ''}`}
         data-state={state}
         onClick={onOpen}
         aria-label={`${ev.title}. ${STATE_WORD[state]}. ${ev.short ?? ev.when}, ${puja?.n ?? ev.place ?? ''}${n ? `. ${n} photo${n > 1 ? 's' : ''}` : ''}`}
@@ -155,7 +156,13 @@ function EventCard({ ev, state, puja, onOpen }) {
           <StateTag state={state} />
         </span>
         <span className="jg-ev-meta">{[ev.short ?? ev.when, puja?.n ?? ev.place].filter(Boolean).join(' · ')}</span>
-        <Thumbs photos={ev.photos} />
+        {poster ? (
+          <span className="jg-ev-poster-img" aria-hidden="true">
+            <LazyImage src={poster.thumb ?? poster.src} alt="" loading="lazy" decoding="async" />
+          </span>
+        ) : (
+          <Thumbs photos={ev.photos} />
+        )}
       </button>
     </li>
   );
@@ -163,9 +170,9 @@ function EventCard({ ev, state, puja, onOpen }) {
 
 /**
  * What's new: Notice (pinned, the latest notice), Highlights, Latest events. Empty sections are left out.
- * @param {{ byId: Map<string, import('./lib.js').JgPuja>, onClose: () => void, onTraffic: () => void, onImmersion: () => void, onEvent: (id: string) => void }} props
+ * @param {{ byId: Map<string, import('./lib.js').JgPuja>, onClose: () => void, onImmersion: () => void, onEvent: (id: string) => void }} props
  */
-export function WhatsNew({ byId, onClose, onTraffic, onImmersion, onEvent }) {
+export function WhatsNew({ byId, onClose, onImmersion, onEvent }) {
   const now = useMinute();
   const [isOpen, toggle] = useCollapse(true);
   const groups = /** @type {const} */ ([
@@ -189,7 +196,6 @@ export function WhatsNew({ byId, onClose, onTraffic, onImmersion, onEvent }) {
       </div>
       <Section title="Notice" collapsible={false} open onToggle={() => {}}>
         <ImmersionCard onOpen={onImmersion} />
-        <TrafficCard onOpen={onTraffic} />
       </Section>
       {groups
         .filter((g) => g.rows.length > 0)

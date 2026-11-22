@@ -1080,7 +1080,6 @@ function Loaded({ data }) {
       <WhatsNew
         byId={byId}
         onClose={toList}
-        onTraffic={() => setView({ kind: 'traffic' })}
         onImmersion={openImmersion}
         onEvent={(id) => (eventById(id)?.procession ? openProcession() : setView({ kind: 'event', id }))}
       />
