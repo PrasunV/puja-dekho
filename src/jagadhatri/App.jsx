@@ -204,10 +204,9 @@ function Loaded({ data }) {
   const [filtersRaw, setFilters] = useState(NO_FILTERS);
   // A filter chip is pinned first in the row; bring the row back to its start so it is on screen when one is set.
   const chipRow = useRef(/** @type {HTMLDivElement | null} */ (null));
-  const trafficChip = view.kind === 'immersion' ? immTab : null;
   useEffect(() => {
     chipRow.current?.scrollTo({ left: 0 });
-  }, [filtersRaw.type, trafficChip]);
+  }, [filtersRaw.type]);
   // The two "Your pujas" filters read the wish list and visited pujas; signed out, they are off.
   const mine = useMemo(
     () => ({ wish: new Set(account.wish.map((w) => w.puja)), visited: new Set(account.visited.map((v) => v.puja)) }),
@@ -1263,24 +1262,6 @@ function Loaded({ data }) {
         {!searchOpen && sheet !== 'full' && !floatBar && (
           <nav className="jg-chips" aria-label="Filters">
             <div className="jg-chip-scroll" ref={chipRow}>
-              {/* The No entry and Parking filter: while it is on, its chips are pinned first, so it is never hidden. */}
-              {immOpen &&
-                trafficKinds.map((k) =>
-                  k.on ? (
-                    <button
-                      key={k.key}
-                      type="button"
-                      className="chip compact jg-chip jg-applied jg-pinned"
-                      aria-pressed="true"
-                      aria-label={`Remove filter: ${k.label}`}
-                      onClick={() => toggleTraffic(k.key)}
-                    >
-                      {k.icon}
-                      {k.label}
-                      <Icon name="x" size={16} />
-                    </button>
-                  ) : null,
-                )}
               {filters.type && (
                 <button
                   type="button"
@@ -1311,7 +1292,10 @@ function Loaded({ data }) {
               ))}
               <WhatsNewChip
                 open={
-                  view.kind === 'whatsnew' || (view.kind === 'traffic' && !view.from) || view.kind === 'immersion' || view.kind === 'event'
+                  view.kind === 'whatsnew' ||
+                  (view.kind === 'traffic' && !view.from) ||
+                  (view.kind === 'immersion' && immFrom === 'whatsnew') ||
+                  view.kind === 'event'
                 }
                 onOpen={() => {
                   setView({ kind: 'whatsnew' });
@@ -1336,21 +1320,20 @@ function Loaded({ data }) {
                 <Icon name="flag" size={16} />
                 Procession
               </button>
+              {/* No entry and Parking: a chip stays where it is and shows selected, like Near me and Must visit (design 7.3). */}
               {trafficOffered &&
-                trafficKinds.map((k) =>
-                  k.on ? null : (
-                    <button
-                      key={k.key}
-                      type="button"
-                      className="chip compact jg-chip"
-                      aria-pressed="false"
-                      onClick={() => toggleTraffic(k.key)}
-                    >
-                      {k.icon}
-                      {k.label}
-                    </button>
-                  ),
-                )}
+                trafficKinds.map((k) => (
+                  <button
+                    key={k.key}
+                    type="button"
+                    className="chip compact jg-chip"
+                    aria-pressed={k.on}
+                    onClick={() => toggleTraffic(k.key)}
+                  >
+                    {k.icon}
+                    {k.label}
+                  </button>
+                ))}
               <button type="button" className="chip compact jg-chip" aria-pressed={near.on} onClick={toggleNear}>
                 <Icon name="locate" size={16} />
                 {nearLabel}
