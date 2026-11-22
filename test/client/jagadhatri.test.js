@@ -756,3 +756,33 @@ test('the entry card animation: a square file the 16:9 frame can crop, with a st
     'every LED row is inside the 16:9 crop',
   );
 });
+
+test('the No entry and Parking filter: tabs and kinds stay in step, and it can be turned off', async () => {
+  const {
+    kindsOfTab,
+    tabOfKinds,
+    toggleKind,
+    spotsOfTab,
+    trafficSpots: allSpots,
+  } = await import('../../src/jagadhatri/immersion-traffic.js');
+  assert.deepEqual(kindsOfTab(null), { parking: false, noEntry: false });
+  assert.deepEqual(kindsOfTab('Overview'), { parking: true, noEntry: true });
+  assert.deepEqual(kindsOfTab('Parking'), { parking: true, noEntry: false });
+  assert.equal(tabOfKinds(true, true), 'Overview');
+  assert.equal(tabOfKinds(false, true), 'No entry');
+  assert.equal(tabOfKinds(false, false), null);
+  // Off to one to both and back down to off.
+  let tab = toggleKind(null, 'parking');
+  assert.equal(tab, 'Parking');
+  tab = toggleKind(tab, 'noEntry');
+  assert.equal(tab, 'Overview');
+  tab = toggleKind(tab, 'parking');
+  assert.equal(tab, 'No entry');
+  assert.equal(toggleKind(tab, 'noEntry'), null);
+  // The map gets only what is picked.
+  const spots = allSpots();
+  assert.ok(spotsOfTab(spots, 'Parking').every((s) => s.k === 'p'));
+  assert.ok(spotsOfTab(spots, 'No entry').every((s) => s.k === 'n'));
+  assert.equal(spotsOfTab(spots, 'Overview').length, spots.length);
+  assert.equal(spotsOfTab(spots, null).length, 0);
+});

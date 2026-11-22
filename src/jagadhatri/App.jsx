@@ -41,9 +41,9 @@ import {
 import { Celebration, primeSound, ShareScreen } from './celebrate.jsx';
 import { ProfileSheet, SettingsSheet, SignInSheet, signInError } from './profile.jsx';
 import { rankOf, statsOf } from './ranks.js';
-import { ImmersionSheet } from './immersion.jsx';
-import { trafficSpots } from './immersion-traffic.js';
-import { TrafficDetail } from './traffic.jsx';
+import { ImmersionSheet, NoEntryIcon, ParkIcon } from './immersion.jsx';
+import { immersionState, kindsOfTab, NO_ENTRY, PARKING, spotsOfTab, toggleKind, trafficSpots } from './immersion-traffic.js';
+import { TrafficDetail, useMinute } from './traffic.jsx';
 import { ShareFab, ShareSheet, useAnyModalOpen, useShareReveal, useSplashGone } from './share.jsx';
 import {
   AUTO_HIDE_MS,
@@ -70,6 +70,8 @@ import { PlanView, RouteView, TrainsView } from './plan.jsx';
 import { About, AboutFooter, PujaActions, PujaDetail, PujaListSheet, PujaRow } from './sheets.jsx';
 import { ChoiceRow, ModalSheet, RadiusTrigger, SearchBar, Section, useCollapse } from './ui.jsx';
 
+/** The map while a traffic filter is on: no pandals at all. */
+const NO_PUJAS = /** @type {import('./lib.js').JgPuja[]} */ ([]);
 const JgMap = React.lazy(() => import('./JgMap.jsx'));
 
 /** Near me re-centres only after the person has walked this far, so the list never jumps under a finger. */
@@ -137,6 +139,8 @@ function Loaded({ data }) {
   const [watchSel, setWatchSel] = useState(-1);
   const [immTab, setImmTab] = useState('Overview');
   const [immSel, setImmSel] = useState(/** @type {string | null} */ (null));
+  // Where the traffic sheet was opened from, so Back goes there: What's new, or the map list (chips, Filters, entry card).
+  const [immFrom, setImmFrom] = useState(/** @type {'whatsnew' | 'list'} */ ('whatsnew'));
   const stById = useMemo(() => new Map(stations.map((s) => [s.id, s])), [stations]);
   /** Stations and ghats as plan start and end points. */
   const planPoints = useMemo(
@@ -200,9 +204,10 @@ function Loaded({ data }) {
   const [filtersRaw, setFilters] = useState(NO_FILTERS);
   // A filter chip is pinned first in the row; bring the row back to its start so it is on screen when one is set.
   const chipRow = useRef(/** @type {HTMLDivElement | null} */ (null));
+  const trafficChip = view.kind === 'immersion' ? immTab : null;
   useEffect(() => {
     chipRow.current?.scrollTo({ left: 0 });
-  }, [filtersRaw.type]);
+  }, [filtersRaw.type, trafficChip]);
   // The two "Your pujas" filters read the wish list and visited pujas; signed out, they are off.
   const mine = useMemo(
     () => ({ wish: new Set(account.wish.map((w) => w.puja)), visited: new Set(account.visited.map((v) => v.puja)) }),
@@ -430,7 +435,13 @@ function Loaded({ data }) {
   useBackClose(view.kind !== 'list', () => (view.kind === 'puja' ? closePuja() : toList()));
   // An event or the traffic notice sits on top of What's new: Back returns there first, like the on-screen back arrow.
   useBackClose(view.kind === 'event' || view.kind === 'traffic' || view.kind === 'immersion', () =>
-    setView((v) => (v.kind === 'traffic' && v.from ? { kind: v.from } : { kind: 'whatsnew' })),
+    setView((v) =>
+      v.kind === 'traffic' && v.from
+        ? { kind: v.from }
+        : v.kind === 'immersion' && immFrom === 'list'
+          ? { kind: 'list' }
+          : { kind: 'whatsnew' },
+    ),
   );
   // A plan sits on Plan my route, and a puja opened from a plan sits on the plan.
   useBackClose(view.kind === 'route' || view.kind === 'trains' || (view.kind === 'puja' && view.from === 'route'), () =>
@@ -497,7 +508,10 @@ function Loaded({ data }) {
   // The P and no-entry markers show only while this sheet is open; each tab frames what it lists.
   const immOpen = view.kind === 'immersion';
   const immSpots = useMemo(() => trafficSpots(), []);
-  const trafficLayer = useMemo(() => (immOpen ? { spots: immSpots, sel: immSel } : null), [immOpen, immSpots, immSel]);
+  const trafficLayer = useMemo(
+    () => (immOpen ? { spots: spotsOfTab(immSpots, immTab), sel: immSel } : null),
+    [immOpen, immSpots, immTab, immSel],
+  );
   const frameImm = useCallback(
     (/** @type {string} */ tab) => {
       const k = tab === 'Parking' ? 'p' : tab === 'No entry' ? 'n' : null;
@@ -518,15 +532,33 @@ function Loaded({ data }) {
     setImmSel(id);
     mapRef.current?.flyTo(la, lo, 16);
   }, []);
-  const openImmersion = useCallback(() => {
-    setImmTab('Overview');
+  /** Opens the traffic sheet on a tab (Overview is both kinds). Every way in to the filter ends up here. */
+  const openImmersion = useCallback((/** @type {string} */ tab = 'Overview', /** @type {'whatsnew' | 'list'} */ from = 'whatsnew') => {
+    setImmTab(tab);
+    setImmFrom(from);
     setImmSel(null);
     setView({ kind: 'immersion' });
     setSheet('half');
   }, []);
+  /** The No entry and Parking filter: a tab to turn it on, or null to turn it off (the map goes back to the pujas). */
+  const setTraffic = useCallback(
+    (/** @type {string | null} */ tab) => {
+      if (tab == null) setView({ kind: 'list' });
+      else if (immOpen) changeImmTab(tab);
+      else openImmersion(tab, 'list');
+    },
+    [immOpen, changeImmTab, openImmersion],
+  );
+  const toggleTraffic = (/** @type {'parking' | 'noEntry'} */ kind) => setTraffic(toggleKind(immOpen ? immTab : null, kind));
+  // The notice names 22 and 23 Nov; the filter and its chips are offered until it ends.
+  const trafficOffered = immersionState(useMinute()) !== 'ended';
+  const trafficKinds = /** @type {{ key: 'parking' | 'noEntry', label: string, on: boolean, icon: import('react').ReactNode }[]} */ ([
+    { key: 'parking', label: 'Parking', on: immOpen && kindsOfTab(immTab).parking, icon: <ParkIcon width={16} height={16} /> },
+    { key: 'noEntry', label: 'No entry', on: immOpen && kindsOfTab(immTab).noEntry, icon: <NoEntryIcon width={16} height={16} /> },
+  ]);
   useEffect(() => {
     if (!immOpen || !mapReady) return;
-    frameImm('Overview');
+    frameImm(immTab);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only when the sheet opens or the map becomes ready
   }, [immOpen, mapReady]);
 
@@ -1080,7 +1112,7 @@ function Loaded({ data }) {
       <WhatsNew
         byId={byId}
         onClose={toList}
-        onImmersion={openImmersion}
+        onImmersion={() => openImmersion('Overview', 'whatsnew')}
         onEvent={(id) => (eventById(id)?.procession ? openProcession() : setView({ kind: 'event', id }))}
       />
     );
@@ -1106,7 +1138,8 @@ function Loaded({ data }) {
         onTab={changeImmTab}
         sel={immSel}
         onPick={pickImm}
-        onBack={() => setView({ kind: 'whatsnew' })}
+        onBack={() => setView(immFrom === 'list' ? { kind: 'list' } : { kind: 'whatsnew' })}
+        backLabel={immFrom === 'list' ? 'Back to the map' : "Back to What's new"}
         onClose={toList}
       />
     );
@@ -1230,6 +1263,24 @@ function Loaded({ data }) {
         {!searchOpen && sheet !== 'full' && !floatBar && (
           <nav className="jg-chips" aria-label="Filters">
             <div className="jg-chip-scroll" ref={chipRow}>
+              {/* The No entry and Parking filter: while it is on, its chips are pinned first, so it is never hidden. */}
+              {immOpen &&
+                trafficKinds.map((k) =>
+                  k.on ? (
+                    <button
+                      key={k.key}
+                      type="button"
+                      className="chip compact jg-chip jg-applied jg-pinned"
+                      aria-pressed="true"
+                      aria-label={`Remove filter: ${k.label}`}
+                      onClick={() => toggleTraffic(k.key)}
+                    >
+                      {k.icon}
+                      {k.label}
+                      <Icon name="x" size={16} />
+                    </button>
+                  ) : null,
+                )}
               {filters.type && (
                 <button
                   type="button"
@@ -1285,6 +1336,21 @@ function Loaded({ data }) {
                 <Icon name="flag" size={16} />
                 Procession
               </button>
+              {trafficOffered &&
+                trafficKinds.map((k) =>
+                  k.on ? null : (
+                    <button
+                      key={k.key}
+                      type="button"
+                      className="chip compact jg-chip"
+                      aria-pressed="false"
+                      onClick={() => toggleTraffic(k.key)}
+                    >
+                      {k.icon}
+                      {k.label}
+                    </button>
+                  ),
+                )}
               <button type="button" className="chip compact jg-chip" aria-pressed={near.on} onClick={toggleNear}>
                 <Icon name="locate" size={16} />
                 {nearLabel}
@@ -1384,17 +1450,18 @@ function Loaded({ data }) {
                 <JgMap
                   key={mapKey}
                   ref={mapRef}
-                  pujas={pujas}
+                  pujas={immOpen ? NO_PUJAS : pujas}
                   stations={stations}
+                  focus={immOpen}
                   lit={lit}
                   priority={priority}
-                  selectedId={selectedId}
+                  selectedId={immOpen ? null : selectedId}
                   crowd={crowd.crowd}
                   visited={mine.visited}
                   centre={centre}
                   me={pos && farM == null ? { lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy, heading } : null}
-                  route={routeOnMap}
-                  procession={procLayer}
+                  route={immOpen ? null : routeOnMap}
+                  procession={immOpen ? null : procLayer}
                   traffic={trafficLayer}
                   onProcZone={changeProcTab}
                   onProcWatch={pickWatch}
@@ -1544,16 +1611,22 @@ function Loaded({ data }) {
         centre={centre}
         mine={account.signedIn ? mine : null}
         crowd={crowd.crowd}
+        traffic={immOpen ? immTab : null}
+        trafficOffered={trafficOffered}
         onSignIn={() => {
           setChoosing(null);
           setSignInErr(null);
           setSignIn({ reason: 'wish' });
         }}
-        onApply={(f) => {
+        onApply={(f, trafficTab) => {
           setFilters(f);
           setChoosing(null);
-          setView({ kind: 'list' });
-          setSheet((s) => (s === 'peek' ? 'initial' : s));
+          if (trafficTab) {
+            setTraffic(trafficTab);
+          } else {
+            setView({ kind: 'list' });
+            setSheet((s) => (s === 'peek' ? 'initial' : s));
+          }
         }}
         onClose={() => setChoosing(null)}
       />
@@ -1730,7 +1803,7 @@ function Loaded({ data }) {
         signedIn={account.signedIn}
         onClose={closeWelcome}
         onProcession={() => openProcession()}
-        onTraffic={openImmersion}
+        onTraffic={() => openImmersion('Overview', 'list')}
       />
       <SignInSheet reason={signIn?.reason ?? null} busy={signInBusy} error={signInErr} onCredential={onCredential} onClose={closeSignIn} />
 
@@ -2024,16 +2097,22 @@ function EmptyRadius({ centre, counts, filters, allCount, onRadius, onClearFilte
  * More (design 7.4): crowd and your-pujas groups (coming with sign-in), town, age, procession and zone.
  * Choices are a draft until "Show N pujas", which updates live.
  */
-function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onApply, onClose }) {
+function MoreSheet({ open, pujas, filters, centre, mine, crowd, traffic, trafficOffered, onSignIn, onApply, onClose }) {
   // Each time the sheet opens, the draft starts from the filters that are on.
   const [draftRaw, setDraft] = useState(filters);
   const draft = useMemo(() => ({ ...draftRaw, crowd, ...(mine ? { mine } : {}) }), [draftRaw, mine, crowd]);
+  // The No entry and Parking choice rides along in the draft: a tab (Overview is both) or null (off).
+  const [dTraffic, setDTraffic] = useState(/** @type {string | null} */ (traffic));
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
-    if (open) setDraft(filters);
+    if (open) {
+      setDraft(filters);
+      setDTraffic(traffic);
+    }
   }
   const count = useMemo(() => visibleList(pujas, draft, centre).length, [pujas, draft, centre]);
+  const trafficPicked = trafficOffered && dTraffic != null;
   const [isOpen, toggle] = useCollapse(open);
   /** Props for one filter group; `chosen` is what is on inside it, shown in the header while collapsed. */
   const group = (/** @type {string} */ title, /** @type {(string | false)[]} */ chosen) => ({
@@ -2055,16 +2134,40 @@ function MoreSheet({ open, pujas, filters, centre, mine, crowd, onSignIn, onAppl
           <button
             type="button"
             className="btn text"
-            onClick={() => setDraft({ ...NO_FILTERS, mustVisit: draft.mustVisit, type: draft.type })}
+            onClick={() => {
+              setDraft({ ...NO_FILTERS, mustVisit: draft.mustVisit, type: draft.type });
+              setDTraffic(null);
+            }}
           >
             Clear all
           </button>
-          <button type="button" className="btn dark" disabled={count === 0} onClick={() => onApply(draftRaw)}>
-            {count === 0 ? 'No pujas match' : `Show ${pujaCount(count)}`}
+          <button
+            type="button"
+            className="btn dark"
+            disabled={!trafficPicked && count === 0}
+            onClick={() => onApply(draftRaw, trafficPicked ? dTraffic : null)}
+          >
+            {trafficPicked ? 'Show on map' : count === 0 ? 'No pujas match' : `Show ${pujaCount(count)}`}
           </button>
         </div>
       }
     >
+      {trafficOffered && (
+        <Section {...group('Traffic', [kindsOfTab(dTraffic).parking && 'Parking', kindsOfTab(dTraffic).noEntry && 'No entry'])}>
+          <ChoiceRow
+            label="Parking"
+            count={`${PARKING.length} places`}
+            selected={kindsOfTab(dTraffic).parking}
+            onClick={() => setDTraffic((t) => toggleKind(t, 'parking'))}
+          />
+          <ChoiceRow
+            label="No entry"
+            count={`${NO_ENTRY.length} points`}
+            selected={kindsOfTab(dTraffic).noEntry}
+            onClick={() => setDTraffic((t) => toggleKind(t, 'noEntry'))}
+          />
+        </Section>
+      )}
       <Section {...group('Crowd', [draft.freeNow && 'Free now', draft.hideCrowded && 'Hide crowded'])}>
         <ChoiceRow
           label="Free now"

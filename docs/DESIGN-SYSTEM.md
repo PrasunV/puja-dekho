@@ -74,6 +74,27 @@ Rules the card follows:
 
 Replacing the animation: keep the file square (512 x 512) with the artwork inside y 112 to 400, so the 16:9 crop shows all of it; `test/client/jagadhatri.test.js` checks this. Then update `STILL_FRAME` in `led-art.js` to a sharp lit frame.
 
+## No entry and Parking filter
+
+One filter with three ways to read it: Parking, No entry, or both. It is the Procession day traffic sheet (`ImmersionSheet`): the sheet's tab is the filter (Overview = both, Parking, No entry), so every way in lands on the same state. Offered while the police notice is in force (`immersionState` is not `ended`).
+
+| Where it is picked                      | What it does                                                                                        |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Map bar chips                           | `Parking` and `No entry` chips after Procession. One tap turns one on; a second chip adds the other |
+| More filters sheet                      | A "Traffic" section, two choice rows. The button reads "Show on map" when one is picked             |
+| Traffic sheet tabs                      | Overview, Parking, No entry. Picking a tab changes the filter                                       |
+| Entry card, "View traffic and parking"  | Opens the sheet on Overview (both on)                                                               |
+| What's new, Procession day traffic card | Same, with Back returning to What's new                                                             |
+
+While the filter is on:
+
+1. **Only the chosen spots are on the map.** Pandals, the procession route, watch points, zone badges and the station and ghat pins are hidden. The person's own location dot stays.
+2. **The bottom sheet is the list** of the chosen spots (tap one to fly to it and see its details).
+3. **The filter is always visible.** Each chosen kind is a pinned applied chip at the start of the bar (`Parking ×`, `No entry ×`, 16 px icon, maroon outline, same as every applied filter). The chip replaces its quick chip, the way the Puja type chip is replaced.
+4. **Turning it off.** The × on a chip removes that kind; removing the last one returns the map to the pujas. Closing the sheet (X, Back, the phone's back button) also turns it off. Opening anything else (a puja, Plan my route, Procession) ends it too, so a puja is never opened while pandals are hidden.
+5. **Back goes where you came from:** the map list when opened from a chip, the Filters sheet or the entry card ("Back to the map"), What's new when opened from its card.
+6. **Spots with no coordinates** (KMDA Under-Pass, Shivtala Morh, Kestopatty Morh and others) stay in the list marked "Not on the map yet".
+
 ## Map location and "Search this area"
 
 Location button (round, bottom right, crosshair icon like Google Maps and Airbnb):

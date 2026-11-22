@@ -108,14 +108,14 @@ function Row({ icon, title, meta, spot, near, selected, onPick }) {
 
 /**
  * The procession-day traffic sheet: Overview, Parking, No entry. A row with a place on the map flies the map to it.
- * @param {{ tab: string, onTab: (t: string) => void, sel: string | null, onPick: (id: string, la: number, lo: number) => void, onBack: () => void, onClose: () => void }} props
+ * @param {{ tab: string, onTab: (t: string) => void, sel: string | null, onPick: (id: string, la: number, lo: number) => void, onBack: () => void, backLabel?: string, onClose: () => void }} props
  */
-export function ImmersionSheet({ tab, onTab, sel, onPick, onBack, onClose }) {
+export function ImmersionSheet({ tab, onTab, sel, onPick, onBack, backLabel = "Back to What's new", onClose }) {
   const state = immersionState(useMinute());
   return (
     <div className="jg-detail jg-proc jg-imm">
       <div className="jg-detail-head" data-sheet-head>
-        <button type="button" className="jg-icon-btn" aria-label="Back to What's new" onClick={onBack}>
+        <button type="button" className="jg-icon-btn" aria-label={backLabel} onClick={onBack}>
           <Icon name="back" />
         </button>
         <div className="jg-detail-titles">

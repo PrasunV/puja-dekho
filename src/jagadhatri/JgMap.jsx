@@ -72,6 +72,7 @@ const THEME = {
  * @property {{ la: number, lo: number, n?: number, end?: boolean }[] | null} [route]  A planned walk: dotted line, numbered stops
  * @property {ProcessionLayer | null} [procession]  The procession guide: a yellow glow on each procession puja, the route, zone badges, watch points
  * @property {TrafficLayer | null} [traffic]      Procession-day traffic: blue P for parking, no-entry sign for closed roads
+ * @property {boolean} [focus]   Traffic-only view: the station and ghat pins hide, so only the traffic spots stand out
  * @property {(zone: string) => void} [onProcZone]   A zone badge was tapped
  * @property {(i: number) => void} [onProcWatch]     A numbered watch point was tapped
  *
@@ -335,6 +336,8 @@ const JgMap = forwardRef(
     const mapRef = useRef(/** @type {maplibregl.Map | null} */ (null));
     const ready = useRef(false);
     const latest = useRef(props);
+    /** The station and ghat pins, kept so the traffic-only view can hide them. */
+    const pins = useRef(/** @type {HTMLElement[]} */ ([]));
     latest.current = props;
 
     useImperativeHandle(ref, () => ({
@@ -755,6 +758,8 @@ const JgMap = forwardRef(
             e.stopPropagation();
             latest.current.onStation(s.id);
           });
+          el.hidden = !!p.focus;
+          pins.current.push(el);
           new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -14] }).setLngLat([s.lo, s.la]).addTo(map);
         }
 
@@ -887,8 +892,12 @@ const JgMap = forwardRef(
       /** @type {maplibregl.GeoJSONSource} */ (map.getSource('jg-proc-watch')).setData(/** @type {any} */ (pf.watch));
     }
 
-    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession, traffic } = props;
+    const { pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession, traffic, focus } = props;
     useEffect(syncAll, [pujas, lit, priority, selectedId, centre, me, crowd, route, visited, procession, traffic]);
+    // Traffic-only view: the station and ghat pins step aside.
+    useEffect(() => {
+      for (const el of pins.current) el.hidden = !!focus;
+    }, [focus]);
 
     return <div ref={box} className="jg-map" role="region" aria-label="Map of Jagadhatri pujas" />;
   },

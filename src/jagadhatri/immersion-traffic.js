@@ -231,3 +231,30 @@ export function noEntryId(/** @type {NoEntry} */ n) {
   const first = NO_ENTRY.find((x) => x.la === n.la && x.lo === n.lo) ?? n;
   return `n${first.sl}`;
 }
+
+/** The three tabs of the traffic sheet. Overview is both kinds at once; Parking and No entry are one each. */
+export const TRAFFIC_TABS = /** @type {const} */ (['Overview', 'Parking', 'No entry']);
+
+/** Which kinds does a tab show on the map? A null tab (filter off) shows neither. */
+export function kindsOfTab(/** @type {string | null} */ tab) {
+  return { parking: tab === 'Overview' || tab === 'Parking', noEntry: tab === 'Overview' || tab === 'No entry' };
+}
+
+/** The tab for a pair of kinds: both is Overview, none is null (filter off). */
+export function tabOfKinds(/** @type {boolean} */ parking, /** @type {boolean} */ noEntry) {
+  if (parking && noEntry) return /** @type {const} */ ('Overview');
+  if (parking) return /** @type {const} */ ('Parking');
+  return noEntry ? /** @type {const} */ ('No entry') : null;
+}
+
+/** Switch one kind on or off, keeping the other as it is. Returns the new tab, or null when nothing is left on. */
+export function toggleKind(/** @type {string | null} */ tab, /** @type {'parking' | 'noEntry'} */ kind) {
+  const k = kindsOfTab(tab);
+  return tabOfKinds(kind === 'parking' ? !k.parking : k.parking, kind === 'noEntry' ? !k.noEntry : k.noEntry);
+}
+
+/** The spots to draw for a tab: parking, no entry, both or none. */
+export function spotsOfTab(/** @type {ReturnType<typeof trafficSpots>} */ spots, /** @type {string | null} */ tab) {
+  const k = kindsOfTab(tab);
+  return spots.filter((t) => (t.k === 'p' ? k.parking : k.noEntry));
+}
