@@ -567,6 +567,7 @@ import {
   processionPujas,
   procPhase,
   entryLine,
+  welcomeDue,
   ROUTE,
   routePoints,
   walkMinutes,
@@ -785,4 +786,21 @@ test('the No entry and Parking filter: tabs and kinds stay in step, and it can b
   assert.ok(spotsOfTab(spots, 'No entry').every((s) => s.k === 'n'));
   assert.equal(spotsOfTab(spots, 'Overview').length, spots.length);
   assert.equal(spotsOfTab(spots, null).length, 0);
+});
+
+test('the entry card opens on every fresh open until the procession is over, then once a day', () => {
+  const at = (/** @type {number} */ d, /** @type {number} */ h, /** @type {number} */ m = 0) => Date.UTC(2026, 10, d, h, m) - 330 * 60_000;
+  const min = 60_000;
+  // First ever open, and an open after a long gap, show it, even on the same day.
+  assert.equal(welcomeDue(at(22, 11), 0, '', '2026-11-22'), true);
+  assert.equal(welcomeDue(at(22, 11), at(22, 9), '2026-11-22', '2026-11-22'), true);
+  // Back within 10 minutes: no card. At 10 minutes: card.
+  assert.equal(welcomeDue(at(22, 11, 9), at(22, 11), '2026-11-22', '2026-11-22'), false);
+  assert.equal(welcomeDue(at(22, 11, 10), at(22, 11), '2026-11-22', '2026-11-22'), true);
+  assert.equal(welcomeDue(at(22, 11) + 10 * min - 1, at(22, 11), '', '2026-11-22'), false);
+  // A clock that went backwards never hides the card for good.
+  assert.equal(welcomeDue(at(22, 11), at(22, 12), '', '2026-11-22'), true);
+  // After 7 AM on 23 Nov it is once a day again.
+  assert.equal(welcomeDue(at(23, 8), at(22, 20), '2026-11-22', '2026-11-23'), true);
+  assert.equal(welcomeDue(at(23, 9), at(23, 8), '2026-11-23', '2026-11-23'), false);
 });

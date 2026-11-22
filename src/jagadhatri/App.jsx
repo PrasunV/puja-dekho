@@ -63,7 +63,7 @@ import { Welcome } from './Welcome.jsx';
 import { EventActions, EventDetail, eventById, WhatsNew } from './events.jsx';
 import { WinnersDetail } from './winners.jsx';
 import { ProcessionSheet } from './procession.jsx';
-import { badgeCentres, processionPujas, procPhase, ROUTE, routePoints, WATCH, zoneInfo } from './procession.js';
+import { badgeCentres, processionPujas, procPhase, ROUTE, routePoints, WATCH, welcomeDue, zoneInfo } from './procession.js';
 import { WINNERS_EVENT_ID } from './winners.js';
 import { makePlan } from './plan.js';
 import { PlanView, RouteView, TrainsView } from './plan.jsx';
@@ -229,11 +229,26 @@ function Loaded({ data }) {
   const [choosing, setChoosing] = useState(/** @type {null | 'type' | 'stations' | 'more' | 'locate' | 'profile' | 'track'} */ (null));
   const [stationOpen, stationToggle] = useCollapse(choosing === 'stations');
   const [searchOpen, setSearchOpen] = useState(false);
-  // Welcome card: on the first open of each day, India time (About opens it again). Until it is closed, nothing else asks for anything.
-  const [welcome, setWelcome] = useState(() => storage.get('jg_welcome_day', '') !== istToday());
+  // Welcome card: on every open until the procession is over, unless the person was here in the last 10 minutes; after that once a day, India time (About opens it again). Until it is closed, nothing else asks for anything.
+  const [welcome, setWelcome] = useState(() =>
+    welcomeDue(Date.now(), storage.get('jg_seen_at', 0), storage.get('jg_welcome_day', ''), istToday()),
+  );
   const closeWelcome = useCallback(() => {
     setWelcome(false);
     storage.set('jg_welcome_day', istToday());
+    storage.set('jg_seen_at', Date.now());
+  }, []);
+  // The last moment in the app is kept when it goes to the background; coming back after 10 minutes opens the card again.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        storage.set('jg_seen_at', Date.now());
+      } else if (welcomeDue(Date.now(), storage.get('jg_seen_at', 0), storage.get('jg_welcome_day', ''), istToday())) {
+        setWelcome(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
   }, []);
   const [picked, setPicked] = useState(/** @type {{ kind: 'puja' | 'station', id: string, name: string } | null} */ (null));
   const [stationCentre, setStationCentre] = useState(/** @type {{ id: string, radius: number } | null} */ (null));

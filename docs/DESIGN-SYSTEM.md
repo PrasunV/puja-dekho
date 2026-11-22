@@ -50,7 +50,7 @@ Never use `#222` or black for a fill or border. Use `--maroon`.
 
 ## Daily entry card (Welcome sheet)
 
-`Welcome.jsx`, opened on the first visit of each day (India time) and from About. A bottom sheet (max 560 wide, 24 px top corners). The scrim closes it, as does the X, Escape and the phone's back button. Same card for everyone; new visitors also get three feature rows.
+`Welcome.jsx`, opened on every fresh open until the procession is over (7 AM Mon 23 Nov), then on the first visit of each day (India time), and always from About. A fresh open is an app start or a return from the background; if the person was in the app less than 10 minutes ago it does not show (`welcomeDue()`, `WELCOME_GAP_MS`). The last moment in the app is kept in `pd_jg_seen_at` when the app goes to the background or the card is closed. A bottom sheet (max 560 wide, 24 px top corners). The scrim closes it, as does the X, Escape and the phone's back button. Same card for everyone; new visitors also get three feature rows.
 
 | Part         | Spec                                                                                                                                                                               |
 | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

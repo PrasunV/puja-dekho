@@ -170,6 +170,23 @@ export function entryLine(now) {
   return now < PROCESSION_TO ? 'Happening now' : '';
 }
 
+/** Until the procession is over the card shows on every fresh open, unless the person was in the app this recently. */
+export const WELCOME_GAP_MS = 10 * 60_000;
+
+/**
+ * Whether the entry card should open now.
+ * Until the procession is over: on every open, except when the person was last in the app less than 10 minutes ago.
+ * After that: once a day (India time), as before.
+ * @param {number} now  ms since epoch
+ * @param {number} lastSeen  ms since epoch the person was last in the app (0 = never)
+ * @param {string} lastDay  the India date the card was last closed ('' = never)
+ * @param {string} today  the India date now
+ */
+export function welcomeDue(now, lastSeen, lastDay, today) {
+  if (now < PROCESSION_TO) return !(lastSeen > 0 && now >= lastSeen && now - lastSeen < WELCOME_GAP_MS);
+  return lastDay !== today;
+}
+
 /**
  * The pujas in the procession, in walking order.
  * @param {import('./lib.js').JgPuja[]} pujas
