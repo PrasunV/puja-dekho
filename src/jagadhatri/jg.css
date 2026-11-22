@@ -2796,7 +2796,7 @@ button.jg-ladder-row {
   color: var(--ink);
   text-align: center;
 }
-/* The animation slot. Deep red with a warm glow; the same in light and dark so a white close button always reads. */
+/* The animation slot. Plain white, the same in light and dark, so the art (drawn for white) always reads. */
 .jg-welcome-hero {
   position: relative;
   flex: none;
@@ -2805,20 +2805,18 @@ button.jg-ladder-row {
   display: grid;
   justify-items: center;
   border-radius: 24px 24px 0 0;
-  background:
-    radial-gradient(circle at 50% 120%, rgb(245 196 0 / 45%), transparent 60%), linear-gradient(180deg, #4a0e14, #7a1620); /* token-ok: festive hero, fixed in both themes */
+  background: #fff; /* token-ok: the art is drawn for white, so the slot is white in both themes */
 }
-/* The animation frame: always 16:9, up to 400 wide, centred. It never takes a tap. */
+/* The animation frame: 10:7, up to 400 wide, centred, no fill. The art is drawn 1.25x inside it (see the canvas) and the
+   frame clips. 10:7 is the height that holds the whole LED band at that zoom. It never takes a tap. */
 .jg-welcome-art {
   position: relative;
   width: 100%;
   max-width: 400px;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 10 / 7;
   overflow: hidden;
   display: grid;
   place-items: center;
-  border-radius: 12px;
-  background: rgb(0 0 0 / 28%);
   pointer-events: none;
 }
 .jg-welcome-fallback {
@@ -2831,9 +2829,10 @@ button.jg-ladder-row {
 }
 .jg-welcome-canvas {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  /* 125% of the frame, centred: the art is zoomed 1.25x and still drawn sharp (a CSS scale would blur it). */
+  inset: -12.5%;
+  width: 125%;
+  height: 125%;
   opacity: 0;
   transition: opacity 0.3s;
 }
@@ -2850,9 +2849,9 @@ button.jg-ladder-row {
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgb(0 0 0 / 35%);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 14%);
 }
-/* 48 x 48 tap target, 8 px from the corner, with a 36 px dark disc so the X reads on any animation. */
+/* 48 x 48 tap target, 8 px from the corner, with a 36 px light grey disc behind a dark X. */
 .jg-welcome-x {
   position: absolute;
   top: 8px;
@@ -2865,7 +2864,7 @@ button.jg-ladder-row {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #fff; /* token-ok: sits on the fixed dark hero */
+  color: #1b1b1f; /* token-ok: sits on the fixed white hero */
   cursor: pointer;
   isolation: isolate;
 }
@@ -2875,10 +2874,10 @@ button.jg-ladder-row {
   inset: 6px;
   z-index: -1;
   border-radius: 999px;
-  background: rgb(0 0 0 / 40%);
+  background: rgb(0 0 0 / 6%);
 }
 .jg-welcome-x:focus-visible {
-  outline: 2px solid #fff; /* token-ok: on the fixed dark hero */
+  outline: 2px solid #1b1b1f; /* token-ok: on the fixed white hero */
   outline-offset: -2px;
 }
 .jg-welcome-body {
@@ -3006,11 +3005,11 @@ button.jg-ladder-row {
 :root[data-theme='dark'] {
   --jg-credit-heart: #b31d24;
 }
-/* Short phones: the two buttons must stay on screen, so the frame shrinks (still 16:9) and the rows keep their
-   titles only. */
-@media (max-height: 700px) {
+/* Short phones: the two buttons must stay on screen, so the frame shrinks (still 10:7) and the rows keep their
+   titles only. Up to 800 high the frame is 296 wide; up to 700 it is 200. */
+@media (max-height: 800px) {
   .jg-welcome-art {
-    max-width: 224px;
+    max-width: 296px;
   }
   .jg-welcome-logo {
     width: 44px;
@@ -3029,6 +3028,11 @@ button.jg-ladder-row {
   }
   .jg-welcome-go {
     margin-top: 16px;
+  }
+}
+@media (max-height: 700px) {
+  .jg-welcome-art {
+    max-width: 200px;
   }
 }
 /* Very short phones (iPhone SE size): the rows go too, so both buttons are on screen without scrolling. */

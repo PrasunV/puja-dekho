@@ -30,8 +30,8 @@ function load() {
 }
 
 /**
- * The LED animation in a 16:9 frame. The art is a wide band across the middle of a square, so the frame crops the
- * empty top and bottom (fit cover) and nothing is lost. The logo holds the frame until the animation is ready, then
+ * The LED animation in a 10:7 frame on white, drawn 1.25x (the canvas is 125% of the frame; the frame clips). The art is
+ * a wide band across the middle of a square, so the frame crops the empty top and bottom (fit cover) and nothing is lost. The logo holds the frame until the animation is ready, then
  * fades out; it stays if the animation cannot load. With reduced motion it shows one lit frame and never plays. It
  * loops while the card is open and pauses when the page is hidden. It never takes a tap.
  * @param {{ logo: import('react').ReactNode }} props
